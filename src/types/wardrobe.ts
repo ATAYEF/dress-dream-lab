@@ -12,6 +12,7 @@ export interface ClothingItem {
 export interface OutfitSuggestion {
   id: string;
   items: ClothingItem[];
+  suggestionText?: string;
   generatedImageUrl?: string;
   createdAt: Date;
 }

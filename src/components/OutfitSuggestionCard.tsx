@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Heart, Share2 } from 'lucide-react';
+import { Sparkles, MessageSquare, Heart, Share2 } from 'lucide-react';
 import { OutfitSuggestion } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +14,8 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
   className,
   style,
 }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
   return (
     <div
       className={cn(
@@ -22,7 +24,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
       )}
       style={style}
     >
-      {/* Main image or grid */}
+      {/* Main content area */}
       {suggestion.generatedImageUrl ? (
         <div className="aspect-[3/4] overflow-hidden">
           <img
@@ -31,7 +33,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
         </div>
-      ) : (
+      ) : suggestion.items && suggestion.items.length > 0 ? (
         <div className="grid grid-cols-2 gap-1 p-1">
           {suggestion.items.slice(0, 4).map((item, index) => (
             <div
@@ -49,6 +51,10 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
             </div>
           ))}
         </div>
+      ) : (
+        <div className="aspect-[3/4] bg-cream flex items-center justify-center">
+          <MessageSquare className="w-12 h-12 text-muted-foreground" />
+        </div>
       )}
 
       {/* AI badge */}
@@ -57,8 +63,31 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
         <span>پیشنهاد AI</span>
       </div>
 
+      {/* Suggestion text */}
+      {suggestion.suggestionText && (
+        <div 
+          className={cn(
+            'p-4 bg-card cursor-pointer',
+            !isExpanded && 'max-h-24 overflow-hidden'
+          )}
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <p className={cn(
+            'text-sm text-foreground leading-relaxed whitespace-pre-wrap',
+            !isExpanded && 'line-clamp-3'
+          )}>
+            {suggestion.suggestionText}
+          </p>
+          {!isExpanded && suggestion.suggestionText.length > 150 && (
+            <button className="text-xs text-gold mt-2 hover:underline">
+              بیشتر بخوانید...
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Actions */}
-      <div className="absolute bottom-3 left-3 right-3 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+      <div className="absolute bottom-3 left-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
         <button className="p-2.5 bg-background/90 backdrop-blur-sm rounded-full hover:bg-rose/20 hover:text-rose transition-colors duration-300">
           <Heart className="w-4 h-4" />
         </button>
