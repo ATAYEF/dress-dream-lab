@@ -1,20 +1,41 @@
-import React from 'react';
-import { Sparkles, MessageSquare, Heart, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Sparkles, MessageSquare, Heart, Share2, Trash2 } from 'lucide-react';
 import { OutfitSuggestion } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 
 interface OutfitSuggestionCardProps {
   suggestion: OutfitSuggestion;
+  onToggleFavorite?: (id: string, isFavorite: boolean) => void;
+  onDelete?: (id: string) => void;
   className?: string;
   style?: React.CSSProperties;
 }
 
 export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
   suggestion,
+  onToggleFavorite,
+  onDelete,
   className,
   style,
 }) => {
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) {
+      setIsAnimating(true);
+      onToggleFavorite(suggestion.id, !suggestion.isFavorite);
+      setTimeout(() => setIsAnimating(false), 300);
+    }
+  };
+
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(suggestion.id);
+    }
+  };
 
   return (
     <div
@@ -57,10 +78,17 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
         </div>
       )}
 
-      {/* AI badge */}
-      <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-sm rounded-full text-xs font-medium">
-        <Sparkles className="w-3.5 h-3.5 text-[hsl(42,85%,55%)]" />
-        <span>پیشنهاد AI</span>
+      {/* Badges */}
+      <div className="absolute top-3 right-3 flex items-center gap-2">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-sm rounded-full text-xs font-medium">
+          <Sparkles className="w-3.5 h-3.5 text-[hsl(42,85%,55%)]" />
+          <span>پیشنهاد AI</span>
+        </div>
+        {suggestion.isFavorite && (
+          <div className="p-1.5 bg-rose/20 rounded-full">
+            <Heart className="w-3.5 h-3.5 text-rose fill-rose" />
+          </div>
+        )}
       </div>
 
       {/* Suggestion text */}
@@ -88,11 +116,23 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
 
       {/* Actions */}
       <div className="absolute bottom-3 left-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-        <button className="p-2.5 bg-background/90 backdrop-blur-sm rounded-full hover:bg-rose/20 hover:text-rose transition-colors duration-300">
-          <Heart className="w-4 h-4" />
+        <button 
+          onClick={handleFavoriteClick}
+          className={cn(
+            'p-2.5 backdrop-blur-sm rounded-full transition-all duration-300',
+            suggestion.isFavorite 
+              ? 'bg-rose/20 text-rose' 
+              : 'bg-background/90 hover:bg-rose/20 hover:text-rose',
+            isAnimating && 'scale-125'
+          )}
+        >
+          <Heart className={cn('w-4 h-4', suggestion.isFavorite && 'fill-current')} />
         </button>
-        <button className="p-2.5 bg-background/90 backdrop-blur-sm rounded-full hover:bg-[hsl(42,85%,55%)]/20 transition-colors duration-300">
-          <Share2 className="w-4 h-4" />
+        <button 
+          onClick={handleDeleteClick}
+          className="p-2.5 bg-background/90 backdrop-blur-sm rounded-full hover:bg-destructive/20 hover:text-destructive transition-colors duration-300"
+        >
+          <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>

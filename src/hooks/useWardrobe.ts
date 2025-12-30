@@ -85,6 +85,7 @@ export const useWardrobe = () => {
         items: [],
         suggestionText: item.suggestion_text || undefined,
         generatedImageUrl: item.generated_image_url || undefined,
+        isFavorite: item.is_favorite || false,
         createdAt: new Date(item.created_at),
       }));
 
@@ -153,7 +154,6 @@ export const useWardrobe = () => {
   // Remove clothing item
   const removeClothing = async (id: string) => {
     try {
-      // Find the item to get the image URL
       const item = clothes.find(c => c.id === id);
       
       const { error } = await supabase
@@ -163,7 +163,6 @@ export const useWardrobe = () => {
 
       if (error) throw error;
 
-      // Delete the image from storage
       if (item?.imageUrl) {
         await deleteClothingImage(item.imageUrl);
       }
@@ -179,6 +178,60 @@ export const useWardrobe = () => {
       toast({
         title: 'خطا',
         description: 'مشکلی در حذف لباس پیش آمد',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Toggle favorite suggestion
+  const toggleFavorite = async (id: string, isFavorite: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('outfit_suggestions')
+        .update({ is_favorite: isFavorite })
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setSuggestions(prev => 
+        prev.map(s => s.id === id ? { ...s, isFavorite } : s)
+      );
+      
+      toast({
+        title: isFavorite ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد',
+        description: isFavorite ? 'این ست در لیست علاقه‌مندی‌های شماست' : 'ست از علاقه‌مندی‌ها حذف شد',
+      });
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      toast({
+        title: 'خطا',
+        description: 'مشکلی پیش آمد',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Delete suggestion
+  const deleteSuggestion = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('outfit_suggestions')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setSuggestions(prev => prev.filter(s => s.id !== id));
+      
+      toast({
+        title: 'پیشنهاد حذف شد',
+        description: 'ست از لیست پیشنهادات حذف شد',
+      });
+    } catch (error) {
+      console.error('Error deleting suggestion:', error);
+      toast({
+        title: 'خطا',
+        description: 'مشکلی در حذف پیشنهاد پیش آمد',
         variant: 'destructive',
       });
     }
@@ -225,7 +278,6 @@ export const useWardrobe = () => {
         throw new Error(data.error);
       }
 
-      // Save suggestion to database
       const itemsForSuggestion = selectedItems.length >= 2 
         ? selectedItems 
         : clothes.slice(0, Math.min(4, clothes.length));
@@ -246,6 +298,7 @@ export const useWardrobe = () => {
         id: savedSuggestion.id,
         items: itemsForSuggestion,
         suggestionText: data.suggestion,
+        isFavorite: false,
         createdAt: new Date(savedSuggestion.created_at),
       };
 
@@ -283,16 +336,22 @@ export const useWardrobe = () => {
     }
   };
 
+  // Get favorite suggestions
+  const favoriteSuggestions = suggestions.filter(s => s.isFavorite);
+
   return {
     profile,
     clothes,
     suggestions,
+    favoriteSuggestions,
     isLoading,
     isGenerating,
     userId,
     addClothing,
     removeClothing,
     generateSuggestion,
+    toggleFavorite,
+    deleteSuggestion,
     updateProfile,
     fetchClothes,
   };
