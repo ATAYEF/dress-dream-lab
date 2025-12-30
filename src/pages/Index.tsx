@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, Wand2, LogIn, LogOut, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { ClothingCard } from '@/components/ClothingCard';
 import { AddClothingModal } from '@/components/AddClothingModal';
 import { EmptyState } from '@/components/EmptyState';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
+import { SearchFilter } from '@/components/SearchFilter';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,10 +37,44 @@ const Index = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [colorFilter, setColorFilter] = useState('');
 
-  const filteredClothes = activeCategory === 'all'
-    ? clothes
-    : clothes.filter((item) => item.category === activeCategory);
+  // Get unique colors from clothes
+  const availableColors = useMemo(() => {
+    const colors = clothes
+      .map(item => item.color)
+      .filter((color): color is string => !!color && color.trim() !== '');
+    return [...new Set(colors)];
+  }, [clothes]);
+
+  // Filter clothes based on category, search, and color
+  const filteredClothes = useMemo(() => {
+    let result = clothes;
+
+    // Filter by category
+    if (activeCategory !== 'all') {
+      result = result.filter(item => item.category === activeCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.trim().toLowerCase();
+      result = result.filter(item => 
+        item.name.toLowerCase().includes(query) ||
+        (item.color && item.color.toLowerCase().includes(query))
+      );
+    }
+
+    // Filter by color
+    if (colorFilter) {
+      result = result.filter(item => 
+        item.color && item.color.toLowerCase() === colorFilter.toLowerCase()
+      );
+    }
+
+    return result;
+  }, [clothes, activeCategory, searchQuery, colorFilter]);
 
   const displayedSuggestions = showFavoritesOnly ? favoriteSuggestions : suggestions;
 
@@ -65,6 +100,14 @@ const Index = () => {
       description: 'با موفقیت خارج شدید',
     });
   };
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setColorFilter('');
+    setActiveCategory('all');
+  };
+
+  const hasActiveFilters = searchQuery || colorFilter || activeCategory !== 'all';
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
@@ -198,7 +241,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
             <h2 className="text-2xl font-display font-semibold">کمد لباس شما</h2>
             <span className="text-sm text-muted-foreground">
-              {clothes.length} لباس
+              {filteredClothes.length} از {clothes.length} لباس
             </span>
           </div>
 
@@ -207,14 +250,34 @@ const Index = () => {
             onCategoryChange={setActiveCategory}
           />
 
+          {/* Search and Filter */}
+          {clothes.length > 0 && (
+            <div className="mt-4">
+              <SearchFilter
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                colorFilter={colorFilter}
+                onColorFilterChange={setColorFilter}
+                availableColors={availableColors}
+              />
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-10 h-10 border-4 border-gold/30 border-t-gold rounded-full animate-spin" />
             </div>
-          ) : filteredClothes.length === 0 ? (
+          ) : clothes.length === 0 ? (
             <EmptyState onAddClick={() => setIsModalOpen(true)} />
+          ) : filteredClothes.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">هیچ لباسی با این فیلترها یافت نشد</p>
+              <Button onClick={handleClearFilters} variant="soft" size="default">
+                پاک کردن فیلترها
+              </Button>
+            </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-4">
               {filteredClothes.map((item, index) => (
                 <ClothingCard
                   key={item.id}
