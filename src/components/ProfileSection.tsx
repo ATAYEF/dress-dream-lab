@@ -1,6 +1,5 @@
-import React from 'react';
-import { User, Sparkles } from 'lucide-react';
-import { ImageUploader } from './ImageUploader';
+import React, { useRef } from 'react';
+import { User, Sparkles, Upload } from 'lucide-react';
 import { UserProfile } from '@/types/wardrobe';
 
 interface ProfileSectionProps {
@@ -12,6 +11,19 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   profile,
   onProfileUpdate,
 }) => {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onProfileUpdate({ ...profile, imageUrl: reader.result as string });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
     <div className="relative bg-gradient-hero rounded-3xl p-6 md:p-8 overflow-hidden" dir="rtl">
       {/* Decorative elements */}
@@ -21,6 +33,14 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
       <div className="relative flex flex-col md:flex-row items-center gap-6">
         {/* Profile image */}
         <div className="relative">
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          
           {profile.imageUrl ? (
             <div className="relative group">
               <div className="w-28 h-28 md:w-36 md:h-36 rounded-full overflow-hidden ring-4 ring-gold/30 shadow-elevated">
@@ -32,20 +52,19 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </div>
               <button
                 onClick={() => onProfileUpdate({ ...profile, imageUrl: null })}
-                className="absolute bottom-0 right-0 p-2.5 bg-background rounded-full shadow-card opacity-0 group-hover:opacity-100 transition-smooth hover:bg-cream"
+                className="absolute bottom-0 right-0 p-2.5 bg-background rounded-full shadow-card opacity-0 group-hover:opacity-100 transition-all duration-300 hover:bg-cream"
               >
                 <User className="w-4 h-4" />
               </button>
             </div>
           ) : (
-            <div className="relative">
-              <ImageUploader
-                onImageUpload={(url) => onProfileUpdate({ ...profile, imageUrl: url })}
-                label="عکس شما"
-                className="w-28 h-28 md:w-36 md:h-36"
-                aspectRatio="square"
-              />
-            </div>
+            <button
+              onClick={() => inputRef.current?.click()}
+              className="w-28 h-28 md:w-36 md:h-36 rounded-full border-2 border-dashed border-border flex flex-col items-center justify-center gap-2 bg-cream/50 hover:bg-cream hover:border-gold transition-all duration-300 cursor-pointer"
+            >
+              <Upload className="w-6 h-6 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">عکس شما</span>
+            </button>
           )}
         </div>
 
