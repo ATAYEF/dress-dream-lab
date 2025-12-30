@@ -4,6 +4,12 @@ import { ClothingItem, ClothingCategory, OutfitSuggestion, UserProfile } from '@
 import { deleteClothingImage } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 
+const LOCAL_STORAGE_KEYS = {
+  CLOTHES: 'styler_clothes',
+  SUGGESTIONS: 'styler_suggestions',
+  PROFILE: 'styler_profile',
+};
+
 export const useWardrobe = () => {
   const [profile, setProfile] = useState<UserProfile>({ imageUrl: null });
   const [clothes, setClothes] = useState<ClothingItem[]>([]);
@@ -11,6 +17,51 @@ export const useWardrobe = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+
+  // Load from localStorage for anonymous users
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const savedClothes = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOTHES);
+      const savedSuggestions = localStorage.getItem(LOCAL_STORAGE_KEYS.SUGGESTIONS);
+      const savedProfile = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILE);
+
+      if (savedClothes) {
+        const parsed = JSON.parse(savedClothes);
+        setClothes(parsed.map((item: any) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+        })));
+      }
+
+      if (savedSuggestions) {
+        const parsed = JSON.parse(savedSuggestions);
+        setSuggestions(parsed.map((item: any) => ({
+          ...item,
+          createdAt: new Date(item.createdAt),
+          items: item.items?.map((i: any) => ({
+            ...i,
+            createdAt: new Date(i.createdAt),
+          })) || [],
+        })));
+      }
+
+      if (savedProfile) {
+        setProfile(JSON.parse(savedProfile));
+      }
+    } catch (error) {
+      console.error('Error loading from localStorage:', error);
+    }
+    setIsLoading(false);
+  }, []);
+
+  // Save to localStorage for anonymous users
+  const saveToLocalStorage = useCallback((key: string, data: any) => {
+    try {
+      localStorage.setItem(key, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+  }, []);
 
   // Fetch user session
   useEffect(() => {
@@ -20,16 +71,17 @@ export const useWardrobe = () => {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUserId(session?.user?.id ?? null);
+      if (!session?.user?.id) {
+        loadFromLocalStorage();
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [loadFromLocalStorage]);
 
-  // Fetch clothes from database
+  // Fetch clothes from database (for authenticated users)
   const fetchClothes = useCallback(async () => {
     if (!userId) {
-      setClothes([]);
-      setIsLoading(false);
       return;
     }
 
@@ -64,10 +116,9 @@ export const useWardrobe = () => {
     }
   }, [userId]);
 
-  // Fetch suggestions from database
+  // Fetch suggestions from database (for authenticated users)
   const fetchSuggestions = useCallback(async () => {
     if (!userId) {
-      setSuggestions([]);
       return;
     }
 
@@ -96,158 +147,173 @@ export const useWardrobe = () => {
   }, [userId]);
 
   useEffect(() => {
-    fetchClothes();
-    fetchSuggestions();
-  }, [fetchClothes, fetchSuggestions]);
+    if (userId) {
+      fetchClothes();
+      fetchSuggestions();
+    }
+  }, [userId, fetchClothes, fetchSuggestions]);
 
   // Add clothing item
   const addClothing = async (item: Omit<ClothingItem, 'id' | 'createdAt'>) => {
+    const newItem: ClothingItem = {
+      ...item,
+      id: Date.now().toString(),
+      createdAt: new Date(),
+    };
+
+    if (userId) {
+      // Authenticated user - save to database
+      try {
+        const { data, error } = await supabase
+          .from('clothing_items')
+          .insert({
+            user_id: userId,
+            name: item.name,
+            category: item.category,
+            image_url: item.imageUrl,
+            color: item.color,
+          })
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        newItem.id = data.id;
+        newItem.createdAt = new Date(data.created_at);
+      } catch (error) {
+        console.error('Error adding clothing:', error);
+        toast({
+          title: 'خطا',
+          description: 'مشکلی در افزودن لباس پیش آمد',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+
+    const updatedClothes = [newItem, ...clothes];
+    setClothes(updatedClothes);
+
     if (!userId) {
-      toast({
-        title: 'خطا',
-        description: 'لطفا ابتدا وارد شوید',
-        variant: 'destructive',
-      });
-      return;
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.CLOTHES, updatedClothes);
     }
 
-    try {
-      const { data, error } = await supabase
-        .from('clothing_items')
-        .insert({
-          user_id: userId,
-          name: item.name,
-          category: item.category,
-          image_url: item.imageUrl,
-          color: item.color,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      const newItem: ClothingItem = {
-        id: data.id,
-        name: data.name,
-        category: data.category as ClothingCategory,
-        imageUrl: data.image_url,
-        color: data.color || undefined,
-        createdAt: new Date(data.created_at),
-      };
-
-      setClothes(prev => [newItem, ...prev]);
-      
-      toast({
-        title: 'لباس اضافه شد',
-        description: `${item.name} به کمد شما اضافه شد`,
-      });
-    } catch (error) {
-      console.error('Error adding clothing:', error);
-      toast({
-        title: 'خطا',
-        description: 'مشکلی در افزودن لباس پیش آمد',
-        variant: 'destructive',
-      });
-    }
+    toast({
+      title: 'لباس اضافه شد',
+      description: `${item.name} به کمد شما اضافه شد`,
+    });
   };
 
   // Remove clothing item
   const removeClothing = async (id: string) => {
-    try {
-      const item = clothes.find(c => c.id === id);
-      
-      const { error } = await supabase
-        .from('clothing_items')
-        .delete()
-        .eq('id', id);
+    const item = clothes.find(c => c.id === id);
 
-      if (error) throw error;
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('clothing_items')
+          .delete()
+          .eq('id', id);
 
-      if (item?.imageUrl) {
-        await deleteClothingImage(item.imageUrl);
+        if (error) throw error;
+
+        if (item?.imageUrl && item.imageUrl.includes('supabase')) {
+          await deleteClothingImage(item.imageUrl);
+        }
+      } catch (error) {
+        console.error('Error removing clothing:', error);
+        toast({
+          title: 'خطا',
+          description: 'مشکلی در حذف لباس پیش آمد',
+          variant: 'destructive',
+        });
+        return;
       }
-
-      setClothes(prev => prev.filter(item => item.id !== id));
-      
-      toast({
-        title: 'لباس حذف شد',
-        description: 'لباس از کمد شما حذف شد',
-      });
-    } catch (error) {
-      console.error('Error removing clothing:', error);
-      toast({
-        title: 'خطا',
-        description: 'مشکلی در حذف لباس پیش آمد',
-        variant: 'destructive',
-      });
     }
+
+    const updatedClothes = clothes.filter(c => c.id !== id);
+    setClothes(updatedClothes);
+
+    if (!userId) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.CLOTHES, updatedClothes);
+    }
+
+    toast({
+      title: 'لباس حذف شد',
+      description: 'لباس از کمد شما حذف شد',
+    });
   };
 
   // Toggle favorite suggestion
   const toggleFavorite = async (id: string, isFavorite: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('outfit_suggestions')
-        .update({ is_favorite: isFavorite })
-        .eq('id', id);
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('outfit_suggestions')
+          .update({ is_favorite: isFavorite })
+          .eq('id', id);
 
-      if (error) throw error;
-
-      setSuggestions(prev => 
-        prev.map(s => s.id === id ? { ...s, isFavorite } : s)
-      );
-      
-      toast({
-        title: isFavorite ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد',
-        description: isFavorite ? 'این ست در لیست علاقه‌مندی‌های شماست' : 'ست از علاقه‌مندی‌ها حذف شد',
-      });
-    } catch (error) {
-      console.error('Error toggling favorite:', error);
-      toast({
-        title: 'خطا',
-        description: 'مشکلی پیش آمد',
-        variant: 'destructive',
-      });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error toggling favorite:', error);
+        toast({
+          title: 'خطا',
+          description: 'مشکلی پیش آمد',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
+
+    const updatedSuggestions = suggestions.map(s => 
+      s.id === id ? { ...s, isFavorite } : s
+    );
+    setSuggestions(updatedSuggestions);
+
+    if (!userId) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
+    }
+
+    toast({
+      title: isFavorite ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد',
+    });
   };
 
   // Delete suggestion
   const deleteSuggestion = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('outfit_suggestions')
-        .delete()
-        .eq('id', id);
+    if (userId) {
+      try {
+        const { error } = await supabase
+          .from('outfit_suggestions')
+          .delete()
+          .eq('id', id);
 
-      if (error) throw error;
-
-      setSuggestions(prev => prev.filter(s => s.id !== id));
-      
-      toast({
-        title: 'پیشنهاد حذف شد',
-        description: 'ست از لیست پیشنهادات حذف شد',
-      });
-    } catch (error) {
-      console.error('Error deleting suggestion:', error);
-      toast({
-        title: 'خطا',
-        description: 'مشکلی در حذف پیشنهاد پیش آمد',
-        variant: 'destructive',
-      });
+        if (error) throw error;
+      } catch (error) {
+        console.error('Error deleting suggestion:', error);
+        toast({
+          title: 'خطا',
+          description: 'مشکلی در حذف پیشنهاد پیش آمد',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
+
+    const updatedSuggestions = suggestions.filter(s => s.id !== id);
+    setSuggestions(updatedSuggestions);
+
+    if (!userId) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
+    }
+
+    toast({
+      title: 'پیشنهاد حذف شد',
+    });
   };
 
   // Generate outfit suggestion with AI
   const generateSuggestion = async (selectedItems: ClothingItem[]) => {
-    if (!userId) {
-      toast({
-        title: 'خطا',
-        description: 'لطفا ابتدا وارد شوید',
-        variant: 'destructive',
-      });
-      return;
-    }
-
     if (clothes.length < 2) {
       toast({
         title: 'لباس کافی نیست',
@@ -282,28 +348,45 @@ export const useWardrobe = () => {
         ? selectedItems 
         : clothes.slice(0, Math.min(4, clothes.length));
 
-      const { data: savedSuggestion, error: saveError } = await supabase
-        .from('outfit_suggestions')
-        .insert({
-          user_id: userId,
-          item_ids: itemsForSuggestion.map(i => i.id),
-          suggestion_text: data.suggestion,
-        })
-        .select()
-        .single();
+      let newSuggestion: OutfitSuggestion;
 
-      if (saveError) throw saveError;
+      if (userId) {
+        const { data: savedSuggestion, error: saveError } = await supabase
+          .from('outfit_suggestions')
+          .insert({
+            user_id: userId,
+            item_ids: itemsForSuggestion.map(i => i.id),
+            suggestion_text: data.suggestion,
+          })
+          .select()
+          .single();
 
-      const newSuggestion: OutfitSuggestion = {
-        id: savedSuggestion.id,
-        items: itemsForSuggestion,
-        suggestionText: data.suggestion,
-        isFavorite: false,
-        createdAt: new Date(savedSuggestion.created_at),
-      };
+        if (saveError) throw saveError;
 
-      setSuggestions(prev => [newSuggestion, ...prev]);
-      
+        newSuggestion = {
+          id: savedSuggestion.id,
+          items: itemsForSuggestion,
+          suggestionText: data.suggestion,
+          isFavorite: false,
+          createdAt: new Date(savedSuggestion.created_at),
+        };
+      } else {
+        newSuggestion = {
+          id: Date.now().toString(),
+          items: itemsForSuggestion,
+          suggestionText: data.suggestion,
+          isFavorite: false,
+          createdAt: new Date(),
+        };
+      }
+
+      const updatedSuggestions = [newSuggestion, ...suggestions];
+      setSuggestions(updatedSuggestions);
+
+      if (!userId) {
+        saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
+      }
+
       toast({
         title: 'ست جدید ایجاد شد!',
         description: 'پیشنهاد هوش مصنوعی برای شما آماده است',
@@ -323,8 +406,10 @@ export const useWardrobe = () => {
   // Update profile
   const updateProfile = async (newProfile: UserProfile) => {
     setProfile(newProfile);
-    
-    if (userId && newProfile.imageUrl) {
+
+    if (!userId) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, newProfile);
+    } else if (newProfile.imageUrl) {
       try {
         await supabase
           .from('profiles')
@@ -336,7 +421,6 @@ export const useWardrobe = () => {
     }
   };
 
-  // Get favorite suggestions
   const favoriteSuggestions = suggestions.filter(s => s.isFavorite);
 
   return {
