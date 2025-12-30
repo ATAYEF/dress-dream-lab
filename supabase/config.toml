@@ -1,4 +1,4 @@
 project_id = "ufnaesbflhbgdxqzkvcz"
 
 [functions.generate-outfit]
-verify_jwt = true
+verify_jwt = false

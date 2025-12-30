@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Wand2, LogIn, LogOut, User, Heart } from 'lucide-react';
+import { Plus, Sparkles, Wand2, LogIn, LogOut, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProfileSection } from '@/components/ProfileSection';
 import { CategoryTabs } from '@/components/CategoryTabs';
@@ -79,20 +79,18 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            <Button onClick={() => setIsModalOpen(true)} variant="gold" size="default">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">افزودن لباس</span>
+            </Button>
             {userId ? (
-              <>
-                <Button onClick={() => setIsModalOpen(true)} variant="gold" size="default">
-                  <Plus className="w-4 h-4" />
-                  <span className="hidden sm:inline">افزودن لباس</span>
-                </Button>
-                <Button onClick={handleLogout} variant="ghost" size="icon">
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              </>
+              <Button onClick={handleLogout} variant="ghost" size="icon">
+                <LogOut className="w-5 h-5" />
+              </Button>
             ) : (
-              <Button onClick={() => navigate('/auth')} variant="gold" size="default">
+              <Button onClick={() => navigate('/auth')} variant="ghost" size="default">
                 <LogIn className="w-4 h-4" />
-                <span>ورود / ثبت‌نام</span>
+                <span className="hidden sm:inline">ورود</span>
               </Button>
             )}
           </div>
@@ -105,26 +103,8 @@ const Index = () => {
           <ProfileSection profile={profile} onProfileUpdate={updateProfile} />
         </section>
 
-        {/* Login prompt for non-authenticated users */}
-        {!userId && (
-          <section className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            <div className="bg-cream rounded-2xl p-6 text-center">
-              <User className="w-12 h-12 mx-auto mb-4 text-gold" />
-              <h3 className="font-display text-xl font-semibold mb-2">
-                برای شروع وارد شوید
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                با ورود به حساب، لباس‌های خود را ذخیره کنید و ست‌های هوشمند دریافت کنید
-              </p>
-              <Button onClick={() => navigate('/auth')} variant="gold" size="lg">
-                ورود یا ثبت‌نام
-              </Button>
-            </div>
-          </section>
-        )}
-
-        {/* Generate Button - only for authenticated users */}
-        {userId && clothes.length >= 2 && (
+        {/* Generate Button */}
+        {clothes.length >= 2 && (
           <section className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
             <div className="bg-cream rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="text-center sm:text-right">
@@ -213,42 +193,57 @@ const Index = () => {
           </section>
         )}
 
-        {/* Wardrobe Section - only for authenticated users */}
-        {userId && (
-          <section className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-              <h2 className="text-2xl font-display font-semibold">کمد لباس شما</h2>
-              <span className="text-sm text-muted-foreground">
-                {clothes.length} لباس
-              </span>
+        {/* Wardrobe Section */}
+        <section className="animate-fade-up" style={{ animationDelay: '0.2s' }}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-2xl font-display font-semibold">کمد لباس شما</h2>
+            <span className="text-sm text-muted-foreground">
+              {clothes.length} لباس
+            </span>
+          </div>
+
+          <CategoryTabs
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+          />
+
+          {isLoading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="w-10 h-10 border-4 border-gold/30 border-t-gold rounded-full animate-spin" />
             </div>
+          ) : filteredClothes.length === 0 ? (
+            <EmptyState onAddClick={() => setIsModalOpen(true)} />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
+              {filteredClothes.map((item, index) => (
+                <ClothingCard
+                  key={item.id}
+                  item={item}
+                  onRemove={removeClothing}
+                  onSelect={handleSelectItem}
+                  isSelected={selectedItems.some((i) => i.id === item.id)}
+                  className="animate-scale-in"
+                  style={{ animationDelay: `${index * 0.05}s` }}
+                />
+              ))}
+            </div>
+          )}
+        </section>
 
-            <CategoryTabs
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-            />
-
-            {isLoading ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="w-10 h-10 border-4 border-gold/30 border-t-gold rounded-full animate-spin" />
-              </div>
-            ) : filteredClothes.length === 0 ? (
-              <EmptyState onAddClick={() => setIsModalOpen(true)} />
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-6">
-                {filteredClothes.map((item, index) => (
-                  <ClothingCard
-                    key={item.id}
-                    item={item}
-                    onRemove={removeClothing}
-                    onSelect={handleSelectItem}
-                    isSelected={selectedItems.some((i) => i.id === item.id)}
-                    className="animate-scale-in"
-                    style={{ animationDelay: `${index * 0.05}s` }}
-                  />
-                ))}
-              </div>
-            )}
+        {/* Login hint for anonymous users */}
+        {!userId && clothes.length > 0 && (
+          <section className="animate-fade-up">
+            <div className="bg-cream-dark/50 rounded-2xl p-4 text-center">
+              <p className="text-sm text-muted-foreground">
+                برای ذخیره دائمی لباس‌ها و ست‌ها،{' '}
+                <button 
+                  onClick={() => navigate('/auth')}
+                  className="text-gold hover:underline font-medium"
+                >
+                  وارد شوید یا ثبت‌نام کنید
+                </button>
+              </p>
+            </div>
           </section>
         )}
       </main>

@@ -52,7 +52,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   };
 
   const handleSubmit = async () => {
-    if (!imageFile || !name || !userId) {
+    if (!imageFile || !name) {
       toast({
         title: 'خطا',
         description: 'لطفا تصویر و نام لباس را وارد کنید',
@@ -64,16 +64,17 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
     setIsUploading(true);
 
     try {
-      // Compress the image
-      const compressedBlob = await compressImage(imageFile);
-      const compressedFile = new File([compressedBlob], imageFile.name, {
-        type: 'image/jpeg',
-      });
+      let imageUrl = imagePreview;
 
-      // Upload to storage
-      const imageUrl = await uploadClothingImage(compressedFile, userId);
+      // Only upload to storage if user is logged in
+      if (userId) {
+        const compressedBlob = await compressImage(imageFile);
+        const compressedFile = new File([compressedBlob], imageFile.name, {
+          type: 'image/jpeg',
+        });
+        imageUrl = await uploadClothingImage(compressedFile, userId);
+      }
 
-      // Add the clothing item
       onAdd({
         name,
         category,
@@ -89,10 +90,10 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
       setColor('');
       onClose();
     } catch (error) {
-      console.error('Error uploading image:', error);
+      console.error('Error:', error);
       toast({
         title: 'خطا',
-        description: error instanceof Error ? error.message : 'مشکلی در آپلود تصویر پیش آمد',
+        description: error instanceof Error ? error.message : 'مشکلی پیش آمد',
         variant: 'destructive',
       });
     } finally {
@@ -201,12 +202,18 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
             {isUploading ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>در حال آپلود...</span>
+                <span>در حال ذخیره...</span>
               </>
             ) : (
               'افزودن به کمد'
             )}
           </Button>
+
+          {!userId && (
+            <p className="text-xs text-muted-foreground text-center">
+              برای ذخیره دائمی لباس‌ها، وارد حساب خود شوید
+            </p>
+          )}
         </div>
       </div>
     </div>
