@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ClothingItem, ClothingCategory, OutfitSuggestion, UserProfile } from '@/types/wardrobe';
+import { deleteClothingImage } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
 
 export const useWardrobe = () => {
@@ -81,7 +82,7 @@ export const useWardrobe = () => {
 
       const items: OutfitSuggestion[] = (data || []).map(item => ({
         id: item.id,
-        items: [], // We'll populate this from item_ids later if needed
+        items: [],
         suggestionText: item.suggestion_text || undefined,
         generatedImageUrl: item.generated_image_url || undefined,
         createdAt: new Date(item.created_at),
@@ -152,12 +153,20 @@ export const useWardrobe = () => {
   // Remove clothing item
   const removeClothing = async (id: string) => {
     try {
+      // Find the item to get the image URL
+      const item = clothes.find(c => c.id === id);
+      
       const { error } = await supabase
         .from('clothing_items')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
+
+      // Delete the image from storage
+      if (item?.imageUrl) {
+        await deleteClothingImage(item.imageUrl);
+      }
 
       setClothes(prev => prev.filter(item => item.id !== id));
       

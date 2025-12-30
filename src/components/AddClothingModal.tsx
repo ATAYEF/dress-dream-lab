@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageUploader } from './ImageUploader';
 import { ClothingCategory, ClothingItem } from '@/types/wardrobe';
+import { uploadClothingImage, compressImage } from '@/lib/storage';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 interface AddClothingModalProps {
@@ -25,20 +28,85 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   onClose,
   onAdd,
 }) => {
-  const [imageUrl, setImageUrl] = useState<string>('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
   const [name, setName] = useState('');
   const [category, setCategory] = useState<ClothingCategory>('tops');
+  const [color, setColor] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    if (imageUrl && name) {
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+    });
+  }, []);
+
+  const handleImageSelect = (file: File) => {
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!imageFile || !name || !userId) {
+      toast({
+        title: 'خطا',
+        description: 'لطفا تصویر و نام لباس را وارد کنید',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      // Compress the image
+      const compressedBlob = await compressImage(imageFile);
+      const compressedFile = new File([compressedBlob], imageFile.name, {
+        type: 'image/jpeg',
+      });
+
+      // Upload to storage
+      const imageUrl = await uploadClothingImage(compressedFile, userId);
+
+      // Add the clothing item
       onAdd({
         name,
         category,
         imageUrl,
+        color: color || undefined,
       });
-      setImageUrl('');
+
+      // Reset form
+      setImageFile(null);
+      setImagePreview('');
       setName('');
       setCategory('tops');
+      setColor('');
+      onClose();
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast({
+        title: 'خطا',
+        description: error instanceof Error ? error.message : 'مشکلی در آپلود تصویر پیش آمد',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleClose = () => {
+    if (!isUploading) {
+      setImageFile(null);
+      setImagePreview('');
+      setName('');
+      setCategory('tops');
+      setColor('');
       onClose();
     }
   };
@@ -50,14 +118,15 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-foreground/50 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
+        onClick={handleClose}
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-md bg-background rounded-2xl shadow-elevated p-6 animate-scale-in" dir="rtl">
+      <div className="relative w-full max-w-md bg-background rounded-2xl shadow-elevated p-6 animate-scale-in max-h-[90vh] overflow-y-auto" dir="rtl">
         <button
-          onClick={onClose}
-          className="absolute top-4 left-4 p-2 hover:bg-muted rounded-full transition-smooth"
+          onClick={handleClose}
+          disabled={isUploading}
+          className="absolute top-4 left-4 p-2 hover:bg-muted rounded-full transition-colors disabled:opacity-50"
         >
           <X className="w-5 h-5" />
         </button>
@@ -66,11 +135,15 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
 
         <div className="space-y-5">
           <ImageUploader
-            onImageUpload={setImageUrl}
-            currentImage={imageUrl}
-            onRemove={() => setImageUrl('')}
+            onFileSelect={handleImageSelect}
+            currentImage={imagePreview}
+            onRemove={() => {
+              setImageFile(null);
+              setImagePreview('');
+            }}
             label="عکس لباس"
             aspectRatio="square"
+            disabled={isUploading}
           />
 
           <div>
@@ -80,7 +153,20 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="مثال: پیراهن آبی"
-              className="w-full px-4 py-3 bg-cream border border-border rounded-xl focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-smooth"
+              disabled={isUploading}
+              className="w-full px-4 py-3 bg-cream border border-border rounded-xl focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all disabled:opacity-50"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">رنگ (اختیاری)</label>
+            <input
+              type="text"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              placeholder="مثال: آبی نفتی"
+              disabled={isUploading}
+              className="w-full px-4 py-3 bg-cream border border-border rounded-xl focus:ring-2 focus:ring-gold focus:border-transparent outline-none transition-all disabled:opacity-50"
             />
           </div>
 
@@ -91,8 +177,9 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                 <button
                   key={cat.id}
                   onClick={() => setCategory(cat.id)}
+                  disabled={isUploading}
                   className={cn(
-                    'py-2.5 px-3 rounded-xl text-sm font-medium transition-smooth',
+                    'py-2.5 px-3 rounded-xl text-sm font-medium transition-all disabled:opacity-50',
                     category === cat.id
                       ? 'bg-foreground text-background'
                       : 'bg-cream hover:bg-cream-dark'
@@ -106,12 +193,19 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
 
           <Button
             onClick={handleSubmit}
-            disabled={!imageUrl || !name}
+            disabled={!imageFile || !name || isUploading}
             variant="gold"
             size="lg"
             className="w-full mt-4"
           >
-            افزودن به کمد
+            {isUploading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                <span>در حال آپلود...</span>
+              </>
+            ) : (
+              'افزودن به کمد'
+            )}
           </Button>
         </div>
       </div>
