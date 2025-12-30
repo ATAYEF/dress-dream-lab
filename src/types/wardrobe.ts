@@ -14,6 +14,7 @@ export interface OutfitSuggestion {
   items: ClothingItem[];
   suggestionText?: string;
   generatedImageUrl?: string;
+  isFavorite?: boolean;
   createdAt: Date;
 }
 
