@@ -18,63 +18,104 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
 
   return (
     <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
-      {/* Mannequin SVG Silhouette */}
+      {/* Elegant Mannequin SVG */}
       <svg 
-        viewBox="0 0 200 340" 
-        className="absolute inset-0 w-full h-full"
+        viewBox="0 0 200 400" 
+        className="absolute inset-0 w-full h-full drop-shadow-sm"
         fill="none"
       >
-        {/* Head */}
-        <ellipse cx="100" cy="28" rx="22" ry="26" className="fill-muted/30 stroke-muted-foreground/20" strokeWidth="1.5" />
+        <defs>
+          <linearGradient id="skinGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="hsl(30, 30%, 85%)" />
+            <stop offset="100%" stopColor="hsl(25, 25%, 75%)" />
+          </linearGradient>
+          <linearGradient id="hairGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="hsl(25, 40%, 25%)" />
+            <stop offset="100%" stopColor="hsl(20, 35%, 18%)" />
+          </linearGradient>
+          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.15"/>
+          </filter>
+        </defs>
+
+        {/* Hair */}
+        <ellipse cx="100" cy="30" rx="28" ry="30" fill="url(#hairGradient)" />
+        <path 
+          d="M72 30 Q65 50 70 70 Q75 55 80 45 Q85 55 90 50 L90 42 Q85 50 80 42 Q75 48 72 30" 
+          fill="url(#hairGradient)"
+        />
+        <path 
+          d="M128 30 Q135 50 130 70 Q125 55 120 45 Q115 55 110 50 L110 42 Q115 50 120 42 Q125 48 128 30" 
+          fill="url(#hairGradient)"
+        />
+
+        {/* Face */}
+        <ellipse cx="100" cy="45" rx="22" ry="26" fill="url(#skinGradient)" filter="url(#softShadow)" />
+        
+        {/* Face features */}
+        <ellipse cx="92" cy="42" rx="3" ry="2" fill="hsl(25, 20%, 30%)" />
+        <ellipse cx="108" cy="42" rx="3" ry="2" fill="hsl(25, 20%, 30%)" />
+        <path d="M96 52 Q100 55 104 52" stroke="hsl(0, 40%, 65%)" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <path d="M97 48 L100 50 L103 48" stroke="hsl(25, 25%, 55%)" strokeWidth="1" fill="none" />
         
         {/* Neck */}
-        <path d="M92 52 L92 65 L108 65 L108 52" className="fill-muted/30 stroke-muted-foreground/20" strokeWidth="1.5" />
-        
-        {/* Shoulders and Torso */}
+        <path d="M92 68 L92 82 Q100 85 108 82 L108 68" fill="url(#skinGradient)" />
+
+        {/* Shoulders */}
         <path 
-          d="M92 65 L50 80 L45 85 L50 90 L55 88 L60 130 L65 175 L135 175 L140 130 L145 88 L150 90 L155 85 L150 80 L108 65" 
-          className="fill-muted/20 stroke-muted-foreground/20" 
-          strokeWidth="1.5"
+          d="M92 82 Q70 88 55 95 Q50 98 52 105 L60 103 Q75 98 92 95" 
+          fill="url(#skinGradient)"
         />
-        
-        {/* Arms Left */}
         <path 
-          d="M50 90 L35 140 L30 175 L40 178 L48 145 L55 115" 
-          className="fill-muted/20 stroke-muted-foreground/20" 
-          strokeWidth="1.5"
+          d="M108 82 Q130 88 145 95 Q150 98 148 105 L140 103 Q125 98 108 95" 
+          fill="url(#skinGradient)"
         />
-        
-        {/* Arms Right */}
+
+        {/* Arms */}
         <path 
-          d="M150 90 L165 140 L170 175 L160 178 L152 145 L145 115" 
-          className="fill-muted/20 stroke-muted-foreground/20" 
-          strokeWidth="1.5"
+          d="M52 105 Q45 140 42 175 Q40 190 45 192 Q50 190 52 175 Q55 145 60 115" 
+          fill="url(#skinGradient)"
         />
-        
-        {/* Legs */}
         <path 
-          d="M65 175 L60 260 L55 310 L75 312 L80 265 L100 180 L120 265 L125 312 L145 310 L140 260 L135 175" 
-          className="fill-muted/20 stroke-muted-foreground/20" 
-          strokeWidth="1.5"
+          d="M148 105 Q155 140 158 175 Q160 190 155 192 Q150 190 148 175 Q145 145 140 115" 
+          fill="url(#skinGradient)"
         />
-        
+
+        {/* Hands */}
+        <ellipse cx="43" cy="195" rx="8" ry="12" fill="url(#skinGradient)" />
+        <ellipse cx="157" cy="195" rx="8" ry="12" fill="url(#skinGradient)" />
+
+        {/* Torso outline (visible when no clothes) */}
+        <path 
+          d="M92 95 L65 100 L62 180 Q80 185 100 185 Q120 185 138 180 L135 100 L108 95 Q100 92 92 95" 
+          className="fill-muted/10 stroke-muted/20"
+          strokeWidth="1"
+        />
+
+        {/* Legs outline (visible when no clothes) */}
+        <path 
+          d="M62 180 L60 280 Q58 320 62 355 L75 355 Q78 320 80 290 L100 190 L120 290 Q122 320 125 355 L138 355 Q142 320 140 280 L138 180" 
+          className="fill-muted/10 stroke-muted/20"
+          strokeWidth="1"
+        />
+
         {/* Feet */}
-        <ellipse cx="65" cy="322" rx="18" ry="8" className="fill-muted/20 stroke-muted-foreground/20" strokeWidth="1.5" />
-        <ellipse cx="135" cy="322" rx="18" ry="8" className="fill-muted/20 stroke-muted-foreground/20" strokeWidth="1.5" />
+        <ellipse cx="68" cy="365" rx="18" ry="10" fill="url(#skinGradient)" />
+        <ellipse cx="132" cy="365" rx="18" ry="10" fill="url(#skinGradient)" />
       </svg>
 
-      {/* Clothing Overlays */}
+      {/* Clothing Overlays - Fitted to body shape */}
       
-      {/* Accessory (hat/necklace area) */}
+      {/* Accessory (hat/jewelry) */}
       {accessory && (
         <div 
-          className="absolute rounded-full overflow-hidden border-2 border-background shadow-lg"
+          className="absolute overflow-hidden rounded-full shadow-md border border-background/50"
           style={{ 
-            top: '0%', 
+            top: '1%', 
             left: '50%', 
             transform: 'translateX(-50%)',
-            width: '20%',
-            height: '8%'
+            width: '22%',
+            height: '7%',
           }}
         >
           <img 
@@ -85,15 +126,16 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Outerwear (jacket/coat) - behind other items */}
+      {/* Outerwear (jacket/coat) - Fitted to torso with arms */}
       {outerwear && (
         <div 
-          className="absolute rounded-xl overflow-hidden border-2 border-background shadow-lg opacity-90"
+          className="absolute overflow-hidden shadow-lg z-10"
           style={{ 
-            top: '18%', 
-            left: '10%', 
-            width: '80%',
-            height: '35%'
+            top: '20%', 
+            left: '12%', 
+            width: '76%',
+            height: '30%',
+            clipPath: 'polygon(20% 0%, 80% 0%, 95% 8%, 100% 100%, 85% 98%, 80% 40%, 50% 45%, 20% 40%, 15% 98%, 0% 100%, 5% 8%)',
           }}
         >
           <img 
@@ -104,72 +146,76 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Dress (full body) */}
+      {/* Dress (full body) - Fitted silhouette */}
       {dress && !top && !bottom && (
         <div 
-          className="absolute rounded-xl overflow-hidden border-2 border-background shadow-lg"
+          className="absolute overflow-hidden shadow-lg"
           style={{ 
-            top: '19%', 
+            top: '22%', 
             left: '18%', 
             width: '64%',
-            height: '45%'
+            height: '48%',
+            clipPath: 'polygon(25% 0%, 75% 0%, 80% 5%, 85% 25%, 90% 60%, 95% 100%, 5% 100%, 10% 60%, 15% 25%, 20% 5%)',
           }}
         >
           <img 
             src={dress.imageUrl} 
             alt={dress.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover scale-110"
           />
         </div>
       )}
 
-      {/* Top (shirt/blouse) */}
+      {/* Top (shirt/blouse) - Fitted to torso shape */}
       {top && (
         <div 
-          className="absolute rounded-xl overflow-hidden border-2 border-background shadow-lg"
+          className="absolute overflow-hidden shadow-lg"
           style={{ 
-            top: '19%', 
-            left: '20%', 
-            width: '60%',
-            height: '25%'
+            top: '22%', 
+            left: '17%', 
+            width: '66%',
+            height: '24%',
+            clipPath: 'polygon(22% 0%, 78% 0%, 85% 8%, 100% 20%, 95% 100%, 50% 95%, 5% 100%, 0% 20%, 15% 8%)',
           }}
         >
           <img 
             src={top.imageUrl} 
             alt={top.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover scale-110"
           />
         </div>
       )}
 
-      {/* Bottom (pants/skirt) */}
+      {/* Bottom (pants/skirt) - Fitted to legs shape */}
       {bottom && (
         <div 
-          className="absolute rounded-xl overflow-hidden border-2 border-background shadow-lg"
+          className="absolute overflow-hidden shadow-lg"
           style={{ 
-            top: '43%', 
-            left: '22%', 
-            width: '56%',
-            height: '32%'
+            top: '44%', 
+            left: '18%', 
+            width: '64%',
+            height: '42%',
+            clipPath: 'polygon(5% 0%, 95% 0%, 90% 30%, 85% 60%, 80% 100%, 58% 98%, 50% 50%, 42% 98%, 20% 100%, 15% 60%, 10% 30%)',
           }}
         >
           <img 
             src={bottom.imageUrl} 
             alt={bottom.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover scale-105"
           />
         </div>
       )}
 
-      {/* Shoes */}
+      {/* Shoes - Fitted to feet */}
       {shoes && (
         <div 
-          className="absolute rounded-lg overflow-hidden border-2 border-background shadow-lg"
+          className="absolute overflow-hidden shadow-md"
           style={{ 
-            top: '85%', 
-            left: '25%', 
-            width: '50%',
-            height: '12%'
+            top: '88%', 
+            left: '20%', 
+            width: '60%',
+            height: '10%',
+            clipPath: 'polygon(5% 50%, 15% 0%, 35% 20%, 50% 50%, 65% 20%, 85% 0%, 95% 50%, 85% 100%, 15% 100%)',
           }}
         >
           <img 
@@ -183,7 +229,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Empty state */}
       {items.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-muted-foreground text-sm">بدون لباس</p>
+          <p className="text-muted-foreground text-sm">لباسی انتخاب نشده</p>
         </div>
       )}
     </div>
