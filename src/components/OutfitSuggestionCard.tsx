@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, MessageSquare, Heart, Share2, Trash2 } from 'lucide-react';
 import { OutfitSuggestion } from '@/types/wardrobe';
+import { MannequinDisplay } from './MannequinDisplay';
 import { cn } from '@/lib/utils';
 
 interface OutfitSuggestionCardProps {
@@ -45,7 +46,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
       )}
       style={style}
     >
-      {/* Main content area */}
+      {/* Main content area - Mannequin Display */}
       {suggestion.generatedImageUrl ? (
         <div className="aspect-[3/4] overflow-hidden">
           <img
@@ -55,22 +56,8 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
           />
         </div>
       ) : suggestion.items && suggestion.items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-1 p-1">
-          {suggestion.items.slice(0, 4).map((item, index) => (
-            <div
-              key={item.id}
-              className={cn(
-                'aspect-square overflow-hidden rounded-lg',
-                suggestion.items.length === 3 && index === 2 && 'col-span-2 aspect-[2/1]'
-              )}
-            >
-              <img
-                src={item.imageUrl}
-                alt={item.name}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ))}
+        <div className="aspect-[3/4] bg-gradient-to-b from-cream to-cream-dark/30 p-4 flex items-center justify-center">
+          <MannequinDisplay items={suggestion.items} />
         </div>
       ) : (
         <div className="aspect-[3/4] bg-cream flex items-center justify-center">
