@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, Wand2, LogIn, LogOut, Heart } from 'lucide-react';
+import { Plus, Sparkles, LogIn, LogOut, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProfileSection } from '@/components/ProfileSection';
 import { CategoryTabs } from '@/components/CategoryTabs';
@@ -8,6 +8,7 @@ import { ClothingCard } from '@/components/ClothingCard';
 import { AddClothingModal } from '@/components/AddClothingModal';
 import { EmptyState } from '@/components/EmptyState';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
+import { OutfitBuilder } from '@/components/OutfitBuilder';
 import { SearchFilter } from '@/components/SearchFilter';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
@@ -35,7 +36,6 @@ const Index = () => {
 
   const [activeCategory, setActiveCategory] = useState<ClothingCategory | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedItems, setSelectedItems] = useState<ClothingItem[]>([]);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -77,21 +77,6 @@ const Index = () => {
   }, [clothes, activeCategory, searchQuery, colorFilter]);
 
   const displayedSuggestions = showFavoritesOnly ? favoriteSuggestions : suggestions;
-
-  const handleSelectItem = (item: ClothingItem) => {
-    setSelectedItems((prev) => {
-      const isSelected = prev.find((i) => i.id === item.id);
-      if (isSelected) {
-        return prev.filter((i) => i.id !== item.id);
-      }
-      return [...prev, item];
-    });
-  };
-
-  const handleGenerateSuggestion = async () => {
-    await generateSuggestion(selectedItems);
-    setSelectedItems([]);
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -146,42 +131,15 @@ const Index = () => {
           <ProfileSection profile={profile} onProfileUpdate={updateProfile} />
         </section>
 
-        {/* Generate Button */}
+        {/* Outfit Builder with Drag & Drop */}
         {clothes.length >= 2 && (
           <section className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
-            <div className="bg-cream rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="text-center sm:text-right">
-                <h3 className="font-display text-lg font-semibold mb-1">
-                  {selectedItems.length >= 2 
-                    ? `${selectedItems.length} لباس انتخاب شده`
-                    : 'ست پیشنهادی بسازید'}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {selectedItems.length >= 2 
-                    ? 'روی دکمه کلیک کنید تا ست ایجاد شود'
-                    : 'لباس‌ها را انتخاب کنید یا اجازه دهید AI پیشنهاد دهد'}
-                </p>
-              </div>
-              <Button 
-                onClick={handleGenerateSuggestion} 
-                variant="elegant" 
-                size="lg"
-                disabled={isGenerating}
-                className="min-w-[160px]"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                    <span>در حال ایجاد...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="w-5 h-5" />
-                    <span>ساخت ست با AI</span>
-                  </>
-                )}
-              </Button>
-            </div>
+            <h2 className="text-2xl font-display font-semibold mb-4">ست‌ساز هوشمند</h2>
+            <OutfitBuilder
+              clothes={clothes}
+              onGenerateSuggestion={generateSuggestion}
+              isGenerating={isGenerating}
+            />
           </section>
         )}
 
@@ -283,8 +241,6 @@ const Index = () => {
                   key={item.id}
                   item={item}
                   onRemove={removeClothing}
-                  onSelect={handleSelectItem}
-                  isSelected={selectedItems.some((i) => i.id === item.id)}
                   className="animate-scale-in"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 />
