@@ -74,7 +74,6 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileChange}
         disabled={disabled}
         className="hidden"
