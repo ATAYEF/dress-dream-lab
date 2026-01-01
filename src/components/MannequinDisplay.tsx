@@ -109,7 +109,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Accessory (hat/jewelry) */}
       {accessory && (
         <div 
-          className="absolute overflow-hidden rounded-full shadow-md border border-background/50"
+          key={accessory.id}
+          className="absolute overflow-hidden rounded-full shadow-md border border-background/50 animate-scale-in"
           style={{ 
             top: '1%', 
             left: '50%', 
@@ -129,7 +130,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Outerwear (jacket/coat) - Fitted to torso with arms */}
       {outerwear && (
         <div 
-          className="absolute overflow-hidden shadow-lg z-10"
+          key={outerwear.id}
+          className="absolute overflow-hidden shadow-lg z-10 animate-scale-in"
           style={{ 
             top: '20%', 
             left: '12%', 
@@ -149,7 +151,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Dress (full body) - Fitted silhouette */}
       {dress && !top && !bottom && (
         <div 
-          className="absolute overflow-hidden shadow-lg"
+          key={dress.id}
+          className="absolute overflow-hidden shadow-lg animate-scale-in"
           style={{ 
             top: '22%', 
             left: '18%', 
@@ -169,7 +172,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Top (shirt/blouse) - Fitted to torso shape */}
       {top && (
         <div 
-          className="absolute overflow-hidden shadow-lg"
+          key={top.id}
+          className="absolute overflow-hidden shadow-lg animate-scale-in"
           style={{ 
             top: '22%', 
             left: '17%', 
@@ -189,7 +193,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Bottom (pants/skirt) - Fitted to legs shape */}
       {bottom && (
         <div 
-          className="absolute overflow-hidden shadow-lg"
+          key={bottom.id}
+          className="absolute overflow-hidden shadow-lg animate-scale-in"
           style={{ 
             top: '44%', 
             left: '18%', 
@@ -209,7 +214,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       {/* Shoes - Fitted to feet */}
       {shoes && (
         <div 
-          className="absolute overflow-hidden shadow-md"
+          key={shoes.id}
+          className="absolute overflow-hidden shadow-md animate-scale-in"
           style={{ 
             top: '88%', 
             left: '20%', 
