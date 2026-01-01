@@ -21,7 +21,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   aspectRatio = 'square',
   disabled = false,
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,13 +39,12 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
       }
       onFileSelect(file);
     }
-    // Reset input
-    if (inputRef.current) {
-      inputRef.current.value = '';
-    }
+    // Reset inputs
+    if (galleryInputRef.current) galleryInputRef.current.value = '';
+    if (cameraInputRef.current) cameraInputRef.current.value = '';
   }, [onFileSelect]);
 
-  const handleDrop = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     if (disabled) return;
     
@@ -58,7 +58,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     }
   }, [onFileSelect, disabled]);
 
-  const handleDragOver = useCallback((e: React.DragEvent<HTMLLabelElement>) => {
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
   }, []);
 
@@ -68,16 +68,31 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
     landscape: 'aspect-[4/3]',
   };
 
+  const uniqueId = label.replace(/\s+/g, '-');
+
   return (
     <div className={cn('relative group', className)}>
+      {/* Gallery Input */}
       <input
-        ref={inputRef}
+        ref={galleryInputRef}
         type="file"
         accept="image/*"
         onChange={handleFileChange}
         disabled={disabled}
         className="hidden"
-        id={`image-upload-${label}`}
+        id={`gallery-upload-${uniqueId}`}
+      />
+      
+      {/* Camera Input */}
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        onChange={handleFileChange}
+        disabled={disabled}
+        className="hidden"
+        id={`camera-upload-${uniqueId}`}
       />
       
       {currentImage ? (
@@ -97,42 +112,63 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             </button>
           )}
           {!disabled && (
-            <label
-              htmlFor={`image-upload-${label}`}
-              className="absolute bottom-2 left-2 right-2 py-2 px-3 bg-background/90 rounded-lg text-center text-sm cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-background"
-            >
-              تغییر تصویر
-            </label>
+            <div className="absolute bottom-2 left-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+              <label
+                htmlFor={`gallery-upload-${uniqueId}`}
+                className="flex-1 py-2 px-3 bg-background/90 rounded-lg text-center text-sm cursor-pointer hover:bg-background flex items-center justify-center gap-1"
+              >
+                <Upload className="w-3 h-3" />
+                گالری
+              </label>
+              <label
+                htmlFor={`camera-upload-${uniqueId}`}
+                className="flex-1 py-2 px-3 bg-background/90 rounded-lg text-center text-sm cursor-pointer hover:bg-background flex items-center justify-center gap-1"
+              >
+                <Camera className="w-3 h-3" />
+                دوربین
+              </label>
+            </div>
           )}
         </div>
       ) : (
-        <label
-          htmlFor={`image-upload-${label}`}
+        <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           className={cn(
-            'flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl cursor-pointer transition-all duration-300 hover:border-gold hover:bg-cream-dark/50 group',
+            'flex flex-col items-center justify-center border-2 border-dashed border-border rounded-xl transition-all duration-300 hover:border-gold hover:bg-cream-dark/50',
             aspectClasses[aspectRatio],
             disabled && 'opacity-50 cursor-not-allowed'
           )}
         >
-          <div className="flex flex-col items-center gap-3 p-6 text-muted-foreground group-hover:text-foreground transition-colors duration-300">
-            <div className="flex gap-2">
-              <div className="p-4 bg-cream rounded-full group-hover:bg-gold/20 transition-colors duration-300">
+          <div className="flex flex-col items-center gap-3 p-6 text-muted-foreground transition-colors duration-300">
+            <div className="flex gap-3">
+              <label
+                htmlFor={`gallery-upload-${uniqueId}`}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 bg-cream rounded-xl cursor-pointer hover:bg-gold/20 transition-colors duration-300',
+                  disabled && 'pointer-events-none'
+                )}
+              >
                 <Upload className="w-6 h-6" />
-              </div>
-              <div className="p-4 bg-cream rounded-full group-hover:bg-gold/20 transition-colors duration-300">
+                <span className="text-xs font-medium">گالری</span>
+              </label>
+              <label
+                htmlFor={`camera-upload-${uniqueId}`}
+                className={cn(
+                  'flex flex-col items-center gap-2 p-4 bg-cream rounded-xl cursor-pointer hover:bg-gold/20 transition-colors duration-300',
+                  disabled && 'pointer-events-none'
+                )}
+              >
                 <Camera className="w-6 h-6" />
-              </div>
+                <span className="text-xs font-medium">دوربین</span>
+              </label>
             </div>
             <span className="text-sm font-medium">{label}</span>
             <span className="text-xs text-muted-foreground text-center">
               PNG, JPG تا ۱۰ مگابایت
-              <br />
-              یا از دوربین عکس بگیرید
             </span>
           </div>
-        </label>
+        </div>
       )}
     </div>
   );
