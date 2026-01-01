@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { Wand2, Trash2, GripVertical } from 'lucide-react';
+import { Wand2, Trash2, GripVertical, Plus, Check } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface OutfitBuilderProps {
   clothes: ClothingItem[];
@@ -19,6 +20,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<ClothingItem | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleDragStart = (e: React.DragEvent, item: ClothingItem) => {
     setDraggedItem(item);
@@ -46,16 +48,30 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
     setIsDragOver(false);
 
     if (draggedItem) {
-      // Replace item of same category or add new
-      setOutfitItems(prev => {
-        const existingIndex = prev.findIndex(i => i.category === draggedItem.category);
-        if (existingIndex !== -1) {
-          const newItems = [...prev];
-          newItems[existingIndex] = draggedItem;
-          return newItems;
-        }
-        return [...prev, draggedItem];
-      });
+      addItemToOutfit(draggedItem);
+    }
+  };
+
+  // Add or replace item in outfit
+  const addItemToOutfit = (item: ClothingItem) => {
+    setOutfitItems(prev => {
+      const existingIndex = prev.findIndex(i => i.category === item.category);
+      if (existingIndex !== -1) {
+        const newItems = [...prev];
+        newItems[existingIndex] = item;
+        return newItems;
+      }
+      return [...prev, item];
+    });
+  };
+
+  // Toggle item on tap (for mobile)
+  const handleItemTap = (item: ClothingItem) => {
+    const isSelected = outfitItems.some(i => i.id === item.id);
+    if (isSelected) {
+      removeFromOutfit(item.id);
+    } else {
+      addItemToOutfit(item);
     }
   };
 
@@ -91,9 +107,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         <div className="flex-shrink-0">
           <h3 className="text-lg font-display font-semibold mb-3 text-center">مانکن شما</h3>
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
+            onDragOver={!isMobile ? handleDragOver : undefined}
+            onDragLeave={!isMobile ? handleDragLeave : undefined}
+            onDrop={!isMobile ? handleDrop : undefined}
             className={cn(
               'relative bg-background/50 rounded-2xl p-4 transition-all duration-300 min-h-[400px] flex items-center justify-center',
               isDragOver && 'ring-2 ring-gold ring-offset-2 bg-gold/5 scale-[1.02]',
@@ -106,7 +122,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             {clothes.length > 0 && outfitItems.length === 0 && !isDragOver && (
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <p className="text-muted-foreground text-sm bg-background/80 px-4 py-2 rounded-full">
-                  لباس را اینجا بکشید
+                  {isMobile ? 'لباس‌ها را انتخاب کنید' : 'لباس را اینجا بکشید'}
                 </p>
               </div>
             )}
@@ -170,7 +186,10 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
         {/* Clothing Palette */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-display font-semibold mb-3">لباس‌های شما</h3>
+          <h3 className="text-lg font-display font-semibold mb-3">
+            لباس‌های شما
+            {isMobile && <span className="text-xs text-muted-foreground font-normal mr-2">(برای انتخاب تپ کنید)</span>}
+          </h3>
           <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
             {categories.map(({ key, label }) => {
               const categoryItems = clothes.filter(c => c.category === key);
@@ -180,36 +199,48 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 <div key={key}>
                   <h4 className="text-sm text-muted-foreground mb-2">{label}</h4>
                   <div className="flex flex-wrap gap-2">
-                    {categoryItems.map(item => (
-                      <div
-                        key={item.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, item)}
-                        onDragEnd={handleDragEnd}
-                        className={cn(
-                          'relative group w-16 h-16 rounded-lg overflow-hidden cursor-grab active:cursor-grabbing transition-all duration-200',
-                          'hover:ring-2 hover:ring-gold hover:scale-105',
-                          'shadow-sm hover:shadow-md',
-                          draggedItem?.id === item.id && 'opacity-50 scale-95',
-                          outfitItems.some(i => i.id === item.id) && 'ring-2 ring-gold'
-                        )}
-                      >
-                        <img
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                        <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
-                          <GripVertical className="w-4 h-4 text-white opacity-0 group-hover:opacity-80 drop-shadow-lg" />
+                    {categoryItems.map(item => {
+                      const isSelected = outfitItems.some(i => i.id === item.id);
+                      return (
+                        <div
+                          key={item.id}
+                          draggable={!isMobile}
+                          onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
+                          onDragEnd={!isMobile ? handleDragEnd : undefined}
+                          onClick={() => handleItemTap(item)}
+                          className={cn(
+                            'relative group w-16 h-16 rounded-lg overflow-hidden transition-all duration-200',
+                            !isMobile && 'cursor-grab active:cursor-grabbing',
+                            isMobile && 'cursor-pointer active:scale-95',
+                            'hover:ring-2 hover:ring-gold hover:scale-105',
+                            'shadow-sm hover:shadow-md',
+                            draggedItem?.id === item.id && 'opacity-50 scale-95',
+                            isSelected && 'ring-2 ring-gold'
+                          )}
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                          {!isMobile && (
+                            <div className="absolute inset-0 bg-foreground/0 group-hover:bg-foreground/10 transition-colors flex items-center justify-center">
+                              <GripVertical className="w-4 h-4 text-white opacity-0 group-hover:opacity-80 drop-shadow-lg" />
+                            </div>
+                          )}
+                          {isSelected ? (
+                            <div className="absolute inset-0 bg-gold/30 flex items-center justify-center">
+                              <Check className="w-5 h-5 text-gold drop-shadow-lg" />
+                            </div>
+                          ) : isMobile && (
+                            <div className="absolute inset-0 bg-foreground/0 group-active:bg-foreground/20 transition-colors flex items-center justify-center">
+                              <Plus className="w-4 h-4 text-white opacity-0 group-hover:opacity-80 drop-shadow-lg" />
+                            </div>
+                          )}
                         </div>
-                        {outfitItems.some(i => i.id === item.id) && (
-                          <div className="absolute inset-0 bg-gold/20 flex items-center justify-center">
-                            <span className="text-xs text-gold font-bold">✓</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               );
