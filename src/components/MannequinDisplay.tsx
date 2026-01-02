@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { Loader2, Sparkles } from 'lucide-react';
 import mannequinImage from '@/assets/mannequin.png';
 
 interface MannequinDisplayProps {
@@ -9,7 +11,105 @@ interface MannequinDisplayProps {
 }
 
 export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, className }) => {
-  // Group items by category
+  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [lastItemsKey, setLastItemsKey] = useState<string>('');
+
+  // Create a key from items to detect changes
+  const itemsKey = items.map(i => i.id).sort().join(',');
+
+  const generateTryOn = useCallback(async () => {
+    if (items.length === 0) {
+      setGeneratedImage(null);
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Convert mannequin image to base64 for the API
+      const response = await fetch(mannequinImage);
+      const blob = await response.blob();
+      const mannequinBase64 = await new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(blob);
+      });
+
+      const { data, error: fnError } = await supabase.functions.invoke('virtual-tryon', {
+        body: {
+          mannequinImageUrl: mannequinBase64,
+          clothingItems: items.map(item => ({
+            name: item.name,
+            category: item.category,
+            imageUrl: item.imageUrl
+          }))
+        }
+      });
+
+      if (fnError) throw fnError;
+      if (data?.error) throw new Error(data.error);
+      
+      if (data?.imageUrl) {
+        setGeneratedImage(data.imageUrl);
+      }
+    } catch (err) {
+      console.error('Virtual try-on error:', err);
+      setError(err instanceof Error ? err.message : 'خطا در ایجاد تصویر');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [items]);
+
+  // Auto-generate when items change
+  useEffect(() => {
+    if (itemsKey !== lastItemsKey) {
+      setLastItemsKey(itemsKey);
+      if (items.length > 0) {
+        generateTryOn();
+      } else {
+        setGeneratedImage(null);
+      }
+    }
+  }, [itemsKey, lastItemsKey, items.length, generateTryOn]);
+
+  // Show generated AI image
+  if (generatedImage && !isLoading) {
+    return (
+      <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
+        <img 
+          src={generatedImage} 
+          alt="ست لباس"
+          className="w-full h-full object-contain rounded-xl shadow-xl animate-scale-in"
+        />
+        <div className="absolute top-2 right-2 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded-full flex items-center gap-1">
+          <Sparkles className="w-3 h-3" />
+          هوش مصنوعی
+        </div>
+      </div>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
+        <img 
+          src={mannequinImage} 
+          alt="مانکن"
+          className="absolute inset-0 w-full h-full object-contain opacity-50"
+        />
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 rounded-xl backdrop-blur-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
+          <p className="text-sm text-muted-foreground">در حال پردازش...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback display with simple overlays (when no items or error)
   const top = items.find(item => item.category === 'tops');
   const bottom = items.find(item => item.category === 'bottoms');
   const dress = items.find(item => item.category === 'dresses');
@@ -26,9 +126,14 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         className="absolute inset-0 w-full h-full object-contain drop-shadow-lg"
       />
 
-      {/* Clothing Overlays - Positioned precisely on the mannequin body */}
-      
-      {/* Accessory (hat/jewelry) - on head area */}
+      {/* Error message */}
+      {error && items.length > 0 && (
+        <div className="absolute top-2 left-2 right-2 bg-destructive/90 text-destructive-foreground text-xs px-2 py-1 rounded text-center">
+          {error}
+        </div>
+      )}
+
+      {/* Simple Clothing Overlays as fallback */}
       {accessory && (
         <div 
           key={accessory.id}
@@ -49,7 +154,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Outerwear (jacket/coat) - over the torso with proper fit */}
       {outerwear && (
         <div 
           key={outerwear.id}
@@ -70,7 +174,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Dress (full body) - covers torso and legs */}
       {dress && !top && !bottom && (
         <div 
           key={dress.id}
@@ -91,7 +194,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Top (shirt/blouse) - fitted to torso */}
       {top && (
         <div 
           key={top.id}
@@ -112,7 +214,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Bottom (pants/skirt) - fitted to legs */}
       {bottom && (
         <div 
           key={bottom.id}
@@ -133,7 +234,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
         </div>
       )}
 
-      {/* Shoes - fitted to feet */}
       {shoes && (
         <div 
           key={shoes.id}
