@@ -1,7 +1,7 @@
 project_id = "ufnaesbflhbgdxqzkvcz"
 
 [functions.generate-outfit]
-verify_jwt = false
+verify_jwt = true
 
 [functions.virtual-tryon]
-verify_jwt = false
+verify_jwt = true
