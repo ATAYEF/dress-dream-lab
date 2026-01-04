@@ -89,7 +89,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Show generated AI image
   if (generatedImage && !isLoading) {
     return (
-      <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
+      <div className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto', className)}>
         <img 
           src={generatedImage} 
           alt="ست لباس"
@@ -106,7 +106,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Show loading state
   if (isLoading) {
     return (
-      <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
+      <div className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto', className)}>
         <img 
           src={mannequinImage} 
           alt="مانکن"
@@ -129,7 +129,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const accessory = items.find(item => item.category === 'accessories');
 
   return (
-    <div className={cn('relative w-full aspect-[3/5] max-w-[280px] mx-auto', className)}>
+    <div className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto', className)}>
       {/* Realistic Mannequin Image */}
       <img 
         src={mannequinImage} 

@@ -128,12 +128,12 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             onDragLeave={!isMobile ? handleDragLeave : undefined}
             onDrop={!isMobile ? handleDrop : undefined}
             className={cn(
-              'relative bg-background/50 rounded-2xl p-4 transition-all duration-300 min-h-[400px] flex items-center justify-center',
+              'relative bg-background/50 rounded-2xl p-6 transition-all duration-300 min-h-[520px] min-w-[320px] flex items-center justify-center',
               isDragOver && 'ring-2 ring-gold ring-offset-2 bg-gold/5 scale-[1.02]',
               draggedItem && 'ring-2 ring-dashed ring-gold/50'
             )}
           >
-            <MannequinDisplay items={outfitItems} gender={mannequinGender} className="w-full max-w-[220px]" />
+            <MannequinDisplay items={outfitItems} gender={mannequinGender} className="w-full max-w-[300px]" />
             
             {/* Drop hint */}
             {clothes.length > 0 && outfitItems.length === 0 && !isDragOver && (
