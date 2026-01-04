@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Wand2, Trash2, GripVertical, Plus, Check } from 'lucide-react';
+import { Wand2, Trash2, GripVertical, Plus, Check, User } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
-import { MannequinDisplay } from './MannequinDisplay';
+import { MannequinDisplay, MannequinGender } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 interface OutfitBuilderProps {
   clothes: ClothingItem[];
@@ -20,6 +21,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<ClothingItem | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [mannequinGender, setMannequinGender] = useState<MannequinGender>('female');
   const isMobile = useIsMobile();
 
   const handleDragStart = (e: React.DragEvent, item: ClothingItem) => {
@@ -105,7 +107,22 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
       <div className="flex flex-col lg:flex-row gap-6">
         {/* Mannequin Drop Zone */}
         <div className="flex-shrink-0">
-          <h3 className="text-lg font-display font-semibold mb-3 text-center">مانکن شما</h3>
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-display font-semibold">مانکن شما</h3>
+            <ToggleGroup 
+              type="single" 
+              value={mannequinGender} 
+              onValueChange={(value) => value && setMannequinGender(value as MannequinGender)}
+              className="bg-background/50 rounded-lg p-1"
+            >
+              <ToggleGroupItem value="female" aria-label="مانکن زن" className="text-xs px-3 py-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                زن
+              </ToggleGroupItem>
+              <ToggleGroupItem value="male" aria-label="مانکن مرد" className="text-xs px-3 py-1 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground">
+                مرد
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
           <div
             onDragOver={!isMobile ? handleDragOver : undefined}
             onDragLeave={!isMobile ? handleDragLeave : undefined}
@@ -116,7 +133,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               draggedItem && 'ring-2 ring-dashed ring-gold/50'
             )}
           >
-            <MannequinDisplay items={outfitItems} className="w-full max-w-[220px]" />
+            <MannequinDisplay items={outfitItems} gender={mannequinGender} className="w-full max-w-[220px]" />
             
             {/* Drop hint */}
             {clothes.length > 0 && outfitItems.length === 0 && !isDragOver && (

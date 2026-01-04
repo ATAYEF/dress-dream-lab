@@ -3,21 +3,31 @@ import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Sparkles } from 'lucide-react';
-import mannequinImage from '@/assets/mannequin.png';
+import mannequinFemale from '@/assets/mannequin-female.png';
+import mannequinMale from '@/assets/mannequin-male.png';
+
+export type MannequinGender = 'female' | 'male';
 
 interface MannequinDisplayProps {
   items: ClothingItem[];
   className?: string;
+  gender?: MannequinGender;
 }
 
-export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, className }) => {
+export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ 
+  items, 
+  className,
+  gender = 'female'
+}) => {
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastItemsKey, setLastItemsKey] = useState<string>('');
 
-  // Create a key from items to detect changes
-  const itemsKey = items.map(i => i.id).sort().join(',');
+  const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
+
+  // Create a key from items and gender to detect changes
+  const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
 
   const generateTryOn = useCallback(async () => {
     if (items.length === 0) {
@@ -41,6 +51,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
       const { data, error: fnError } = await supabase.functions.invoke('virtual-tryon', {
         body: {
           mannequinImageUrl: mannequinBase64,
+          gender,
           clothingItems: items.map(item => ({
             name: item.name,
             category: item.category,
@@ -61,9 +72,9 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({ items, class
     } finally {
       setIsLoading(false);
     }
-  }, [items]);
+  }, [items, mannequinImage, gender]);
 
-  // Auto-generate when items change
+  // Auto-generate when items or gender change
   useEffect(() => {
     if (itemsKey !== lastItemsKey) {
       setLastItemsKey(itemsKey);
