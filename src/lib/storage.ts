@@ -20,18 +20,42 @@ export const uploadClothingImage = async (
     throw new Error('خطا در آپلود تصویر');
   }
 
-  const { data } = supabase.storage
+  // Use signed URL instead of public URL for security
+  const { data, error: signedUrlError } = await supabase.storage
     .from('clothing-images')
-    .getPublicUrl(filePath);
+    .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year expiry
 
-  return data.publicUrl;
+  if (signedUrlError || !data?.signedUrl) {
+    console.error('Signed URL error:', signedUrlError);
+    throw new Error('خطا در دریافت لینک تصویر');
+  }
+
+  return data.signedUrl;
+};
+
+export const getSignedImageUrl = async (filePath: string): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('clothing-images')
+      .createSignedUrl(filePath, 60 * 60); // 1 hour expiry
+
+    if (error || !data?.signedUrl) {
+      console.error('Error getting signed URL:', error);
+      return null;
+    }
+
+    return data.signedUrl;
+  } catch (error) {
+    console.error('Error getting signed URL:', error);
+    return null;
+  }
 };
 
 export const deleteClothingImage = async (imageUrl: string): Promise<void> => {
   try {
-    // Extract the path from the URL
+    // Extract the path from the URL (works for both public and signed URLs)
     const url = new URL(imageUrl);
-    const pathMatch = url.pathname.match(/\/clothing-images\/(.+)$/);
+    const pathMatch = url.pathname.match(/\/clothing-images\/(.+?)(?:\?|$)/);
     
     if (pathMatch && pathMatch[1]) {
       const filePath = decodeURIComponent(pathMatch[1]);
