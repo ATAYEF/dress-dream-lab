@@ -28,7 +28,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
   const containerRef = useRef<HTMLDivElement>(null);
 
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
@@ -36,30 +36,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    checkAuth();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   const generateTryOn = useCallback(async () => {
     if (items.length === 0) {
-      setGeneratedImage(null);
-      return;
-    }
-
-    // Skip AI generation if not authenticated
-    if (!isAuthenticated) {
-      console.log('User not authenticated, using fallback display');
       setGeneratedImage(null);
       return;
     }
@@ -101,13 +79,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [items, mannequinImage, gender, isAuthenticated]);
+  }, [items, mannequinImage, gender]);
 
-  // Auto-generate when items, gender, or auth status change
+  // Auto-generate when items or gender change
   useEffect(() => {
-    // Wait for auth check to complete
-    if (isAuthenticated === null) return;
-
     if (itemsKey !== lastItemsKey) {
       setLastItemsKey(itemsKey);
       if (items.length > 0) {
@@ -116,7 +91,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         setGeneratedImage(null);
       }
     }
-  }, [itemsKey, lastItemsKey, items.length, generateTryOn, isAuthenticated]);
+  }, [itemsKey, lastItemsKey, items.length, generateTryOn]);
 
   // Zoom handlers
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
