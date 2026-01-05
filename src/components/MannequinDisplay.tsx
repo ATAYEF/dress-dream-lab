@@ -197,16 +197,47 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Show loading state
   if (isLoading) {
     return (
-      <div className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto', className)}>
+      <div className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto overflow-hidden rounded-2xl', className)}>
+        {/* Mannequin with pulse effect */}
         <img 
           src={mannequinImage} 
           alt="مانکن"
-          className="absolute inset-0 w-full h-full object-contain opacity-50"
+          className="absolute inset-0 w-full h-full object-contain opacity-40 animate-pulse"
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/50 rounded-xl backdrop-blur-sm">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mb-2" />
-          <p className="text-sm text-muted-foreground">در حال پردازش...</p>
+        
+        {/* Animated overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-primary/20 via-transparent to-primary/10 animate-pulse" />
+        
+        {/* Scanning line effect */}
+        <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-primary to-transparent animate-scan" />
+        
+        {/* Content */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          {/* Animated rings */}
+          <div className="relative">
+            <div className="absolute inset-0 w-20 h-20 border-4 border-primary/30 rounded-full animate-ping" />
+            <div className="absolute inset-0 w-20 h-20 border-4 border-primary/20 rounded-full animate-ping" style={{ animationDelay: '0.5s' }} />
+            <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/40 backdrop-blur-sm flex items-center justify-center border-2 border-primary/50">
+              <Sparkles className="w-8 h-8 text-primary animate-pulse" />
+            </div>
+          </div>
+          
+          {/* Loading text with dots animation */}
+          <div className="mt-6 text-center">
+            <p className="text-sm font-medium text-foreground mb-1">در حال پردازش هوش مصنوعی</p>
+            <div className="flex items-center justify-center gap-1">
+              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0s' }} />
+              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.15s' }} />
+              <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.3s' }} />
+            </div>
+          </div>
         </div>
+        
+        {/* Corner decorations */}
+        <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-primary/50 rounded-tl-lg animate-pulse" />
+        <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-primary/50 rounded-tr-lg animate-pulse" />
+        <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-primary/50 rounded-bl-lg animate-pulse" />
+        <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-primary/50 rounded-br-lg animate-pulse" />
       </div>
     );
   }
