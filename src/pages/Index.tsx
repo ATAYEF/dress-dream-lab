@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, LogIn, LogOut, Heart } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import { ProfileSection } from '@/components/ProfileSection';
 import { CategoryTabs } from '@/components/CategoryTabs';
@@ -107,6 +108,7 @@ const Index = () => {
           </div>
           
           <div className="flex items-center gap-3">
+            <ThemeToggle />
             <Button onClick={() => setIsModalOpen(true)} variant="gold" size="default">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">افزودن لباس</span>
