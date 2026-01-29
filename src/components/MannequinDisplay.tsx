@@ -36,9 +36,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
 
-  // AI try-on temporarily disabled - using fallback mode
-  // To re-enable, uncomment the generateTryOn function and useEffect below
-  /*
   const generateTryOn = useCallback(async () => {
     if (items.length === 0) {
       setGeneratedImage(null);
@@ -93,7 +90,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       }
     }
   }, [itemsKey, lastItemsKey, items.length, generateTryOn]);
-  */
 
   // Zoom handlers
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.25, 3));
