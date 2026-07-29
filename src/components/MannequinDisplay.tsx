@@ -6,6 +6,8 @@ import { Loader2, Sparkles, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
+import { suggestShoes } from '@/lib/shoeSuggestion';
+
 
 export type MannequinGender = 'female' | 'male';
 
@@ -33,8 +35,11 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
+  const suggestedShoe = suggestShoes(items, gender);
+
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+
 
   const generateTryOn = useCallback(async () => {
     if (items.length === 0) {
@@ -58,6 +63,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         body: {
           mannequinImageUrl: mannequinBase64,
           gender,
+          suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
           clothingItems: items.map(item => ({
             name: item.name,
             category: item.category,
@@ -65,6 +71,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           }))
         }
       });
+
 
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
@@ -421,6 +428,37 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             />
           </div>
         )}
+
+        {/* AI-suggested shoes when the user has not picked any */}
+        {!shoes && suggestedShoe && (
+          <>
+            <div
+              className="absolute z-10 animate-fade-up"
+              style={{
+                top: '87%',
+                left: '26%',
+                width: '48%',
+                height: '11%',
+                animationDelay: '0.35s',
+                animationFillMode: 'backwards',
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
+              }}
+            >
+              <img
+                src={suggestedShoe.imageUrl}
+                alt={suggestedShoe.name}
+                loading="lazy"
+                className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+                draggable={false}
+              />
+            </div>
+            <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] text-primary-foreground shadow-lg animate-fade-in whitespace-nowrap">
+              <Sparkles className="w-3 h-3" />
+              کفش پیشنهادی: {suggestedShoe.name}
+            </div>
+          </>
+        )}
+
 
         {/* Empty state with gentle pulse */}
         {items.length === 0 && (

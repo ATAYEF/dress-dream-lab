@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mannequinImageUrl, clothingItems } = await req.json();
+    const { mannequinImageUrl, clothingItems, suggestedFootwear } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -37,6 +37,9 @@ Instructions:
 - Make the clothing look natural and fitted, as if the mannequin is actually wearing them
 - Maintain proper proportions and realistic fabric draping
 - The result should look like a professional fashion store mannequin display
+
+- Keep the mannequin's face and hair from the base image intact and attractive
+${suggestedFootwear ? `- The user did not choose any shoes. Add ${suggestedFootwear} on the feet so the look is complete and well matched to the outfit.` : ''}
 
 Generate a single realistic image of the dressed mannequin.`
       },
