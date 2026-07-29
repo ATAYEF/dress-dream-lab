@@ -35,8 +35,11 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
+  const suggestedShoe = suggestShoes(items, gender);
+
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+
 
   const generateTryOn = useCallback(async () => {
     if (items.length === 0) {
@@ -60,6 +63,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         body: {
           mannequinImageUrl: mannequinBase64,
           gender,
+          suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
           clothingItems: items.map(item => ({
             name: item.name,
             category: item.category,
@@ -67,6 +71,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           }))
         }
       });
+
 
       if (fnError) throw fnError;
       if (data?.error) throw new Error(data.error);
