@@ -429,6 +429,37 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           </div>
         )}
 
+        {/* AI-suggested shoes when the user has not picked any */}
+        {!shoes && suggestedShoe && (
+          <>
+            <div
+              className="absolute z-10 animate-fade-up"
+              style={{
+                top: '87%',
+                left: '26%',
+                width: '48%',
+                height: '11%',
+                animationDelay: '0.35s',
+                animationFillMode: 'backwards',
+                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
+              }}
+            >
+              <img
+                src={suggestedShoe.imageUrl}
+                alt={suggestedShoe.name}
+                loading="lazy"
+                className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+                draggable={false}
+              />
+            </div>
+            <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] text-primary-foreground shadow-lg animate-fade-in whitespace-nowrap">
+              <Sparkles className="w-3 h-3" />
+              کفش پیشنهادی: {suggestedShoe.name}
+            </div>
+          </>
+        )}
+
+
         {/* Empty state with gentle pulse */}
         {items.length === 0 && (
           <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/30 backdrop-blur-[1px] rounded-2xl animate-fade-in">
