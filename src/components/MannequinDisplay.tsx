@@ -7,6 +7,8 @@ import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes } from '@/lib/shoeSuggestion';
+import { suggestAccessory } from '@/lib/accessorySuggestion';
+
 
 
 export type MannequinGender = 'female' | 'male';
