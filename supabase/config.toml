@@ -1,0 +1,10 @@
+project_id = "ufnaesbflhbgdxqzkvcz"
+
+[functions.virtual-tryon]
+verify_jwt = false
+
+[functions.generate-outfit]
+verify_jwt = true
+
+[functions.analyze-clothing]
+verify_jwt = false
