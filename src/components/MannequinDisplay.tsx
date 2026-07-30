@@ -7,6 +7,8 @@ import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes } from '@/lib/shoeSuggestion';
+import { suggestAccessory } from '@/lib/accessorySuggestion';
+
 
 
 export type MannequinGender = 'female' | 'male';
@@ -36,6 +38,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
   const suggestedShoe = suggestShoes(items, gender);
+  const suggestedAccessory = suggestAccessory(items, gender);
+
 
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
@@ -64,6 +68,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           mannequinImageUrl: mannequinBase64,
           gender,
           suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
+          suggestedAccessory: suggestAccessory(items, gender)?.prompt ?? null,
+
           clothingItems: items.map(item => ({
             name: item.name,
             category: item.category,
@@ -455,6 +461,48 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-primary/90 px-2 py-1 text-[10px] text-primary-foreground shadow-lg animate-fade-in whitespace-nowrap">
               <Sparkles className="w-3 h-3" />
               کفش پیشنهادی: {suggestedShoe.name}
+            </div>
+          </>
+        )}
+
+        {/* AI-suggested belt or bag when the user has not picked an accessory */}
+        {suggestedAccessory && (
+          <>
+            <div
+              className="absolute z-40 animate-fade-up"
+              style={
+                suggestedAccessory.type === 'belt'
+                  ? {
+                      top: '44%',
+                      left: '30%',
+                      width: '40%',
+                      height: '6%',
+                      animationDelay: '0.45s',
+                      animationFillMode: 'backwards',
+                      filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
+                    }
+                  : {
+                      top: '46%',
+                      left: '68%',
+                      width: '26%',
+                      height: '18%',
+                      animationDelay: '0.45s',
+                      animationFillMode: 'backwards',
+                      filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.3))',
+                    }
+              }
+            >
+              <img
+                src={suggestedAccessory.imageUrl}
+                alt={suggestedAccessory.name}
+                loading="lazy"
+                className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+                draggable={false}
+              />
+            </div>
+            <div className="absolute bottom-[19%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-secondary/90 px-2 py-1 text-[10px] text-secondary-foreground shadow-lg animate-fade-in whitespace-nowrap">
+              <Sparkles className="w-3 h-3" />
+              {suggestedAccessory.type === 'belt' ? 'کمربند پیشنهادی' : 'کیف پیشنهادی'}: {suggestedAccessory.name}
             </div>
           </>
         )}

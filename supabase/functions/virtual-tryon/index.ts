@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { mannequinImageUrl, clothingItems, suggestedFootwear } = await req.json();
+    const { mannequinImageUrl, clothingItems, suggestedFootwear, suggestedAccessory } = await req.json();
     
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -40,6 +40,7 @@ Instructions:
 
 - Keep the mannequin's face and hair from the base image intact and attractive
 ${suggestedFootwear ? `- The user did not choose any shoes. Add ${suggestedFootwear} on the feet so the look is complete and well matched to the outfit.` : ''}
+${suggestedAccessory ? `- The user did not choose any accessory. Add ${suggestedAccessory} so the styling looks complete and coordinated.` : ''}
 
 Generate a single realistic image of the dressed mannequin.`
       },
