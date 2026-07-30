@@ -112,7 +112,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [items, mannequinImage, gender]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, mannequinImage, gender, accessoriesKey]);
 
   useEffect(() => {
     if (itemsKey !== lastItemsKey) {
