@@ -243,9 +243,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Show generated AI image
   if (generatedImage && !isLoading) {
     return (
+      <div className={cn('w-full max-w-[320px] mx-auto', className)}>
       <div 
         ref={containerRef}
-        className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto overflow-hidden rounded-xl', className)}
+        className="relative w-full aspect-[3/5] overflow-hidden rounded-xl"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
