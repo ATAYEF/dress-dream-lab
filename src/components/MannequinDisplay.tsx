@@ -38,11 +38,30 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
   const suggestedShoe = suggestShoes(items, gender);
-  const suggestedAccessory = suggestAccessory(items, gender);
+  const suggestedAccessories = suggestAccessories(items, gender);
 
+  const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
+  const activeAccessories = ACCESSORY_OPTIONS.filter((a) => selectedAccessoryIds.includes(a.id));
+  const accessoriesKey = activeAccessories.map((a) => a.id).join(',');
 
-  // Create a key from items and gender to detect changes
-  const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+  // Create a key from items, gender and accessories to detect changes
+  const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}-${accessoriesKey}`;
+  const outfitKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+
+  // Reset accessory selection to the AI suggestion whenever the outfit changes
+  useEffect(() => {
+    setSelectedAccessoryIds(suggestAccessories(items, gender).map((a) => a.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outfitKey]);
+
+  const toggleAccessory = (accessory: SuggestedAccessory) => {
+    setSelectedAccessoryIds((prev) => {
+      if (prev.includes(accessory.id)) return prev.filter((id) => id !== accessory.id);
+      const sameType = ACCESSORY_OPTIONS.filter((a) => a.type === accessory.type).map((a) => a.id);
+      return [...prev.filter((id) => !sameType.includes(id)), accessory.id];
+    });
+  };
+
 
 
   const generateTryOn = useCallback(async () => {
