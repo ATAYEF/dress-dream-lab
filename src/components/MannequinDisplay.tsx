@@ -188,7 +188,49 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </Button>
       )}
     </div>
+
+  const accessoryPicker = items.length > 0 && (
+    <div className="mt-3 rounded-xl border border-border/60 bg-card/60 p-3">
+      <div className="mb-2 flex items-center gap-1 text-xs font-medium text-foreground">
+        <Sparkles className="w-3 h-3 text-primary" />
+        اکسسوری‌ها (کمربند و کیف را می‌توانید ترکیب کنید)
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {ACCESSORY_OPTIONS.map((option) => {
+          const isActive = selectedAccessoryIds.includes(option.id);
+          const isSuggested = suggestedAccessories.some((a) => a.id === option.id);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => toggleAccessory(option)}
+              aria-pressed={isActive}
+              className={cn(
+                'flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] transition-all',
+                isActive
+                  ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                  : 'border-border bg-background/60 text-muted-foreground hover:border-primary/50'
+              )}
+            >
+              <img
+                src={option.imageUrl}
+                alt={option.name}
+                loading="lazy"
+                className="h-6 w-6 object-contain"
+                draggable={false}
+              />
+              <span className="whitespace-nowrap">{option.name}</span>
+              {isSuggested && <Sparkles className="w-3 h-3 text-primary" />}
+            </button>
+          );
+        })}
+      </div>
+      {activeAccessories.length === 0 && (
+        <p className="mt-2 text-[11px] text-muted-foreground">اکسسوری انتخاب نشده است</p>
+      )}
+    </div>
   );
+
 
   const zoomableStyle = {
     transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
