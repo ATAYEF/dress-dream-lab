@@ -50,16 +50,24 @@ const DARK_WORDS = ['مشکی', 'سیاه', 'black', 'سرمه', 'navy', 'dark']
 
 const matches = (text: string, words: string[]) => words.some((w) => text.includes(w));
 
+/** Every accessory the user can toggle on the mannequin */
+export const ACCESSORY_OPTIONS: SuggestedAccessory[] = [
+  BELT_BLACK,
+  BELT_BROWN,
+  BAG_CLUTCH,
+  BAG_TOTE,
+];
+
 /**
- * Suggests a belt or bag that completes the currently selected outfit,
- * used when the user has not picked any accessory themselves.
+ * Suggests the accessories (belt and/or bag) that complete the currently
+ * selected outfit. The user can then toggle or swap them on the mannequin.
  */
-export function suggestAccessory(
+export function suggestAccessories(
   items: ClothingItem[],
   gender: 'female' | 'male' = 'female'
-): SuggestedAccessory | null {
-  if (items.length === 0) return null;
-  if (items.some((i) => i.category === 'accessories')) return null;
+): SuggestedAccessory[] {
+  if (items.length === 0) return [];
+  if (items.some((i) => i.category === 'accessories')) return [];
 
   const text = items
     .map((i) => `${i.name} ${i.category} ${i.color ?? ''}`)
@@ -69,16 +77,30 @@ export function suggestAccessory(
   const hasBottom = items.some((i) => i.category === 'bottoms');
   const hasTop = items.some((i) => i.category === 'tops');
   const hasDress = items.some((i) => i.category === 'dresses');
+  const casual = matches(text, CASUAL_WORDS);
   const dark = matches(text, DARK_WORDS);
+
+  const result: SuggestedAccessory[] = [];
 
   // A tucked top with trousers/skirt is best finished with a belt
   if (hasBottom && hasTop) {
-    return matches(text, CASUAL_WORDS) || !dark ? BELT_BROWN : BELT_BLACK;
+    result.push(casual || !dark ? BELT_BROWN : BELT_BLACK);
+  } else if (gender === 'male') {
+    result.push(dark ? BELT_BLACK : BELT_BROWN);
   }
 
-  if (gender === 'male') return dark ? BELT_BLACK : BELT_BROWN;
+  if (gender === 'female') {
+    if (hasDress) result.push(dark ? BAG_CLUTCH : BAG_TOTE);
+    else result.push(casual ? BAG_TOTE : BAG_CLUTCH);
+  }
 
-  if (hasDress) return dark ? BAG_CLUTCH : BAG_TOTE;
+  return result;
+}
 
-  return matches(text, CASUAL_WORDS) ? BAG_TOTE : BAG_CLUTCH;
+/** Backwards compatible single suggestion */
+export function suggestAccessory(
+  items: ClothingItem[],
+  gender: 'female' | 'male' = 'female'
+): SuggestedAccessory | null {
+  return suggestAccessories(items, gender)[0] ?? null;
 }

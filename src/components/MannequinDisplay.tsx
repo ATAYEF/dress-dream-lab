@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes } from '@/lib/shoeSuggestion';
-import { suggestAccessory } from '@/lib/accessorySuggestion';
+import { ACCESSORY_OPTIONS, suggestAccessories, SuggestedAccessory } from '@/lib/accessorySuggestion';
 
 
 
@@ -38,11 +38,30 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
   const suggestedShoe = suggestShoes(items, gender);
-  const suggestedAccessory = suggestAccessory(items, gender);
+  const suggestedAccessories = suggestAccessories(items, gender);
 
+  const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
+  const activeAccessories = ACCESSORY_OPTIONS.filter((a) => selectedAccessoryIds.includes(a.id));
+  const accessoriesKey = activeAccessories.map((a) => a.id).join(',');
 
-  // Create a key from items and gender to detect changes
-  const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+  // Create a key from items, gender and accessories to detect changes
+  const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}-${accessoriesKey}`;
+  const outfitKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
+
+  // Reset accessory selection to the AI suggestion whenever the outfit changes
+  useEffect(() => {
+    setSelectedAccessoryIds(suggestAccessories(items, gender).map((a) => a.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [outfitKey]);
+
+  const toggleAccessory = (accessory: SuggestedAccessory) => {
+    setSelectedAccessoryIds((prev) => {
+      if (prev.includes(accessory.id)) return prev.filter((id) => id !== accessory.id);
+      const sameType = ACCESSORY_OPTIONS.filter((a) => a.type === accessory.type).map((a) => a.id);
+      return [...prev.filter((id) => !sameType.includes(id)), accessory.id];
+    });
+  };
+
 
 
   const generateTryOn = useCallback(async () => {
@@ -68,7 +87,9 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           mannequinImageUrl: mannequinBase64,
           gender,
           suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
-          suggestedAccessory: suggestAccessory(items, gender)?.prompt ?? null,
+          suggestedAccessory: activeAccessories.length
+            ? activeAccessories.map((a) => a.prompt).join(' and ')
+            : null,
 
           clothingItems: items.map(item => ({
             name: item.name,
@@ -91,7 +112,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     } finally {
       setIsLoading(false);
     }
-  }, [items, mannequinImage, gender]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, mannequinImage, gender, accessoriesKey]);
 
   useEffect(() => {
     if (itemsKey !== lastItemsKey) {
@@ -168,6 +190,50 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     </div>
   );
 
+
+  const accessoryPicker = items.length > 0 && (
+    <div className="mt-3 rounded-xl border border-border/60 bg-card/60 p-3">
+      <div className="mb-2 flex items-center gap-1 text-xs font-medium text-foreground">
+        <Sparkles className="w-3 h-3 text-primary" />
+        اکسسوری‌ها (کمربند و کیف را می‌توانید ترکیب کنید)
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {ACCESSORY_OPTIONS.map((option) => {
+          const isActive = selectedAccessoryIds.includes(option.id);
+          const isSuggested = suggestedAccessories.some((a) => a.id === option.id);
+          return (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => toggleAccessory(option)}
+              aria-pressed={isActive}
+              className={cn(
+                'flex items-center gap-2 rounded-full border px-2 py-1 text-[11px] transition-all',
+                isActive
+                  ? 'border-primary bg-primary/10 text-foreground shadow-sm'
+                  : 'border-border bg-background/60 text-muted-foreground hover:border-primary/50'
+              )}
+            >
+              <img
+                src={option.imageUrl}
+                alt={option.name}
+                loading="lazy"
+                className="h-6 w-6 object-contain"
+                draggable={false}
+              />
+              <span className="whitespace-nowrap">{option.name}</span>
+              {isSuggested && <Sparkles className="w-3 h-3 text-primary" />}
+            </button>
+          );
+        })}
+      </div>
+      {activeAccessories.length === 0 && (
+        <p className="mt-2 text-[11px] text-muted-foreground">اکسسوری انتخاب نشده است</p>
+      )}
+    </div>
+  );
+
+
   const zoomableStyle = {
     transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
     cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
@@ -177,9 +243,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   // Show generated AI image
   if (generatedImage && !isLoading) {
     return (
+      <div className={cn('w-full max-w-[320px] mx-auto', className)}>
       <div 
         ref={containerRef}
-        className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto overflow-hidden rounded-xl', className)}
+        className="relative w-full aspect-[3/5] overflow-hidden rounded-xl"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -201,6 +268,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           هوش مصنوعی
         </div>
         {zoomControls}
+      </div>
+      {accessoryPicker}
       </div>
     );
   }
@@ -262,9 +331,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const accessory = items.find(item => item.category === 'accessories');
 
   return (
+    <div className={cn('w-full max-w-[320px] mx-auto', className)}>
     <div 
       ref={containerRef}
-      className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto overflow-hidden rounded-2xl', className)}
+      className="relative w-full aspect-[3/5] overflow-hidden rounded-2xl"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -465,47 +535,42 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           </>
         )}
 
-        {/* AI-suggested belt or bag when the user has not picked an accessory */}
-        {suggestedAccessory && (
-          <>
-            <div
-              className="absolute z-40 animate-fade-up"
-              style={
-                suggestedAccessory.type === 'belt'
-                  ? {
-                      top: '44%',
-                      left: '30%',
-                      width: '40%',
-                      height: '6%',
-                      animationDelay: '0.45s',
-                      animationFillMode: 'backwards',
-                      filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
-                    }
-                  : {
-                      top: '46%',
-                      left: '68%',
-                      width: '26%',
-                      height: '18%',
-                      animationDelay: '0.45s',
-                      animationFillMode: 'backwards',
-                      filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.3))',
-                    }
-              }
-            >
-              <img
-                src={suggestedAccessory.imageUrl}
-                alt={suggestedAccessory.name}
-                loading="lazy"
-                className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
-                draggable={false}
-              />
-            </div>
-            <div className="absolute bottom-[19%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-secondary/90 px-2 py-1 text-[10px] text-secondary-foreground shadow-lg animate-fade-in whitespace-nowrap">
-              <Sparkles className="w-3 h-3" />
-              {suggestedAccessory.type === 'belt' ? 'کمربند پیشنهادی' : 'کیف پیشنهادی'}: {suggestedAccessory.name}
-            </div>
-          </>
-        )}
+        {/* Suggested / selected accessories (belt + bag can be combined) */}
+        {activeAccessories.map((accessory, index) => (
+          <div
+            key={accessory.id}
+            className="absolute z-40 animate-fade-up"
+            style={
+              accessory.type === 'belt'
+                ? {
+                    top: '44%',
+                    left: '30%',
+                    width: '40%',
+                    height: '6%',
+                    animationDelay: `${0.45 + index * 0.1}s`,
+                    animationFillMode: 'backwards',
+                    filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
+                  }
+                : {
+                    top: '46%',
+                    left: '68%',
+                    width: '26%',
+                    height: '18%',
+                    animationDelay: `${0.45 + index * 0.1}s`,
+                    animationFillMode: 'backwards',
+                    filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.3))',
+                  }
+            }
+          >
+            <img
+              src={accessory.imageUrl}
+              alt={accessory.name}
+              loading="lazy"
+              className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+              draggable={false}
+            />
+          </div>
+        ))}
 
 
         {/* Empty state with gentle pulse */}
@@ -523,6 +588,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       </div>
 
       {zoomControls}
+    </div>
+    {accessoryPicker}
     </div>
   );
 };
