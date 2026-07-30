@@ -188,6 +188,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </Button>
       )}
     </div>
+  );
+
 
   const accessoryPicker = items.length > 0 && (
     <div className="mt-3 rounded-xl border border-border/60 bg-card/60 p-3">
