@@ -87,7 +87,9 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           mannequinImageUrl: mannequinBase64,
           gender,
           suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
-          suggestedAccessory: suggestAccessory(items, gender)?.prompt ?? null,
+          suggestedAccessory: activeAccessories.length
+            ? activeAccessories.map((a) => a.prompt).join(' and ')
+            : null,
 
           clothingItems: items.map(item => ({
             name: item.name,
