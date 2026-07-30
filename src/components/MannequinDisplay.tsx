@@ -38,6 +38,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
   const suggestedShoe = suggestShoes(items, gender);
+  const suggestedAccessory = suggestAccessory(items, gender);
+
 
   // Create a key from items and gender to detect changes
   const itemsKey = `${gender}-${items.map(i => i.id).sort().join(',')}`;
@@ -66,6 +68,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           mannequinImageUrl: mannequinBase64,
           gender,
           suggestedFootwear: suggestShoes(items, gender)?.prompt ?? null,
+          suggestedAccessory: suggestAccessory(items, gender)?.prompt ?? null,
+
           clothingItems: items.map(item => ({
             name: item.name,
             category: item.category,
