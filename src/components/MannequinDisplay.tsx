@@ -269,6 +269,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </div>
         {zoomControls}
       </div>
+      {accessoryPicker}
+      </div>
     );
   }
 
