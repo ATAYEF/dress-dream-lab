@@ -331,9 +331,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const accessory = items.find(item => item.category === 'accessories');
 
   return (
+    <div className={cn('w-full max-w-[320px] mx-auto', className)}>
     <div 
       ref={containerRef}
-      className={cn('relative w-full aspect-[3/5] max-w-[320px] mx-auto overflow-hidden rounded-2xl', className)}
+      className="relative w-full aspect-[3/5] overflow-hidden rounded-2xl"
       onWheel={handleWheel}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
