@@ -1,12 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
-import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
 import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@/lib/accessorySuggestion';
+import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+/** Converts any image (bundled asset, blob or remote url) into a base64 data URL */
+async function toDataUrl(src: string): Promise<string> {
+  if (src.startsWith('data:')) return src;
+  const res = await fetch(src);
+  const blob = await res.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 
 export type MannequinGender = 'female' | 'male';
 
