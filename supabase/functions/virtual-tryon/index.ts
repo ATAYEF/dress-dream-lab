@@ -5,16 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ALLOWED_MODELS = [
+  'google/gemini-3.1-flash-image',
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3-pro-image',
+];
+const DEFAULT_MODEL = 'google/gemini-3.1-flash-image';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { baseImageUrl, mannequinImageUrl, isUserPhoto, clothingItems, suggestedFootwear, suggestedAccessory } = await req.json();
+    const { baseImageUrl, mannequinImageUrl, isUserPhoto, clothingItems, suggestedFootwear, suggestedAccessory, model } = await req.json();
 
     // Backward compatible: older clients may still send `mannequinImageUrl`.
     const resolvedBaseImageUrl = baseImageUrl || mannequinImageUrl;
+    const resolvedModel = ALLOWED_MODELS.includes(model) ? model : DEFAULT_MODEL;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -30,7 +38,8 @@ serve(async (req) => {
       throw new Error('No base image provided');
     }
 
-    console.log('Virtual try-on for', clothingItems.length, 'items. Using', isUserPhoto ? 'real user photo' : 'generic mannequin');
+    console.log('Virtual try-on with model', resolvedModel, 'for', clothingItems.length, 'items. Using', isUserPhoto ? 'real user photo' : 'generic mannequin');
+
 
     // Build the instruction prompt: if we have a real photo of the user, the
     // whole point is to show THEM wearing the outfit (preserving identity),
@@ -100,7 +109,7 @@ Generate a single realistic image of the dressed mannequin.`;
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: resolvedModel,
         messages: [
           {
             role: 'user',
@@ -134,18 +143,24 @@ Generate a single realistic image of the dressed mannequin.`;
     console.log('AI response received');
     
     // Extract the generated image
-    const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
+    const message = data.choices?.[0]?.message;
+    const b64 = data.data?.[0]?.b64_json;
+    const generatedImage =
+      message?.images?.[0]?.image_url?.url ||
+      (typeof b64 === 'string' ? `data:image/png;base64,${b64}` : null);
+
     if (!generatedImage) {
-      console.error('No image in response:', JSON.stringify(data));
+      console.error('No image in response:', JSON.stringify(data).slice(0, 2000));
       throw new Error('Failed to generate image');
     }
 
-    console.log('Successfully generated virtual try-on image');
+    console.log('Successfully generated virtual try-on image with', resolvedModel);
 
     return new Response(JSON.stringify({ 
-      imageUrl: generatedImage 
+      imageUrl: generatedImage,
+      model: resolvedModel,
     }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

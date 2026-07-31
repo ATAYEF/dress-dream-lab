@@ -1,12 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
-import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
 import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@/lib/accessorySuggestion';
+import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+/** Converts any image (bundled asset, blob or remote url) into a base64 data URL */
+async function toDataUrl(src: string): Promise<string> {
+  if (src.startsWith('data:')) return src;
+  const res = await fetch(src);
+  const blob = await res.blob();
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 
 export type MannequinGender = 'female' | 'male';
 
@@ -74,6 +91,61 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       return [...prev.filter((id) => !sameTypeIds.includes(id)), accessory.id];
     });
   };
+
+  // ===== AI Virtual Try-on =====
+  const [aiModel, setAiModel] = useState<string>(DEFAULT_TRYON_MODEL);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Drop a stale generated image whenever the outfit or model changes
+  const generationKey = `${outfitKey}-${aiModel}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
+  useEffect(() => {
+    setAiImage(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationKey]);
+
+  const handleGenerate = async () => {
+    if (items.length === 0 || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const baseImageUrl = await toDataUrl(mannequinImage);
+      const clothingItems = await Promise.all(
+        items.map(async (item) => ({
+          name: item.name,
+          category: item.category,
+          imageUrl: await toDataUrl(item.imageUrl),
+        }))
+      );
+
+      const suggestedFootwear =
+        !items.some((i) => i.category === 'shoes') && activeShoe ? activeShoe.name : undefined;
+      const suggestedAccessory =
+        !userAccessory && activeAccessories.length > 0
+          ? activeAccessories.map((a) => a.name).join(' و ')
+          : undefined;
+
+      const { data, error } = await supabase.functions.invoke('virtual-tryon', {
+        body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory, model: aiModel },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.imageUrl) throw new Error('تصویری تولید نشد');
+
+      setAiImage(data.imageUrl);
+    } catch (err) {
+      console.error('Virtual try-on failed:', err);
+      toast({
+        title: 'خطا در تصویرسازی',
+        description: err instanceof Error ? err.message : 'مشکلی در ساخت تصویر پیش آمد',
+        variant: 'destructive',
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+
 
   // ===== Zoom & Pan =====
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
@@ -390,8 +462,89 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           )}
         </div>
 
+        {/* AI generated try-on result */}
+        {aiImage && (
+          <div className="absolute inset-0 z-40 animate-fade-in">
+            <img src={aiImage} alt="نتیجه پرو مجازی با هوش مصنوعی" className="w-full h-full object-cover" />
+            <button
+              onClick={() => setAiImage(null)}
+              className="absolute top-2 left-2 z-50 inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
+            >
+              <X className="w-3 h-3" />
+              بازگشت به مانکن
+            </button>
+          </div>
+        )}
+
+        {/* Generating overlay */}
+        {aiLoading && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-sm animate-fade-in">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <p className="text-xs font-black text-foreground">در حال ساخت تصویر با هوش مصنوعی...</p>
+          </div>
+        )}
+
         {zoomControls}
       </div>
+
+      {/* ===== AI model picker + generate ===== */}
+      <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-foreground">
+          <Wand2 className="w-3.5 h-3.5 text-gold" />
+          پرو مجازی با هوش مصنوعی
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TRYON_MODELS.map((m) => {
+            const isActive = aiModel === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setAiModel(m.id)}
+                className={cn(
+                  'flex flex-col items-start rounded-xl border px-2.5 py-1.5 text-right transition-all duration-300',
+                  isActive
+                    ? 'border-transparent bg-gradient-gold text-white shadow-button-gold scale-[1.02]'
+                    : 'border-border/70 bg-white/60 text-foreground/75 hover:border-gold/40 hover:bg-white/90 hover:text-foreground hover:-translate-y-0.5'
+                )}
+              >
+                <span className="flex items-center gap-1 text-[11px] font-black whitespace-nowrap">
+                  {m.name}
+                  {m.free && !isActive && (
+                    <span className="rounded-md bg-emerald-500/15 px-1 text-[9px] font-black text-emerald-600">رایگان</span>
+                  )}
+                  {isActive && <Check className="w-3 h-3" strokeWidth={3.5} />}
+                </span>
+                <span className={cn('text-[9px] font-medium', isActive ? 'text-white/80' : 'text-muted-foreground/70')}>
+                  {m.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <Button
+          onClick={handleGenerate}
+          disabled={items.length === 0 || aiLoading}
+          className="mt-2.5 w-full h-9 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
+        >
+          {aiLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              در حال ساخت...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              ساخت تصویر واقع‌گرایانه
+            </>
+          )}
+        </Button>
+        {items.length === 0 && (
+          <p className="mt-2 text-[11px] font-medium text-muted-foreground/70">
+            ابتدا چند لباس به ست اضافه کنید
+          </p>
+        )}
+      </div>
+
 
       {/* ===== Shoe picker ===== */}
       {!items.some((i) => i.category === 'shoes') && (
