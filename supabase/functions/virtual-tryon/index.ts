@@ -143,18 +143,24 @@ Generate a single realistic image of the dressed mannequin.`;
     console.log('AI response received');
     
     // Extract the generated image
-    const generatedImage = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-    
+    const message = data.choices?.[0]?.message;
+    const b64 = data.data?.[0]?.b64_json;
+    const generatedImage =
+      message?.images?.[0]?.image_url?.url ||
+      (typeof b64 === 'string' ? `data:image/png;base64,${b64}` : null);
+
     if (!generatedImage) {
-      console.error('No image in response:', JSON.stringify(data));
+      console.error('No image in response:', JSON.stringify(data).slice(0, 2000));
       throw new Error('Failed to generate image');
     }
 
-    console.log('Successfully generated virtual try-on image');
+    console.log('Successfully generated virtual try-on image with', resolvedModel);
 
     return new Response(JSON.stringify({ 
-      imageUrl: generatedImage 
+      imageUrl: generatedImage,
+      model: resolvedModel,
     }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
