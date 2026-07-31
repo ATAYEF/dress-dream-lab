@@ -92,6 +92,61 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     });
   };
 
+  // ===== AI Virtual Try-on =====
+  const [aiModel, setAiModel] = useState<string>(DEFAULT_TRYON_MODEL);
+  const [aiImage, setAiImage] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  // Drop a stale generated image whenever the outfit or model changes
+  const generationKey = `${outfitKey}-${aiModel}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
+  useEffect(() => {
+    setAiImage(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [generationKey]);
+
+  const handleGenerate = async () => {
+    if (items.length === 0 || aiLoading) return;
+    setAiLoading(true);
+    try {
+      const baseImageUrl = await toDataUrl(mannequinImage);
+      const clothingItems = await Promise.all(
+        items.map(async (item) => ({
+          name: item.name,
+          category: item.category,
+          imageUrl: await toDataUrl(item.imageUrl),
+        }))
+      );
+
+      const suggestedFootwear =
+        !items.some((i) => i.category === 'shoes') && activeShoe ? activeShoe.name : undefined;
+      const suggestedAccessory =
+        !userAccessory && activeAccessories.length > 0
+          ? activeAccessories.map((a) => a.name).join(' و ')
+          : undefined;
+
+      const { data, error } = await supabase.functions.invoke('virtual-tryon', {
+        body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory, model: aiModel },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (!data?.imageUrl) throw new Error('تصویری تولید نشد');
+
+      setAiImage(data.imageUrl);
+    } catch (err) {
+      console.error('Virtual try-on failed:', err);
+      toast({
+        title: 'خطا در تصویرسازی',
+        description: err instanceof Error ? err.message : 'مشکلی در ساخت تصویر پیش آمد',
+        variant: 'destructive',
+      });
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+
+
   // ===== Zoom & Pan =====
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
