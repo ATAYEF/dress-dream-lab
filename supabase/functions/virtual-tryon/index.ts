@@ -5,16 +5,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const ALLOWED_MODELS = [
+  'google/gemini-3.1-flash-image',
+  'google/gemini-2.5-flash-image',
+  'google/gemini-3-pro-image',
+];
+const DEFAULT_MODEL = 'google/gemini-3.1-flash-image';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { baseImageUrl, mannequinImageUrl, isUserPhoto, clothingItems, suggestedFootwear, suggestedAccessory } = await req.json();
+    const { baseImageUrl, mannequinImageUrl, isUserPhoto, clothingItems, suggestedFootwear, suggestedAccessory, model } = await req.json();
 
     // Backward compatible: older clients may still send `mannequinImageUrl`.
     const resolvedBaseImageUrl = baseImageUrl || mannequinImageUrl;
+    const resolvedModel = ALLOWED_MODELS.includes(model) ? model : DEFAULT_MODEL;
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
@@ -30,7 +38,8 @@ serve(async (req) => {
       throw new Error('No base image provided');
     }
 
-    console.log('Virtual try-on for', clothingItems.length, 'items. Using', isUserPhoto ? 'real user photo' : 'generic mannequin');
+    console.log('Virtual try-on with model', resolvedModel, 'for', clothingItems.length, 'items. Using', isUserPhoto ? 'real user photo' : 'generic mannequin');
+
 
     // Build the instruction prompt: if we have a real photo of the user, the
     // whole point is to show THEM wearing the outfit (preserving identity),
