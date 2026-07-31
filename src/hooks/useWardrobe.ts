@@ -360,11 +360,17 @@ export const useWardrobe = () => {
 
     if (userId) {
       try {
-        const dbPayload: Record<string, unknown> = {};
+        const dbPayload: {
+          name?: string;
+          category?: string;
+          image_url?: string;
+          color?: string;
+        } = {};
         if (updates.name !== undefined) dbPayload.name = updates.name;
         if (updates.category !== undefined) dbPayload.category = updates.category;
         if (updates.imageUrl !== undefined) dbPayload.image_url = updates.imageUrl;
-        if (updates.color !== undefined) dbPayload.color = updates.color ?? null;
+        if (updates.color !== undefined) dbPayload.color = updates.color ?? undefined;
+
 
         const { error } = await supabase
           .from('clothing_items')
