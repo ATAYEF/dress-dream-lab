@@ -462,8 +462,89 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           )}
         </div>
 
+        {/* AI generated try-on result */}
+        {aiImage && (
+          <div className="absolute inset-0 z-40 animate-fade-in">
+            <img src={aiImage} alt="نتیجه پرو مجازی با هوش مصنوعی" className="w-full h-full object-cover" />
+            <button
+              onClick={() => setAiImage(null)}
+              className="absolute top-2 left-2 z-50 inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
+            >
+              <X className="w-3 h-3" />
+              بازگشت به مانکن
+            </button>
+          </div>
+        )}
+
+        {/* Generating overlay */}
+        {aiLoading && (
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-sm animate-fade-in">
+            <Loader2 className="w-8 h-8 animate-spin text-gold" />
+            <p className="text-xs font-black text-foreground">در حال ساخت تصویر با هوش مصنوعی...</p>
+          </div>
+        )}
+
         {zoomControls}
       </div>
+
+      {/* ===== AI model picker + generate ===== */}
+      <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
+        <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-foreground">
+          <Wand2 className="w-3.5 h-3.5 text-gold" />
+          پرو مجازی با هوش مصنوعی
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {TRYON_MODELS.map((m) => {
+            const isActive = aiModel === m.id;
+            return (
+              <button
+                key={m.id}
+                onClick={() => setAiModel(m.id)}
+                className={cn(
+                  'flex flex-col items-start rounded-xl border px-2.5 py-1.5 text-right transition-all duration-300',
+                  isActive
+                    ? 'border-transparent bg-gradient-gold text-white shadow-button-gold scale-[1.02]'
+                    : 'border-border/70 bg-white/60 text-foreground/75 hover:border-gold/40 hover:bg-white/90 hover:text-foreground hover:-translate-y-0.5'
+                )}
+              >
+                <span className="flex items-center gap-1 text-[11px] font-black whitespace-nowrap">
+                  {m.name}
+                  {m.free && !isActive && (
+                    <span className="rounded-md bg-emerald-500/15 px-1 text-[9px] font-black text-emerald-600">رایگان</span>
+                  )}
+                  {isActive && <Check className="w-3 h-3" strokeWidth={3.5} />}
+                </span>
+                <span className={cn('text-[9px] font-medium', isActive ? 'text-white/80' : 'text-muted-foreground/70')}>
+                  {m.description}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <Button
+          onClick={handleGenerate}
+          disabled={items.length === 0 || aiLoading}
+          className="mt-2.5 w-full h-9 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
+        >
+          {aiLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              در حال ساخت...
+            </>
+          ) : (
+            <>
+              <Sparkles className="w-4 h-4" />
+              ساخت تصویر واقع‌گرایانه
+            </>
+          )}
+        </Button>
+        {items.length === 0 && (
+          <p className="mt-2 text-[11px] font-medium text-muted-foreground/70">
+            ابتدا چند لباس به ست اضافه کنید
+          </p>
+        )}
+      </div>
+
 
       {/* ===== Shoe picker ===== */}
       {!items.some((i) => i.category === 'shoes') && (
