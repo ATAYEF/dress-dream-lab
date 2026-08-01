@@ -11,18 +11,37 @@ import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-/** Converts any image (bundled asset, blob or remote url) into a base64 data URL */
-async function toDataUrl(src: string): Promise<string> {
-  if (src.startsWith('data:')) return src;
-  const res = await fetch(src);
-  const blob = await res.blob();
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+/**
+ * Converts any image (bundled asset, blob, data url or remote url) into a
+ * compressed base64 JPEG data URL. Downscaling is essential: raw camera photos
+ * are several MB in base64 and make the try-on request fail silently.
+ */
+async function toDataUrl(src: string, maxSize = 768): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('تصویر قابل بارگذاری نیست'));
+    image.src = src;
   });
+
+  let { width, height } = img;
+  const scale = Math.min(1, maxSize / Math.max(width, height));
+  width = Math.max(1, Math.round(width * scale));
+  height = Math.max(1, Math.round(height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('عدم پشتیبانی مرورگر');
+  // White backdrop so transparent PNGs stay clean once flattened to JPEG
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.82);
 }
+
 
 
 export type MannequinGender = 'female' | 'male';
