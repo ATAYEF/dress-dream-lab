@@ -69,6 +69,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
 
   // ===== AI outfit suggestions (shoes + accessories) =====
+  const hasSelectedItems = items.length > 0;
   const suggestedShoe = suggestShoes(items, gender);
   const suggestedAccessories = suggestAccessories(items, gender);
 
@@ -395,7 +396,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                   draggable={false}
                 />
               </div>
-              {!items.some((i) => i.category === 'shoes') && (
+      {hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
                 <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-gradient-gold px-2.5 py-1 text-[10px] text-primary-foreground shadow-lg shadow-gold/30 animate-fade-in whitespace-nowrap font-black">
                   <Sparkles className="w-3 h-3" />
                   {activeShoe.name}
@@ -430,7 +431,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           )}
 
           {/* AI suggested accessories (belt + bag) */}
-          {!userAccessory &&
+          {hasSelectedItems &&
+            !userAccessory &&
             activeAccessories.map((accessory, index) => {
               const a = accessory as SuggestedAccessory;
               return (
@@ -574,14 +576,14 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
 
       {/* ===== Shoe picker ===== */}
-      {!items.some((i) => i.category === 'shoes') && (
+      {hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
         <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
               <Sparkles className="w-3.5 h-3.5 text-gold" />
               کفش پیشنهادی
             </div>
-            {activeShoe && (
+          {hasSelectedItems && activeShoe && (
               <button
                 onClick={() => setSelectedShoeId(null)}
                 className="inline-flex items-center gap-1 text-[10px] font-black text-muted-foreground/70 hover:text-rose hover:bg-rose/10 rounded-lg px-2 py-0.5 transition-colors"
@@ -628,7 +630,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       )}
 
       {/* ===== Accessory picker ===== */}
-      {!userAccessory && (
+      {hasSelectedItems && !userAccessory && (
         <div className="mt-2.5 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
