@@ -127,12 +127,14 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     if (items.length === 0 || aiLoading) return;
     setAiLoading(true);
     try {
-      const baseImageUrl = await toDataUrl(mannequinImage);
+      const baseImageUrl = await toDataUrl(mannequinImage, 768);
+      // Cap the number of garments and downscale them harder — keeps the
+      // request payload small enough for the edge function to accept it.
       const clothingItems = await Promise.all(
-        items.map(async (item) => ({
+        items.slice(0, 5).map(async (item) => ({
           name: item.name,
           category: item.category,
-          imageUrl: await toDataUrl(item.imageUrl),
+          imageUrl: await toDataUrl(item.imageUrl, 512),
         }))
       );
 
@@ -143,13 +145,19 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           ? activeAccessories.map((a) => a.name).join(' و ')
           : undefined;
 
+      const payloadKb = Math.round(
+        (baseImageUrl.length + clothingItems.reduce((s, c) => s + c.imageUrl.length, 0)) / 1024
+      );
+      console.log('Virtual try-on payload ~', payloadKb, 'KB, model', aiModel);
+
       const { data, error } = await supabase.functions.invoke('virtual-tryon', {
         body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory, model: aiModel },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'ارتباط با سرویس برقرار نشد');
       if (data?.error) throw new Error(data.error);
-      if (!data?.imageUrl) throw new Error('تصویری تولید نشد');
+      if (!data?.imageUrl) throw new Error('تصویری تولید نشد، دوباره تلاش کنید');
+
 
       setAiImage(data.imageUrl);
     } catch (err) {
