@@ -3,10 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, LogIn, LogOut, Heart, Shirt, Sparkles as SparkleIcon } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ProfileSection } from '@/components/ProfileSection';
 import { CategoryTabs } from '@/components/CategoryTabs';
 import { ClothingCard } from '@/components/ClothingCard';
 import { AddClothingModal } from '@/components/AddClothingModal';
+import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
 import { EmptyState } from '@/components/EmptyState';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 import { OutfitBuilder } from '@/components/OutfitBuilder';
@@ -29,6 +40,7 @@ const Index = () => {
     userId,
     addClothing,
     removeClothing,
+    updateClothing,
     generateSuggestion,
     toggleFavorite,
     deleteSuggestion,
@@ -37,6 +49,10 @@ const Index = () => {
 
   const [activeCategory, setActiveCategory] = useState<ClothingCategory | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [viewingItem, setViewingItem] = useState<ClothingItem | null>(null);
+  const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
+  const [deletingItem, setDeletingItem] = useState<ClothingItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -88,6 +104,36 @@ const Index = () => {
     setActiveCategory('all');
   };
 
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEdit = (item: ClothingItem) => {
+    setViewingItem(null);
+    setEditingItem(item);
+    setIsModalOpen(true);
+  };
+
+  const handleRequestDelete = (item: ClothingItem) => {
+    setViewingItem(null);
+    setDeletingItem(item);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deletingItem || isDeleting) return;
+
+    setIsDeleting(true);
+    const wasRemoved = await removeClothing(deletingItem.id);
+    if (wasRemoved) setDeletingItem(null);
+    setIsDeleting(false);
+  };
+
+  const handleCloseClothingModal = () => {
+    setIsModalOpen(false);
+    setEditingItem(null);
+  };
+
   const hasActiveFilters = searchQuery || colorFilter || activeCategory !== 'all';
 
   return (
@@ -131,7 +177,7 @@ const Index = () => {
               <ThemeToggle />
 
               <Button
-                onClick={() => setIsModalOpen(true)}
+                onClick={handleOpenAdd}
                 variant="gold"
                 size="default"
                 className="group relative overflow-hidden shrink-0"
@@ -361,7 +407,7 @@ const Index = () => {
                 </div>
               </div>
             ) : clothes.length === 0 ? (
-              <EmptyState onAddClick={() => setIsModalOpen(true)} />
+              <EmptyState onAddClick={handleOpenAdd} />
             ) : filteredClothes.length === 0 ? (
               <div className="text-center py-14 md:py-20 px-4 rounded-[2rem] bg-gradient-card hairline-border shadow-soft">
                 <div className="relative inline-block mb-5">
@@ -386,7 +432,9 @@ const Index = () => {
                   <ClothingCard
                     key={item.id}
                     item={item}
-                    onRemove={removeClothing}
+                    onSelect={setViewingItem}
+                    onEdit={handleOpenEdit}
+                    onRemove={handleRequestDelete}
                     className="animate-fade-up"
                     style={{ animationDelay: `${Math.min(index * 0.035, 0.5)}s` }}
                   />
@@ -447,12 +495,47 @@ const Index = () => {
         <div className="h-8 md:h-12" />
       </main>
 
-      {/* Add Modal */}
+      <ClothingDetailsModal
+        item={viewingItem}
+        onClose={() => setViewingItem(null)}
+        onEdit={handleOpenEdit}
+        onDelete={handleRequestDelete}
+      />
+
       <AddClothingModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleCloseClothingModal}
         onAdd={addClothing}
+        editingItem={editingItem}
+        onEdit={updateClothing}
       />
+
+      <AlertDialog
+        open={Boolean(deletingItem)}
+        onOpenChange={(open) => !open && !isDeleting && setDeletingItem(null)}
+      >
+        <AlertDialogContent dir="rtl" className="sm:rounded-3xl">
+          <AlertDialogHeader className="text-right sm:text-right">
+            <AlertDialogTitle>حذف «{deletingItem?.name}»؟</AlertDialogTitle>
+            <AlertDialogDescription className="leading-relaxed">
+              این لباس و تصویر ذخیره‌شده آن از کمد شما حذف می‌شود. این کار قابل بازگشت نیست.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-start">
+            <AlertDialogCancel disabled={isDeleting}>انصراف</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isDeleting}
+              onClick={(event) => {
+                event.preventDefault();
+                void handleConfirmDelete();
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? 'در حال حذف...' : 'حذف لباس'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

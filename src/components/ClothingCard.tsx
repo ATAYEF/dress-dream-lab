@@ -1,12 +1,13 @@
 import React from 'react';
-import { X, Sparkles, Check } from 'lucide-react';
+import { Check, Eye, Pencil, Sparkles, Trash2 } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 
 interface ClothingCardProps {
   item: ClothingItem;
-  onRemove?: (id: string) => void;
+  onRemove?: (item: ClothingItem) => void;
   onSelect?: (item: ClothingItem) => void;
+  onEdit?: (item: ClothingItem) => void;
   isSelected?: boolean;
   showActions?: boolean;
   className?: string;
@@ -26,6 +27,7 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
   item,
   onRemove,
   onSelect,
+  onEdit,
   isSelected = false,
   showActions = true,
   className,
@@ -100,24 +102,51 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
           </div>
         </div>
 
-        {/* Remove button */}
-        {showActions && onRemove && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onRemove(item.id);
-            }}
-            className={cn(
-              'absolute top-2.5 left-2.5 z-10 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-400',
-              'bg-white/90 backdrop-blur-sm text-muted-foreground opacity-0 group-hover:opacity-100',
-              'hover:bg-destructive hover:text-white hover:scale-110 shadow-md',
-              item.color ? 'translate-x-12' : ''
+        {showActions && (onSelect || onEdit || onRemove) && (
+          <div className="absolute bottom-3 inset-x-3 z-10 flex items-center justify-center gap-2 opacity-100 transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100">
+            {onSelect && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onSelect(item);
+                }}
+                className="flex size-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`مشاهده ${item.name}`}
+                title="مشاهده"
+              >
+                <Eye className="size-4" aria-hidden="true" />
+              </button>
             )}
-            style={item.color ? { left: 'auto', right: 'auto' } : {}}
-            title="حذف"
-          >
-            <X className="w-4 h-4" strokeWidth={2.5} />
-          </button>
+            {onEdit && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onEdit(item);
+                }}
+                className="flex size-9 items-center justify-center rounded-full bg-background/90 text-foreground shadow-md backdrop-blur-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`ویرایش ${item.name}`}
+                title="ویرایش"
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+              </button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRemove(item);
+                }}
+                className="flex size-9 items-center justify-center rounded-full bg-background/90 text-destructive shadow-md backdrop-blur-sm transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label={`حذف ${item.name}`}
+                title="حذف"
+              >
+                <Trash2 className="size-4" aria-hidden="true" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
