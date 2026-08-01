@@ -474,7 +474,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
           {/* Empty state */}
           {items.length === 0 && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/40 backdrop-blur-[2px] rounded-3xl animate-fade-in">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/75 backdrop-blur-md rounded-3xl animate-fade-in">
               <div className="relative">
                 <div className="absolute inset-0 rounded-full bg-gold/20 blur-xl animate-glow-pulse" />
                 <div className="relative w-20 h-20 rounded-3xl bg-gradient-card hairline-border shadow-card flex items-center justify-center animate-float">

@@ -15,12 +15,12 @@ interface ClothingCardProps {
 }
 
 const categoryBadgeStyles: Record<ClothingCategory, { bg: string; label: string }> = {
-  tops: { bg: 'rgba(129, 140, 248, 0.92)', label: 'بالا' },
-  bottoms: { bg: 'rgba(244, 114, 182, 0.92)', label: 'پایین' },
-  dresses: { bg: 'rgba(192, 132, 252, 0.92)', label: 'لباس' },
-  outerwear: { bg: 'rgba(251, 146, 60, 0.92)', label: 'بیرونی' },
-  shoes: { bg: 'rgba(52, 211, 153, 0.92)', label: 'کفش' },
-  accessories: { bg: 'rgba(96, 165, 250, 0.92)', label: 'اکسسوری' },
+  tops: { bg: 'hsl(var(--gold) / 0.92)', label: 'بالا' },
+  bottoms: { bg: 'hsl(var(--rose) / 0.92)', label: 'پایین' },
+  dresses: { bg: 'hsl(var(--gold-light) / 0.92)', label: 'لباس' },
+  outerwear: { bg: 'hsl(var(--espresso) / 0.92)', label: 'بیرونی' },
+  shoes: { bg: 'hsl(var(--sage) / 0.92)', label: 'کفش' },
+  accessories: { bg: 'hsl(var(--lavender) / 0.92)', label: 'اکسسوری' },
 };
 
 export const ClothingCard: React.FC<ClothingCardProps> = ({
@@ -194,8 +194,6 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
           })}
         </p>
 
-        {/* Hover glow effect */}
-        <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-3/4 h-16 bg-gradient-gold opacity-0 group-hover:opacity-10 blur-2xl transition-opacity duration-700 pointer-events-none rounded-full" />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { User, Sparkles, Upload, Shirt, Palette, Heart, Wand2, Camera } from 'lucide-react';
 import { UserProfile, ClothingItem, OutfitSuggestion, ClothingCategory } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
+import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 
 interface ProfileSectionProps {
   profile: UserProfile;
@@ -140,7 +141,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             {profile.imageUrl ? (
               <div className="relative group">
                 {/* Glow ring */}
-                <div className="absolute -inset-2 rounded-full bg-gradient-gold opacity-40 blur-xl group-hover:opacity-60 transition-opacity duration-700 animate-glow-pulse" />
+                <div className="absolute -inset-2 rounded-full bg-gradient-gold opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-700" />
 
                 <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden ring-4 ring-white/80 shadow-elevated">
                   <img
@@ -280,23 +281,18 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
               </span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {[
-                { key: 'tops', label: 'بالاتنه', emoji: '👕' },
-                { key: 'bottoms', label: 'پایین‌تنه', emoji: '👖' },
-                { key: 'dresses', label: 'لباس یکسره', emoji: '👗' },
-                { key: 'outerwear', label: 'ژاکت و کت', emoji: '🧥' },
-                { key: 'shoes', label: 'کفش', emoji: '👟' },
-                { key: 'accessories', label: 'اکسسوری', emoji: '👜' },
-              ].map(({ key, label, emoji }) => {
-                const count = categoryCounts[key as ClothingCategory];
+              {CATEGORY_CLOTHING_ORDER.map((catKey) => {
+                const cat = CATEGORY_CONFIG[catKey];
+                const Icon = cat.icon;
+                const count = categoryCounts[catKey as ClothingCategory];
                 const maxCount = Math.max(...Object.values(categoryCounts), 1);
                 const progress = maxCount > 0 ? (count / maxCount) * 100 : 0;
                 return (
-                  <div key={key} className="space-y-2 group">
+                  <div key={catKey} className="space-y-2 group">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5 text-foreground/80 group-hover:text-foreground transition-colors">
-                        <span className="text-base leading-none">{emoji}</span>
-                        <span className="font-medium">{label}</span>
+                        <Icon className="w-3.5 h-3.5" style={{ color: cat.hexFrom }} />
+                        <span className="font-medium">{cat.label}</span>
                       </div>
                       <span className="text-[10px] font-bold text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">
                         {count.toLocaleString('fa-IR')}
@@ -304,8 +300,11 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-background/60 overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-gold transition-all duration-1000 ease-out"
-                        style={{ width: `${progress}%` }}
+                        className="h-full rounded-full transition-all duration-1000 ease-out"
+                        style={{
+                          width: `${progress}%`,
+                          background: `linear-gradient(90deg, ${cat.hexFrom} 0%, ${cat.hexTo} 100%)`,
+                        }}
                       />
                     </div>
                   </div>

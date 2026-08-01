@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay, MannequinGender } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 
 interface OutfitBuilderProps {
   clothes: ClothingItem[];
@@ -16,15 +17,6 @@ interface OutfitBuilderProps {
 }
 
 const LAYERABLE_CATEGORIES: ClothingCategory[] = ['tops', 'outerwear', 'accessories'];
-
-const categoryGroups: { key: ClothingCategory; label: string; emoji: string; color: string }[] = [
-  { key: 'tops', label: 'بالاتنه', emoji: '👕', color: 'from-indigo-400/25 to-indigo-400/5' },
-  { key: 'bottoms', label: 'پایین‌تنه', emoji: '👖', color: 'from-rose-400/25 to-rose-400/5' },
-  { key: 'dresses', label: 'لباس یکسره', emoji: '👗', color: 'from-purple-400/25 to-purple-400/5' },
-  { key: 'outerwear', label: 'ژاکت و کت', emoji: '🧥', color: 'from-orange-400/25 to-orange-400/5' },
-  { key: 'shoes', label: 'کفش', emoji: '👟', color: 'from-emerald-400/25 to-emerald-400/5' },
-  { key: 'accessories', label: 'اکسسوری', emoji: '👜', color: 'from-blue-400/25 to-blue-400/5' },
-];
 
 export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   clothes,
@@ -129,7 +121,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
       />
 
-      <div className="relative p-5 md:p-7 lg:p-8">
+      <div className="relative p-6 md:p-8 lg:p-8">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-7">
           <div className="flex items-start gap-3 md:gap-4">
@@ -258,7 +250,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 )}
 
                 {isDragOver && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-gold/15 backdrop-blur-[2px] pointer-events-none">
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-gold/15 backdrop-blur-md pointer-events-none">
                     <div className="flex flex-col items-center gap-3 px-6 py-5 rounded-3xl bg-white/80 backdrop-blur-md shadow-elevated">
                       <div className="w-14 h-14 rounded-full bg-gradient-gold flex items-center justify-center animate-bounce">
                         <Check className="w-7 h-7 text-white" strokeWidth={3} />
@@ -345,7 +337,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             <div className="flex items-center justify-between mb-4 md:mb-5">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-400/20 to-purple-400/10 flex items-center justify-center border border-indigo-200/50">
-                  <span className="text-lg">👚</span>
+                  <Shirt className="w-4 h-4 text-gold" />
                 </div>
                 <div>
                   <h3 className="text-base md:text-lg font-display font-extrabold tracking-tight">
@@ -365,8 +357,10 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
             {/* Categories list */}
             <div className="space-y-4 md:space-y-5 max-h-[620px] overflow-y-auto pr-1 pl-2 custom-scroll-smooth">
-              {categoryGroups.map((group) => {
-                const categoryItems = clothes.filter(c => c.category === group.key);
+              {CATEGORY_CLOTHING_ORDER.map((catKey) => {
+                const group = CATEGORY_CONFIG[catKey];
+                const Icon = group.icon;
+                const categoryItems = clothes.filter(c => c.category === catKey);
                 if (categoryItems.length === 0) return null;
 
                 const hasSelected = categoryItems.some(i =>
@@ -375,11 +369,11 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
                 return (
                   <div
-                    key={group.key}
+                    key={catKey}
                     className="relative rounded-3xl bg-gradient-to-br p-[1px] overflow-hidden shadow-soft"
                     style={{
                       background: hasSelected
-                        ? `linear-gradient(135deg, hsl(var(--gold)) 0%, hsl(var(--gold))00 60%)`
+                        ? `linear-gradient(135deg, ${group.hexFrom} 0%, ${group.hexFrom}00 60%)`
                         : `linear-gradient(135deg, hsl(var(--border)) 0%, transparent 60%)`,
                     }}
                   >
@@ -389,11 +383,14 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       {/* Group header */}
                       <div className="flex items-center justify-between mb-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className={cn(
-                            'w-9 h-9 rounded-2xl flex items-center justify-center text-lg shadow-sm bg-gradient-to-br',
-                            group.color
-                          )}>
-                            {group.emoji}
+                          <div
+                            className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-sm"
+                            style={{
+                              background: `linear-gradient(135deg, ${group.hexFrom}33 0%, ${group.hexFrom}0d 100%)`,
+                              color: group.hexFrom,
+                            }}
+                          >
+                            <Icon className="w-4 h-4" />
                           </div>
                           <div>
                             <h4 className="text-sm font-extrabold text-foreground">{group.label}</h4>

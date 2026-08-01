@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { autoDetectClothing, extractDominantColor, guessCategoryFromText, generateClothingName } from '@/lib/clothingAutoDetect';
+import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 
 interface AddClothingModalProps {
   isOpen: boolean;
@@ -18,15 +19,6 @@ interface AddClothingModalProps {
   /** Called when the user saves changes while editing. Receives the id + patch object. */
   onEdit?: (id: string, updates: Partial<Omit<ClothingItem, 'id' | 'createdAt'>>) => Promise<void> | void;
 }
-
-const categoryOptions: { id: ClothingCategory; label: string; emoji: string }[] = [
-  { id: 'tops', label: 'بالاتنه', emoji: '👕' },
-  { id: 'bottoms', label: 'پایین‌تنه', emoji: '👖' },
-  { id: 'dresses', label: 'لباس یکسره', emoji: '👗' },
-  { id: 'outerwear', label: 'ژاکت و کت', emoji: '🧥' },
-  { id: 'shoes', label: 'کفش', emoji: '👟' },
-  { id: 'accessories', label: 'اکسسوری', emoji: '👜' },
-];
 
 export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   isOpen,
@@ -378,7 +370,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
           {/* Top accent strip (different for edit mode) */}
           <div className={`h-1.5 w-full ${isEditMode ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500' : 'bg-gradient-gold'}`} />
 
-          <div className="p-5 sm:p-7">
+          <div className="p-6 sm:p-8">
             {/* Header */}
             <div className="flex items-start justify-between gap-4 mb-6">
               <div className="flex items-start gap-3">
@@ -505,7 +497,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                 <label className="flex items-center gap-2 text-sm font-bold mb-2">
                   <span>نام لباس</span>
                   {nameWasAutoFilled && !isEditMode && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs bg-gradient-to-br from-gold/15 to-amber-100/50 border border-gold/30 text-gold font-black">
+                    <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-gold font-black">
                       <Sparkles className="w-3 h-3" />
                       پیشنهاد AI
                     </span>
@@ -584,7 +576,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                 <label className="flex items-center gap-2 text-sm font-bold mb-2.5">
                   <span>دسته‌بندی</span>
                   {categoryWasAutoFilled && !isEditMode && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs bg-gradient-to-br from-gold/15 to-amber-100/50 border border-gold/30 text-gold font-black">
+                    <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs text-gold font-black">
                       <Sparkles className="w-3 h-3" />
                       پیشنهاد AI
                     </span>
@@ -592,13 +584,15 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                 </label>
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {categoryOptions.map((cat) => {
-                    const active = category === cat.id;
+                  {CATEGORY_CLOTHING_ORDER.map((catKey) => {
+                    const cat = CATEGORY_CONFIG[catKey];
+                    const Icon = cat.icon;
+                    const active = category === catKey;
                     return (
                       <button
-                        key={cat.id}
+                        key={catKey}
                         onClick={() => {
-                          setCategory(cat.id);
+                          setCategory(catKey);
                           setCategoryWasAutoFilled(false);
                         }}
                         disabled={isUploading}
@@ -614,17 +608,22 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                             className={
                               isEditMode
                                 ? 'absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500'
-                                : 'absolute inset-0 bg-gradient-gold'
+                                : 'absolute inset-0'
+                            }
+                            style={
+                              isEditMode
+                                ? undefined
+                                : { background: `linear-gradient(135deg, ${cat.hexFrom} 0%, ${cat.hexTo} 100%)` }
                             }
                           />
                         )}
                         <span
                           className={cn(
-                            'relative text-xl sm:text-2xl transition-transform duration-400',
+                            'relative w-5 h-5 transition-transform duration-400',
                             active ? 'scale-110 drop-shadow' : 'group-hover:scale-110'
                           )}
                         >
-                          {cat.emoji}
+                          <Icon className="w-full h-full" />
                         </span>
                         <span className="relative">{cat.label}</span>
                       </button>

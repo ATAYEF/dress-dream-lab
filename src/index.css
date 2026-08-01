@@ -231,7 +231,7 @@
 
 @layer utilities {
   .font-display {
-    font-family: 'Vazirmatn', 'Cormorant Garamond', serif;
+    font-family: 'Vazirmatn', sans-serif;
     font-weight: 700;
   }
 
