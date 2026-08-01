@@ -5,11 +5,13 @@ import { deleteClothingImage, uploadClothingImage, compressImage, dataUrlToFile 
 import { toast } from '@/hooks/use-toast';
 import { SAMPLE_CLOTHES } from '@/lib/sampleWardrobe';
 
+const SAMPLES_VERSION = 'v2-ai-expanded';
 const LOCAL_STORAGE_KEYS = {
   CLOTHES: 'styler_clothes',
   SUGGESTIONS: 'styler_suggestions',
   PROFILE: 'styler_profile',
   SAMPLES_SEEDED: 'styler_samples_seeded',
+  SAMPLES_VERSION_KEY: 'styler_samples_version',
 };
 
 
@@ -28,18 +30,34 @@ export const useWardrobe = () => {
       const savedClothes = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOTHES);
       const savedSuggestions = localStorage.getItem(LOCAL_STORAGE_KEYS.SUGGESTIONS);
       const savedProfile = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILE);
+      const savedVersion = localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_VERSION_KEY);
 
       if (savedClothes) {
-        const parsed = JSON.parse(savedClothes);
-        setClothes(parsed.map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-        })));
-      } else if (!localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED)) {
-        // First visit as guest: seed a demo wardrobe so the mannequin can be tested
+        const parsed: any[] = JSON.parse(savedClothes);
+
+        if (savedVersion !== SAMPLES_VERSION) {
+          // Refresh sample items on version bump (preserve user-added items, replace samples)
+          const userItems = parsed.filter((item: any) => !item.id?.startsWith('sample-'));
+          const refreshed = [...SAMPLE_CLOTHES, ...userItems];
+          setClothes(refreshed.map((item: any) => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+          })));
+          localStorage.setItem(LOCAL_STORAGE_KEYS.CLOTHES, JSON.stringify(refreshed));
+          localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_VERSION_KEY, SAMPLES_VERSION);
+          localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED, '1');
+        } else {
+          setClothes(parsed.map((item: any) => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+          })));
+        }
+      } else if (!localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED) || savedVersion !== SAMPLES_VERSION) {
+        // First visit as guest or version bump with no saved clothes
         setClothes(SAMPLE_CLOTHES);
         localStorage.setItem(LOCAL_STORAGE_KEYS.CLOTHES, JSON.stringify(SAMPLE_CLOTHES));
         localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED, '1');
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_VERSION_KEY, SAMPLES_VERSION);
       }
 
 

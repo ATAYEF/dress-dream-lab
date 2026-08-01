@@ -86,6 +86,16 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
           </div>
         )}
 
+        {/* AI Badge - permanent when item has AI tag */}
+        {item.tags?.includes('AI') && (
+          <div className="absolute top-2.5 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-none">
+            <div className="flex items-center gap-1 rounded-full bg-gradient-to-r from-indigo-500 via-purple-500 to-rose-500 text-white px-2.5 py-1 shadow-elevated text-[10px] font-black tracking-tight animate-float">
+              <Sparkles className="w-3 h-3 shrink-0 animate-pulse" />
+              AI
+            </div>
+          </div>
+        )}
+
         {/* Selected overlay */}
         {isSelected && (
           <div className="absolute inset-0 bg-gradient-to-br from-gold/20 via-transparent to-gold/15 pointer-events-none">
@@ -94,13 +104,6 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
             </div>
           </div>
         )}
-
-        {/* AI Sparkle badge (optional) */}
-        <div className="absolute top-10 left-2.5 opacity-0 group-hover:opacity-100 transition-all duration-500 delay-100 pointer-events-none">
-          <div className="w-6 h-6 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center shadow-md">
-            <Sparkles className="w-3 h-3 text-gold" />
-          </div>
-        </div>
 
         {showActions && (onSelect || onEdit || onRemove) && (
           <div className="absolute bottom-3 inset-x-3 z-10 flex items-center justify-center gap-2 opacity-100 transition-all duration-300 sm:translate-y-2 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100 sm:group-focus-within:translate-y-0 sm:group-focus-within:opacity-100">
@@ -165,6 +168,23 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
             style={{ backgroundColor: badge.bg }}
           />
         </div>
+
+        {/* Tags */}
+        {item.tags && item.tags.filter(t => t !== 'AI').length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {item.tags
+              .filter(t => t !== 'AI')
+              .slice(0, 3)
+              .map((tag) => (
+                <span
+                  key={tag}
+                  className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-cream border border-border/50 text-foreground/70"
+                >
+                  {tag}
+                </span>
+              ))}
+          </div>
+        )}
 
         {/* Date or subtle info */}
         <p className="text-[10px] text-muted-foreground mt-1.5 font-medium">

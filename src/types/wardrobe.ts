@@ -6,6 +6,7 @@ export interface ClothingItem {
   category: ClothingCategory;
   imageUrl: string;
   color?: string;
+  tags?: string[];
   createdAt: Date;
 }
 
