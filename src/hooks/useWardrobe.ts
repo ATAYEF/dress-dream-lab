@@ -328,7 +328,8 @@ export const useWardrobe = () => {
         const { error } = await supabase
           .from('clothing_items')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('user_id', userId);
 
         if (error) throw error;
 
@@ -342,7 +343,7 @@ export const useWardrobe = () => {
           description: 'مشکلی در حذف لباس پیش آمد',
           variant: 'destructive',
         });
-        return;
+        return false;
       }
     }
 
@@ -357,6 +358,7 @@ export const useWardrobe = () => {
       title: 'لباس حذف شد',
       description: 'لباس از کمد شما حذف شد',
     });
+    return true;
   };
 
   // Update clothing item (for editing)
@@ -384,9 +386,18 @@ export const useWardrobe = () => {
         const { error } = await supabase
           .from('clothing_items')
           .update(dbPayload)
-          .eq('id', id);
+          .eq('id', id)
+          .eq('user_id', userId);
 
         if (error) throw error;
+
+        if (
+          updates.imageUrl &&
+          updates.imageUrl !== existingItem.imageUrl &&
+          existingItem.imageUrl.includes('supabase')
+        ) {
+          await deleteClothingImage(existingItem.imageUrl);
+        }
       } catch (error) {
         console.error('Error updating clothing:', error);
         toast({
