@@ -11,18 +11,37 @@ import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-/** Converts any image (bundled asset, blob or remote url) into a base64 data URL */
-async function toDataUrl(src: string): Promise<string> {
-  if (src.startsWith('data:')) return src;
-  const res = await fetch(src);
-  const blob = await res.blob();
-  return await new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
+/**
+ * Converts any image (bundled asset, blob, data url or remote url) into a
+ * compressed base64 JPEG data URL. Downscaling is essential: raw camera photos
+ * are several MB in base64 and make the try-on request fail silently.
+ */
+async function toDataUrl(src: string, maxSize = 768): Promise<string> {
+  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('تصویر قابل بارگذاری نیست'));
+    image.src = src;
   });
+
+  let { width, height } = img;
+  const scale = Math.min(1, maxSize / Math.max(width, height));
+  width = Math.max(1, Math.round(width * scale));
+  height = Math.max(1, Math.round(height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('عدم پشتیبانی مرورگر');
+  // White backdrop so transparent PNGs stay clean once flattened to JPEG
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', 0.82);
 }
+
 
 
 export type MannequinGender = 'female' | 'male';
@@ -108,12 +127,14 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     if (items.length === 0 || aiLoading) return;
     setAiLoading(true);
     try {
-      const baseImageUrl = await toDataUrl(mannequinImage);
+      const baseImageUrl = await toDataUrl(mannequinImage, 768);
+      // Cap the number of garments and downscale them harder — keeps the
+      // request payload small enough for the edge function to accept it.
       const clothingItems = await Promise.all(
-        items.map(async (item) => ({
+        items.slice(0, 5).map(async (item) => ({
           name: item.name,
           category: item.category,
-          imageUrl: await toDataUrl(item.imageUrl),
+          imageUrl: await toDataUrl(item.imageUrl, 512),
         }))
       );
 
@@ -124,13 +145,19 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           ? activeAccessories.map((a) => a.name).join(' و ')
           : undefined;
 
+      const payloadKb = Math.round(
+        (baseImageUrl.length + clothingItems.reduce((s, c) => s + c.imageUrl.length, 0)) / 1024
+      );
+      console.log('Virtual try-on payload ~', payloadKb, 'KB, model', aiModel);
+
       const { data, error } = await supabase.functions.invoke('virtual-tryon', {
         body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory, model: aiModel },
       });
 
-      if (error) throw error;
+      if (error) throw new Error(error.message || 'ارتباط با سرویس برقرار نشد');
       if (data?.error) throw new Error(data.error);
-      if (!data?.imageUrl) throw new Error('تصویری تولید نشد');
+      if (!data?.imageUrl) throw new Error('تصویری تولید نشد، دوباره تلاش کنید');
+
 
       setAiImage(data.imageUrl);
     } catch (err) {
