@@ -3,12 +3,15 @@ import { supabase } from '@/integrations/supabase/client';
 import { ClothingItem, ClothingCategory, OutfitSuggestion, UserProfile } from '@/types/wardrobe';
 import { deleteClothingImage, uploadClothingImage, compressImage, dataUrlToFile } from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
+import { SAMPLE_CLOTHES } from '@/lib/sampleWardrobe';
 
 const LOCAL_STORAGE_KEYS = {
   CLOTHES: 'styler_clothes',
   SUGGESTIONS: 'styler_suggestions',
   PROFILE: 'styler_profile',
+  SAMPLES_SEEDED: 'styler_samples_seeded',
 };
+
 
 export const useWardrobe = () => {
   const [profile, setProfile] = useState<UserProfile>({ imageUrl: null });
@@ -32,7 +35,13 @@ export const useWardrobe = () => {
           ...item,
           createdAt: new Date(item.createdAt),
         })));
+      } else if (!localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED)) {
+        // First visit as guest: seed a demo wardrobe so the mannequin can be tested
+        setClothes(SAMPLE_CLOTHES);
+        localStorage.setItem(LOCAL_STORAGE_KEYS.CLOTHES, JSON.stringify(SAMPLE_CLOTHES));
+        localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED, '1');
       }
+
 
       if (savedSuggestions) {
         const parsed = JSON.parse(savedSuggestions);
