@@ -16,14 +16,26 @@ import { toast } from '@/hooks/use-toast';
  * compressed base64 JPEG data URL. Downscaling is essential: raw camera photos
  * are several MB in base64 and make the try-on request fail silently.
  */
-async function toDataUrl(src: string, maxSize = 768): Promise<string> {
-  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+async function loadImage(src: string, useCors: boolean) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
-    image.crossOrigin = 'anonymous';
+    if (useCors) image.crossOrigin = 'anonymous';
     image.onload = () => resolve(image);
     image.onerror = () => reject(new Error('تصویر قابل بارگذاری نیست'));
     image.src = src;
   });
+}
+
+async function toDataUrl(src: string, maxSize = 768): Promise<string> {
+  // Some remote images block CORS; retry without it (canvas may still work for
+  // same-origin / data URLs, and the retry catches transient failures).
+  let img: HTMLImageElement;
+  try {
+    img = await loadImage(src, true);
+  } catch {
+    img = await loadImage(src, false);
+  }
+
 
   let { width, height } = img;
   const scale = Math.min(1, maxSize / Math.max(width, height));
@@ -131,13 +143,29 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       const baseImageUrl = await toDataUrl(mannequinImage, 768);
       // Cap the number of garments and downscale them harder — keeps the
       // request payload small enough for the edge function to accept it.
-      const clothingItems = await Promise.all(
-        items.slice(0, 5).map(async (item) => ({
-          name: item.name,
-          category: item.category,
-          imageUrl: await toDataUrl(item.imageUrl, 512),
-        }))
+      const converted = await Promise.all(
+        items.slice(0, 5).map(async (item) => {
+          try {
+            return {
+              name: item.name,
+              category: item.category,
+              imageUrl: await toDataUrl(item.imageUrl, 512),
+            };
+          } catch (e) {
+            console.warn('Skipping unreadable garment image:', item.name, e);
+            return null;
+          }
+        })
       );
+      const clothingItems = converted.filter(Boolean) as {
+        name: string;
+        category: string;
+        imageUrl: string;
+      }[];
+      if (clothingItems.length === 0) {
+        throw new Error('تصویر لباس‌ها قابل خواندن نیست؛ لباس دیگری امتحان کنید');
+      }
+
 
       const suggestedFootwear =
         !items.some((i) => i.category === 'shoes') && activeShoe ? activeShoe.name : undefined;
