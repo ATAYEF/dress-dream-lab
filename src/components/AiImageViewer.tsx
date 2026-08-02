@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Maximize2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Maximize2, Minimize2, Expand, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,7 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const reset = useCallback(() => {
     setZoom(1);
@@ -38,6 +40,27 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
   useEffect(() => {
     reset();
   }, [src, reset]);
+
+  // reset transform when switching between inline and fullscreen
+  useEffect(() => {
+    reset();
+  }, [isFullscreen, reset]);
+
+  // Esc closes fullscreen, lock body scroll while fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isFullscreen]);
+
 
   // zoom anchored at a point inside the container
   const zoomAt = useCallback((next: number, px: number, py: number) => {
@@ -98,8 +121,16 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
 
   const endDrag = () => setIsDragging(false);
 
-  return (
-    <div className={cn('absolute inset-0 z-40 animate-fade-in bg-background', className)}>
+  const body = (
+    <div
+      className={cn(
+        isFullscreen
+          ? 'fixed inset-0 z-[100] bg-background/98 backdrop-blur-sm'
+          : 'absolute inset-0 z-40 bg-background',
+        'animate-fade-in',
+        className,
+      )}
+    >
       <div
         ref={containerRef}
         className="absolute inset-0 overflow-hidden touch-none"
@@ -114,7 +145,10 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
           src={src}
           alt={alt}
           draggable={false}
-          className="w-full h-full object-cover select-none will-change-transform"
+          className={cn(
+            'w-full h-full select-none will-change-transform',
+            isFullscreen ? 'object-contain' : 'object-cover',
+          )}
           style={{
             transformOrigin: '0 0',
             transform: `translate(${offset.x}px, ${offset.y}px) scale(${zoom}) rotate(${rotation}deg)`,
@@ -122,17 +156,29 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
         />
       </div>
 
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-2 left-2 z-50 inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
-        >
-          <X className="w-3 h-3" />
-          بازگشت به مانکن
-        </button>
-      )}
+      <div className="absolute top-2 left-2 z-[110] flex items-center gap-1">
+        {isFullscreen ? (
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
+          >
+            <Minimize2 className="w-3 h-3" />
+            خروج از تمام‌صفحه
+          </button>
+        ) : (
+          onClose && (
+            <button
+              onClick={onClose}
+              className="inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
+            >
+              <X className="w-3 h-3" />
+              بازگشت به مانکن
+            </button>
+          )
+        )}
+      </div>
 
-      <div className="absolute bottom-2 right-2 z-50 flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur px-1.5 py-1 shadow-lg hairline-border">
+      <div className="absolute bottom-2 right-2 z-[110] flex items-center gap-0.5 rounded-full bg-background/90 backdrop-blur px-1.5 py-1 shadow-lg hairline-border">
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => zoomFromCenter(1 / 1.25)} disabled={zoom <= MIN_ZOOM} aria-label="کوچک‌نمایی">
           <ZoomOut className="w-3.5 h-3.5" />
         </Button>
@@ -147,6 +193,16 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setRotation((r) => r + 90)} aria-label="چرخش به راست">
           <RotateCw className="w-3.5 h-3.5" />
         </Button>
+        <span className="w-px h-4 bg-border mx-0.5" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7"
+          onClick={() => setIsFullscreen((f) => !f)}
+          aria-label={isFullscreen ? 'خروج از تمام‌صفحه' : 'تمام‌صفحه'}
+        >
+          {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Expand className="w-3.5 h-3.5" />}
+        </Button>
         {(zoom !== 1 || rotation !== 0 || offset.x !== 0 || offset.y !== 0) && (
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={reset} aria-label="بازنشانی">
             <Maximize2 className="w-3.5 h-3.5" />
@@ -155,6 +211,8 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
       </div>
     </div>
   );
+
+  return isFullscreen ? createPortal(body, document.body) : body;
 };
 
 export default AiImageViewer;
