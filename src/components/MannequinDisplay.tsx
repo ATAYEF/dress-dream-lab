@@ -10,6 +10,7 @@ import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@
 import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import AiImageViewer from './AiImageViewer';
 
 /**
  * Converts any image (bundled asset, blob, data url or remote url) into a
