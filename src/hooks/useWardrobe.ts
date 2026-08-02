@@ -1,11 +1,27 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ClothingItem, ClothingCategory, OutfitSuggestion, UserProfile } from '@/types/wardrobe';
-import { deleteClothingImage, uploadClothingImage, compressImage, dataUrlToFile } from '@/lib/storage';
+import {
+  deleteClothingImage,
+  uploadClothingImage,
+  compressImage,
+  dataUrlToFile,
+  resolveImageUrl,
+  createLocalId,
+  extractStoragePath,
+} from '@/lib/storage';
 import { toast } from '@/hooks/use-toast';
-import { SAMPLE_CLOTHES } from '@/lib/sampleWardrobe';
+import { SAMPLE_CLOTHES, SAMPLE_WARDROBE_VERSION } from '@/lib/sampleWardrobe';
+import { describeColorHarmony, scoreOutfitColors } from '@/lib/colorHarmony';
+import {
+  OutfitContext,
+  DEFAULT_OUTFIT_CONTEXT,
+  buildContextOutfit,
+  describeContext,
+  contextLabels,
+} from '@/lib/outfitContext';
 
-const SAMPLES_VERSION = 'v2-ai-expanded';
+const SAMPLES_VERSION = SAMPLE_WARDROBE_VERSION;
 const LOCAL_STORAGE_KEYS = {
   CLOTHES: 'styler_clothes',
   SUGGESTIONS: 'styler_suggestions',
@@ -14,6 +30,39 @@ const LOCAL_STORAGE_KEYS = {
   SAMPLES_VERSION_KEY: 'styler_samples_version',
 };
 
+const isSampleItem = (item: { id?: string }) =>
+  Boolean(item?.id?.startsWith('sample-'));
+
+const migratedKeyFor = (uid: string) => `styler_migrated_${uid}`;
+
+/** Map a DB clothing row to ClothingItem (image path still unresolved). */
+const mapClothingRow = (item: {
+  id: string;
+  name: string;
+  category: string;
+  image_url: string;
+  color: string | null;
+  created_at: string;
+  tags?: string[] | null;
+}): ClothingItem => ({
+  id: item.id,
+  name: item.name,
+  category: item.category as ClothingCategory,
+  imageUrl: item.image_url,
+  color: item.color || undefined,
+  tags: item.tags?.length ? item.tags : undefined,
+  createdAt: new Date(item.created_at),
+});
+
+/** Resolve imageUrl fields for a list of clothing items. */
+const withResolvedImages = async (items: ClothingItem[]): Promise<ClothingItem[]> => {
+  return Promise.all(
+    items.map(async (item) => ({
+      ...item,
+      imageUrl: await resolveImageUrl(item.imageUrl),
+    }))
+  );
+};
 
 export const useWardrobe = () => {
   const [profile, setProfile] = useState<UserProfile>({ imageUrl: null });
@@ -24,7 +73,7 @@ export const useWardrobe = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const hasMigratedRef = useRef(false);
 
-  // Load from localStorage for anonymous users
+  // ---------- localStorage helpers (guests) ----------
   const loadFromLocalStorage = useCallback(() => {
     try {
       const savedClothes = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOTHES);
@@ -36,53 +85,68 @@ export const useWardrobe = () => {
         const parsed: any[] = JSON.parse(savedClothes);
 
         if (savedVersion !== SAMPLES_VERSION) {
-          // Refresh sample items on version bump (preserve user-added items, replace samples)
-          const userItems = parsed.filter((item: any) => !item.id?.startsWith('sample-'));
+          const userItems = parsed.filter((item: any) => !isSampleItem(item));
           const refreshed = [...SAMPLE_CLOTHES, ...userItems];
-          setClothes(refreshed.map((item: any) => ({
-            ...item,
-            createdAt: new Date(item.createdAt),
-          })));
+          setClothes(
+            refreshed.map((item: any) => ({
+              ...item,
+              createdAt: new Date(item.createdAt),
+            }))
+          );
           localStorage.setItem(LOCAL_STORAGE_KEYS.CLOTHES, JSON.stringify(refreshed));
           localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_VERSION_KEY, SAMPLES_VERSION);
           localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED, '1');
         } else {
-          setClothes(parsed.map((item: any) => ({
-            ...item,
-            createdAt: new Date(item.createdAt),
-          })));
+          setClothes(
+            parsed.map((item: any) => ({
+              ...item,
+              createdAt: new Date(item.createdAt),
+            }))
+          );
         }
-      } else if (!localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED) || savedVersion !== SAMPLES_VERSION) {
-        // First visit as guest or version bump with no saved clothes
+      } else if (
+        !localStorage.getItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED) ||
+        savedVersion !== SAMPLES_VERSION
+      ) {
         setClothes(SAMPLE_CLOTHES);
         localStorage.setItem(LOCAL_STORAGE_KEYS.CLOTHES, JSON.stringify(SAMPLE_CLOTHES));
         localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_SEEDED, '1');
         localStorage.setItem(LOCAL_STORAGE_KEYS.SAMPLES_VERSION_KEY, SAMPLES_VERSION);
+      } else {
+        setClothes([]);
       }
-
 
       if (savedSuggestions) {
         const parsed = JSON.parse(savedSuggestions);
-        setSuggestions(parsed.map((item: any) => ({
-          ...item,
-          createdAt: new Date(item.createdAt),
-          items: item.items?.map((i: any) => ({
-            ...i,
-            createdAt: new Date(i.createdAt),
-          })) || [],
-        })));
+        setSuggestions(
+          parsed.map((item: any) => ({
+            ...item,
+            createdAt: new Date(item.createdAt),
+            items:
+              item.items?.map((i: any) => ({
+                ...i,
+                createdAt: new Date(i.createdAt),
+              })) || [],
+          }))
+        );
+      } else {
+        setSuggestions([]);
       }
 
       if (savedProfile) {
         setProfile(JSON.parse(savedProfile));
+      } else {
+        setProfile({ imageUrl: null });
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
+      setClothes(SAMPLE_CLOTHES);
+      setSuggestions([]);
+      setProfile({ imageUrl: null });
     }
     setIsLoading(false);
   }, []);
 
-  // Save to localStorage for anonymous users
   const saveToLocalStorage = useCallback((key: string, data: any) => {
     try {
       localStorage.setItem(key, JSON.stringify(data));
@@ -91,47 +155,100 @@ export const useWardrobe = () => {
     }
   }, []);
 
-  // Fetch user session
+  /** Reset in-memory state and reload guest wardrobe (used on logout). */
+  const resetToGuestState = useCallback(() => {
+    hasMigratedRef.current = false;
+    setIsLoading(true);
+    loadFromLocalStorage();
+  }, [loadFromLocalStorage]);
+
+  // ---------- Auth session ----------
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUserId(session?.user?.id ?? null);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
+
+      // On explicit sign-out, clear account data and restore guest wardrobe
+      if (event === 'SIGNED_OUT') {
+        resetToGuestState();
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id ?? null);
-      if (!session?.user?.id) {
+      const uid = session?.user?.id ?? null;
+      setUserId(uid);
+      if (!uid) {
         loadFromLocalStorage();
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [loadFromLocalStorage]);
+  }, [loadFromLocalStorage, resetToGuestState]);
 
-  // Fetch clothes from database (for authenticated users)
-  const fetchClothes = useCallback(async () => {
-    if (!userId) {
-      return;
-    }
-
+  // ---------- Profile ----------
+  const fetchProfile = useCallback(async (uid: string) => {
     try {
       const { data, error } = await supabase
-        .from('clothing_items')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        .from('profiles')
+        .select('image_url, name')
+        .eq('user_id', uid)
+        .maybeSingle();
 
       if (error) throw error;
 
-      const items: ClothingItem[] = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category as ClothingCategory,
-        imageUrl: item.image_url,
-        color: item.color || undefined,
-        createdAt: new Date(item.created_at),
-      }));
+      if (data) {
+        const imageUrl = data.image_url
+          ? await resolveImageUrl(data.image_url)
+          : null;
+        setProfile({
+          imageUrl,
+          name: data.name || undefined,
+        });
+      } else {
+        setProfile({ imageUrl: null });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  }, []);
 
-      setClothes(items);
+  // ---------- Clothes ----------
+  const fetchClothes = useCallback(async (uid?: string): Promise<ClothingItem[]> => {
+    const activeUid = uid ?? userId;
+    if (!activeUid) return [];
+
+    try {
+      // tags column may not exist until migration is applied — fall back without it
+      let data: any[] | null = null;
+      let error: any = null;
+
+      const withTags = await supabase
+        .from('clothing_items')
+        .select('id, name, category, image_url, color, created_at, tags')
+        .eq('user_id', activeUid)
+        .order('created_at', { ascending: false });
+
+      if (withTags.error && /tags/i.test(withTags.error.message || '')) {
+        const withoutTags = await supabase
+          .from('clothing_items')
+          .select('id, name, category, image_url, color, created_at')
+          .eq('user_id', activeUid)
+          .order('created_at', { ascending: false });
+        data = withoutTags.data;
+        error = withoutTags.error;
+      } else {
+        data = withTags.data;
+        error = withTags.error;
+      }
+
+      if (error) throw error;
+
+      const mapped = (data || []).map(mapClothingRow);
+      const resolved = await withResolvedImages(mapped);
+      setClothes(resolved);
+      return resolved;
     } catch (error) {
       console.error('Error fetching clothes:', error);
       toast({
@@ -139,109 +256,161 @@ export const useWardrobe = () => {
         description: 'مشکلی در بارگذاری لباس‌ها پیش آمد',
         variant: 'destructive',
       });
+      return [];
     } finally {
       setIsLoading(false);
     }
   }, [userId]);
 
-  // Fetch suggestions from database (for authenticated users)
-  const fetchSuggestions = useCallback(async () => {
-    if (!userId) {
-      return;
-    }
+  // ---------- Suggestions (resolve item_ids against wardrobe) ----------
+  const fetchSuggestions = useCallback(
+    async (uid: string, wardrobe: ClothingItem[]) => {
+      try {
+        const { data, error } = await supabase
+          .from('outfit_suggestions')
+          .select('*')
+          .eq('user_id', uid)
+          .order('created_at', { ascending: false });
 
-    try {
-      const { data, error } = await supabase
-        .from('outfit_suggestions')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false });
+        if (error) throw error;
 
-      if (error) throw error;
+        const byId = new Map(wardrobe.map((c) => [c.id, c]));
 
-      const items: OutfitSuggestion[] = (data || []).map(item => ({
-        id: item.id,
-        items: [],
-        suggestionText: item.suggestion_text || undefined,
-        generatedImageUrl: item.generated_image_url || undefined,
-        isFavorite: item.is_favorite || false,
-        createdAt: new Date(item.created_at),
-      }));
+        const items: OutfitSuggestion[] = (data || []).map((row) => {
+          const linked = ((row.item_ids as string[]) || [])
+            .map((id) => byId.get(id))
+            .filter((c): c is ClothingItem => Boolean(c));
 
-      setSuggestions(items);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-    }
-  }, [userId]);
+          return {
+            id: row.id,
+            items: linked,
+            suggestionText: row.suggestion_text || undefined,
+            generatedImageUrl: row.generated_image_url || undefined,
+            isFavorite: row.is_favorite || false,
+            createdAt: new Date(row.created_at),
+          };
+        });
 
-  // Migrate a guest's locally-stored wardrobe (clothes, suggestions, profile
-  // photo) into their account the moment they log in or sign up. Without
-  // this, everything an anonymous user built up would simply be lost the
-  // instant they authenticated.
+        setSuggestions(items);
+      } catch (error) {
+        console.error('Error fetching suggestions:', error);
+      }
+    },
+    []
+  );
+
+  // ---------- Guest → account migration ----------
   const migrateGuestDataToAccount = useCallback(async (uid: string) => {
     if (hasMigratedRef.current) return;
-
-    const savedClothesRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOTHES);
-    const savedSuggestionsRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.SUGGESTIONS);
-    const savedProfileRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILE);
-
-    const savedClothes: any[] = savedClothesRaw ? JSON.parse(savedClothesRaw) : [];
-    const savedSuggestions: any[] = savedSuggestionsRaw ? JSON.parse(savedSuggestionsRaw) : [];
-    const savedProfile: UserProfile | null = savedProfileRaw ? JSON.parse(savedProfileRaw) : null;
-
-    const hasGuestData = savedClothes.length > 0 || savedSuggestions.length > 0 || !!savedProfile?.imageUrl;
-    if (!hasGuestData) {
+    if (localStorage.getItem(migratedKeyFor(uid))) {
       hasMigratedRef.current = true;
       return;
     }
 
-    hasMigratedRef.current = true;
+    let savedClothes: any[] = [];
+    let savedSuggestions: any[] = [];
+    let savedProfile: UserProfile | null = null;
+
+    try {
+      const savedClothesRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.CLOTHES);
+      const savedSuggestionsRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.SUGGESTIONS);
+      const savedProfileRaw = localStorage.getItem(LOCAL_STORAGE_KEYS.PROFILE);
+      savedClothes = savedClothesRaw ? JSON.parse(savedClothesRaw) : [];
+      savedSuggestions = savedSuggestionsRaw ? JSON.parse(savedSuggestionsRaw) : [];
+      savedProfile = savedProfileRaw ? JSON.parse(savedProfileRaw) : null;
+    } catch {
+      hasMigratedRef.current = true;
+      return;
+    }
+
+    // Never migrate demo/sample items into a real account
+    const userClothes = savedClothes.filter((item) => !isSampleItem(item));
+    const userSuggestions = savedSuggestions.filter((s) => {
+      const ids: string[] = (s.items || []).map((i: any) => i.id);
+      return ids.some((id) => id && !id.startsWith('sample-'));
+    });
+
+    const hasGuestData =
+      userClothes.length > 0 ||
+      userSuggestions.length > 0 ||
+      Boolean(savedProfile?.imageUrl);
+
+    if (!hasGuestData) {
+      localStorage.setItem(migratedKeyFor(uid), '1');
+      hasMigratedRef.current = true;
+      return;
+    }
+
     toast({
       title: 'در حال انتقال داده‌ها...',
       description: 'کمد لباس مهمان شما به حساب کاربری منتقل می‌شود',
     });
 
-    // Map old local id -> new database id, so suggestions can reference the
-    // correctly migrated clothing items afterwards.
     const idMap = new Map<string, string>();
 
     try {
-      for (const item of savedClothes) {
+      for (const item of userClothes) {
         let imageUrl = item.imageUrl as string;
 
         if (imageUrl?.startsWith('data:')) {
           try {
             const file = await dataUrlToFile(imageUrl, `${item.name || 'item'}.jpg`);
             const compressedBlob = await compressImage(file);
-            const compressedFile = new File([compressedBlob], file.name, { type: 'image/jpeg' });
+            const compressedFile = new File([compressedBlob], file.name, {
+              type: 'image/jpeg',
+            });
             imageUrl = await uploadClothingImage(compressedFile, uid);
           } catch (uploadErr) {
-            console.error('Error migrating clothing image, skipping upload of raw data URL to avoid huge rows:', uploadErr);
+            console.error('Error migrating clothing image, skipping item:', uploadErr);
             continue;
           }
         }
 
-        const { data, error } = await supabase
+        const insertPayload: Record<string, unknown> = {
+          user_id: uid,
+          name: item.name,
+          category: item.category,
+          image_url: imageUrl,
+          color: item.color ?? null,
+        };
+        if (Array.isArray(item.tags) && item.tags.length) {
+          insertPayload.tags = item.tags;
+        }
+
+        let data: any = null;
+        let error: any = null;
+
+        const firstTry = await supabase
           .from('clothing_items')
-          .insert({
-            user_id: uid,
-            name: item.name,
-            category: item.category,
-            image_url: imageUrl,
-            color: item.color,
-          })
+          .insert(insertPayload)
           .select()
           .single();
+
+        if (firstTry.error && /tags/i.test(firstTry.error.message || '')) {
+          delete insertPayload.tags;
+          const secondTry = await supabase
+            .from('clothing_items')
+            .insert(insertPayload)
+            .select()
+            .single();
+          data = secondTry.data;
+          error = secondTry.error;
+        } else {
+          data = firstTry.data;
+          error = firstTry.error;
+        }
 
         if (!error && data) {
           idMap.set(item.id, data.id);
         }
       }
 
-      for (const suggestion of savedSuggestions) {
+      for (const suggestion of userSuggestions) {
         const migratedItemIds = (suggestion.items || [])
           .map((i: any) => idMap.get(i.id))
-          .filter(Boolean);
+          .filter(Boolean) as string[];
+
+        if (migratedItemIds.length === 0) continue;
 
         await supabase.from('outfit_suggestions').insert({
           user_id: uid,
@@ -252,16 +421,32 @@ export const useWardrobe = () => {
       }
 
       if (savedProfile?.imageUrl) {
+        let profileImage = savedProfile.imageUrl;
+        if (profileImage.startsWith('data:')) {
+          try {
+            const file = await dataUrlToFile(profileImage, 'profile.jpg');
+            const compressedBlob = await compressImage(file);
+            const compressedFile = new File([compressedBlob], 'profile.jpg', {
+              type: 'image/jpeg',
+            });
+            profileImage = await uploadClothingImage(compressedFile, uid);
+          } catch (e) {
+            console.error('Error migrating profile image:', e);
+          }
+        }
+
         await supabase
           .from('profiles')
-          .update({ image_url: savedProfile.imageUrl })
+          .update({ image_url: profileImage })
           .eq('user_id', uid);
       }
 
-      // Clear guest data now that it lives safely in the account
+      // Clear guest data only after successful migration
       localStorage.removeItem(LOCAL_STORAGE_KEYS.CLOTHES);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.SUGGESTIONS);
       localStorage.removeItem(LOCAL_STORAGE_KEYS.PROFILE);
+      localStorage.setItem(migratedKeyFor(uid), '1');
+      hasMigratedRef.current = true;
 
       toast({
         title: 'انتقال کامل شد',
@@ -269,50 +454,89 @@ export const useWardrobe = () => {
       });
     } catch (err) {
       console.error('Error migrating guest data:', err);
+      // Do NOT set hasMigratedRef / migrated key — allow retry next load
       toast({
         title: 'خطا در انتقال داده‌ها',
-        description: 'برخی از لباس‌های مهمان شما منتقل نشدند',
+        description: 'برخی از لباس‌های مهمان شما منتقل نشدند. با رفرش دوباره تلاش می‌شود.',
         variant: 'destructive',
       });
     }
   }, []);
 
+  // Load account data when userId is set
   useEffect(() => {
-    if (userId) {
-      migrateGuestDataToAccount(userId).finally(() => {
-        fetchClothes();
-        fetchSuggestions();
-      });
-    }
-  }, [userId, fetchClothes, fetchSuggestions, migrateGuestDataToAccount]);
+    if (!userId) return;
 
-  // Add clothing item
+    let cancelled = false;
+
+    (async () => {
+      setIsLoading(true);
+      await migrateGuestDataToAccount(userId);
+      if (cancelled) return;
+
+      const wardrobe = await fetchClothes(userId);
+      if (cancelled) return;
+
+      await Promise.all([
+        fetchSuggestions(userId, wardrobe),
+        fetchProfile(userId),
+      ]);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, migrateGuestDataToAccount, fetchClothes, fetchSuggestions, fetchProfile]);
+
+  // ---------- Mutations ----------
   const addClothing = async (item: Omit<ClothingItem, 'id' | 'createdAt'>) => {
     const newItem: ClothingItem = {
       ...item,
-      id: Date.now().toString(),
+      id: createLocalId(),
       createdAt: new Date(),
     };
 
     if (userId) {
-      // Authenticated user - save to database
       try {
-        const { data, error } = await supabase
+        const insertPayload: Record<string, unknown> = {
+          user_id: userId,
+          name: item.name,
+          category: item.category,
+          image_url: item.imageUrl,
+          color: item.color ?? null,
+        };
+        if (item.tags?.length) {
+          insertPayload.tags = item.tags;
+        }
+
+        let data: any = null;
+        let error: any = null;
+
+        const firstTry = await supabase
           .from('clothing_items')
-          .insert({
-            user_id: userId,
-            name: item.name,
-            category: item.category,
-            image_url: item.imageUrl,
-            color: item.color,
-          })
+          .insert(insertPayload)
           .select()
           .single();
+
+        if (firstTry.error && /tags/i.test(firstTry.error.message || '')) {
+          delete insertPayload.tags;
+          const secondTry = await supabase
+            .from('clothing_items')
+            .insert(insertPayload)
+            .select()
+            .single();
+          data = secondTry.data;
+          error = secondTry.error;
+        } else {
+          data = firstTry.data;
+          error = firstTry.error;
+        }
 
         if (error) throw error;
 
         newItem.id = data.id;
         newItem.createdAt = new Date(data.created_at);
+        newItem.imageUrl = await resolveImageUrl(data.image_url);
       } catch (error) {
         console.error('Error adding clothing:', error);
         toast({
@@ -322,6 +546,8 @@ export const useWardrobe = () => {
         });
         return;
       }
+    } else {
+      newItem.imageUrl = await resolveImageUrl(item.imageUrl);
     }
 
     const updatedClothes = [newItem, ...clothes];
@@ -337,9 +563,8 @@ export const useWardrobe = () => {
     });
   };
 
-  // Remove clothing item
   const removeClothing = async (id: string) => {
-    const item = clothes.find(c => c.id === id);
+    const item = clothes.find((c) => c.id === id);
 
     if (userId) {
       try {
@@ -351,8 +576,11 @@ export const useWardrobe = () => {
 
         if (error) throw error;
 
-        if (item?.imageUrl && item.imageUrl.includes('supabase')) {
-          await deleteClothingImage(item.imageUrl);
+        if (item?.imageUrl) {
+          const path = extractStoragePath(item.imageUrl);
+          if (path || item.imageUrl.includes('supabase')) {
+            await deleteClothingImage(item.imageUrl);
+          }
         }
       } catch (error) {
         console.error('Error removing clothing:', error);
@@ -365,7 +593,7 @@ export const useWardrobe = () => {
       }
     }
 
-    const updatedClothes = clothes.filter(c => c.id !== id);
+    const updatedClothes = clothes.filter((c) => c.id !== id);
     setClothes(updatedClothes);
 
     if (!userId) {
@@ -379,12 +607,11 @@ export const useWardrobe = () => {
     return true;
   };
 
-  // Update clothing item (for editing)
   const updateClothing = async (
     id: string,
     updates: Partial<Omit<ClothingItem, 'id' | 'createdAt'>>
   ) => {
-    const existingItem = clothes.find(c => c.id === id);
+    const existingItem = clothes.find((c) => c.id === id);
     if (!existingItem) return;
 
     if (userId) {
@@ -393,27 +620,39 @@ export const useWardrobe = () => {
           name?: string;
           category?: string;
           image_url?: string;
-          color?: string;
+          color?: string | null;
+          tags?: string[];
         } = {};
         if (updates.name !== undefined) dbPayload.name = updates.name;
         if (updates.category !== undefined) dbPayload.category = updates.category;
         if (updates.imageUrl !== undefined) dbPayload.image_url = updates.imageUrl;
-        if (updates.color !== undefined) dbPayload.color = updates.color ?? undefined;
+        if (updates.color !== undefined) {
+          dbPayload.color = updates.color?.trim() ? updates.color : null;
+        }
+        if (updates.tags !== undefined) dbPayload.tags = updates.tags;
 
-
-        const { error } = await supabase
+        let error: any = null;
+        const firstTry = await supabase
           .from('clothing_items')
           .update(dbPayload)
           .eq('id', id)
           .eq('user_id', userId);
 
+        if (firstTry.error && /tags/i.test(firstTry.error.message || '')) {
+          delete dbPayload.tags;
+          const secondTry = await supabase
+            .from('clothing_items')
+            .update(dbPayload)
+            .eq('id', id)
+            .eq('user_id', userId);
+          error = secondTry.error;
+        } else {
+          error = firstTry.error;
+        }
+
         if (error) throw error;
 
-        if (
-          updates.imageUrl &&
-          updates.imageUrl !== existingItem.imageUrl &&
-          existingItem.imageUrl.includes('supabase')
-        ) {
+        if (updates.imageUrl && updates.imageUrl !== existingItem.imageUrl) {
           await deleteClothingImage(existingItem.imageUrl);
         }
       } catch (error) {
@@ -427,8 +666,13 @@ export const useWardrobe = () => {
       }
     }
 
-    const updatedClothes = clothes.map(c =>
-      c.id === id ? { ...c, ...updates } : c
+    const resolvedUpdates = { ...updates };
+    if (updates.imageUrl) {
+      resolvedUpdates.imageUrl = await resolveImageUrl(updates.imageUrl);
+    }
+
+    const updatedClothes = clothes.map((c) =>
+      c.id === id ? { ...c, ...resolvedUpdates } : c
     );
     setClothes(updatedClothes);
 
@@ -438,32 +682,32 @@ export const useWardrobe = () => {
 
     toast({
       title: 'تغییرات ذخیره شد',
-      description: `«${updates.name ?? existingItem.name}» با موفقیت به‌روز شد`,
+      description: `«${updates.name || existingItem.name}» به‌روز شد`,
     });
   };
 
-  // Toggle favorite suggestion
   const toggleFavorite = async (id: string, isFavorite: boolean) => {
     if (userId) {
       try {
         const { error } = await supabase
           .from('outfit_suggestions')
           .update({ is_favorite: isFavorite })
-          .eq('id', id);
+          .eq('id', id)
+          .eq('user_id', userId);
 
         if (error) throw error;
       } catch (error) {
         console.error('Error toggling favorite:', error);
         toast({
           title: 'خطا',
-          description: 'مشکلی پیش آمد',
+          description: 'مشکلی در ذخیره علاقه‌مندی پیش آمد',
           variant: 'destructive',
         });
         return;
       }
     }
 
-    const updatedSuggestions = suggestions.map(s => 
+    const updatedSuggestions = suggestions.map((s) =>
       s.id === id ? { ...s, isFavorite } : s
     );
     setSuggestions(updatedSuggestions);
@@ -471,20 +715,16 @@ export const useWardrobe = () => {
     if (!userId) {
       saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
     }
-
-    toast({
-      title: isFavorite ? 'به علاقه‌مندی‌ها اضافه شد' : 'از علاقه‌مندی‌ها حذف شد',
-    });
   };
 
-  // Delete suggestion
   const deleteSuggestion = async (id: string) => {
     if (userId) {
       try {
         const { error } = await supabase
           .from('outfit_suggestions')
           .delete()
-          .eq('id', id);
+          .eq('id', id)
+          .eq('user_id', userId);
 
         if (error) throw error;
       } catch (error) {
@@ -498,7 +738,7 @@ export const useWardrobe = () => {
       }
     }
 
-    const updatedSuggestions = suggestions.filter(s => s.id !== id);
+    const updatedSuggestions = suggestions.filter((s) => s.id !== id);
     setSuggestions(updatedSuggestions);
 
     if (!userId) {
@@ -506,16 +746,19 @@ export const useWardrobe = () => {
     }
 
     toast({
-      title: 'پیشنهاد حذف شد',
+      title: 'حذف شد',
+      description: 'ست پیشنهادی حذف شد',
     });
   };
 
-  // Generate outfit suggestion with AI
-  const generateSuggestion = async (selectedItems: ClothingItem[]) => {
-    if (clothes.length < 2) {
+  const generateSuggestion = async (
+    selectedItems: ClothingItem[],
+    context: OutfitContext = DEFAULT_OUTFIT_CONTEXT
+  ) => {
+    if (clothes.length < 2 && selectedItems.length < 2) {
       toast({
         title: 'لباس کافی نیست',
-        description: 'برای ایجاد ست، حداقل ۲ لباس اضافه کنید',
+        description: 'حداقل ۲ لباس برای ساخت ست لازم است',
         variant: 'destructive',
       });
       return;
@@ -523,66 +766,101 @@ export const useWardrobe = () => {
 
     setIsGenerating(true);
 
-    const generateLocalSuggestion = (items: ClothingItem[]): string => {
-      const tops = items.filter(i => i.category === 'tops');
-      const bottoms = items.filter(i => i.category === 'bottoms');
-      const dresses = items.filter(i => i.category === 'dresses');
-      const outerwear = items.filter(i => i.category === 'outerwear');
-      const shoes = items.filter(i => i.category === 'shoes');
-      const accessories = items.filter(i => i.category === 'accessories');
+    const generateLocalSuggestion = (items: ClothingItem[], ctx: OutfitContext): string => {
+      const tops = items.filter((i) => i.category === 'tops');
+      const bottoms = items.filter((i) => i.category === 'bottoms');
+      const dresses = items.filter((i) => i.category === 'dresses');
+      const outerwear = items.filter((i) => i.category === 'outerwear');
+      const shoes = items.filter((i) => i.category === 'shoes');
+      const accessories = items.filter((i) => i.category === 'accessories');
 
       const parts: string[] = [];
 
       if (dresses.length > 0) {
-        parts.push(`با این ${dresses.map(d => d.name).join(' و ')} عالی می‌پاشه`);
+        parts.push(`${dresses.map((d) => d.name).join(' و ')}`);
       } else {
         if (tops.length > 0) {
-          parts.push(`${tops.map(t => t.name).join(' و ')}`);
+          parts.push(`${tops.map((t) => t.name).join(' و ')}`);
         }
         if (bottoms.length > 0) {
-          parts.push(`همراه با ${bottoms.map(b => b.name).join(' و ')}`);
+          parts.push(`همراه با ${bottoms.map((b) => b.name).join(' و ')}`);
         }
       }
 
       if (outerwear.length > 0) {
-        parts.push(`و ${outerwear.map(o => o.name).join(' و ')} رویش`);
+        parts.push(`و ${outerwear.map((o) => o.name).join(' و ')} رویش`);
       }
       if (shoes.length > 0) {
-        parts.push(`با ${shoes.map(s => s.name).join(' و ')} که خیلی هماهنگه`);
+        parts.push(`با ${shoes.map((s) => s.name).join(' و ')} که خیلی هماهنگه`);
       }
       if (accessories.length > 0) {
-        parts.push(`و ${accessories.map(a => a.name).join(' و ')} که ست رو کامل می‌کنه`);
+        parts.push(
+          `و ${accessories.map((a) => a.name).join(' و ')} که ست رو کامل می‌کنه`
+        );
       }
 
-      return parts.length > 0
-        ? `${parts.join('، ')}. این ست برای برنامه‌های روزمره و بیرون رفتن خیلی مناسب و شیکه. 👗✨`
-        : 'این ست لباس یک ترکیب هماهنگ و زیبا است که می‌توانید در مناسبت‌های مختلف از آن استفاده کنید. ✨';
+      const occasionLine = `این ست برای «${contextLabels(ctx)}» پیشنهاد شده است. ${describeContext(ctx)}.`;
+
+      const base =
+        parts.length > 0
+          ? `${parts.join('، ')}. ${occasionLine}`
+          : `یک ترکیب هماهنگ از کمد شما. ${occasionLine}`;
+
+      const colorNote = describeColorHarmony(items);
+      const match = scoreOutfitColors(items);
+      const scoreNote =
+        match.colors.length > 0
+          ? ` امتیاز هماهنگی رنگ: ${match.score} از ۱۰۰.`
+          : '';
+
+      return `${base}${colorNote ? ` ${colorNote}` : ''}${scoreNote} 👗✨`;
     };
 
     try {
-      const itemsForSuggestion = selectedItems.length >= 2
-        ? selectedItems
-        : clothes.slice(0, Math.min(4, clothes.length));
+      const itemsForSuggestion =
+        selectedItems.length >= 2
+          ? selectedItems
+          : buildContextOutfit(clothes, context, selectedItems);
 
-      let suggestionText = generateLocalSuggestion(itemsForSuggestion);
-
-      try {
-        const { data, error } = await supabase.functions.invoke('generate-outfit', {
-          body: {
-            clothes: clothes.map(c => ({
-              id: c.id,
-              name: c.name,
-              category: c.category,
-              color: c.color,
-            })),
-            selectedItemIds: selectedItems.map(i => i.id),
-          },
+      if (itemsForSuggestion.length < 2) {
+        toast({
+          title: 'ست کامل نشد',
+          description: 'با لباس‌های فعلی کمد نتوانستیم ست مناسب بسازیم',
+          variant: 'destructive',
         });
+        setIsGenerating(false);
+        return;
+      }
 
-        if (!error && !data?.error && data?.suggestion) {
-          suggestionText = data.suggestion;
+      let suggestionText = generateLocalSuggestion(itemsForSuggestion, context);
+
+      // Remote AI only works when authenticated (edge function requires JWT)
+      if (userId) {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-outfit', {
+            body: {
+              clothes: clothes.map((c) => ({
+                id: c.id,
+                name: c.name,
+                category: c.category,
+                color: c.color,
+                tags: c.tags,
+              })),
+              selectedItemIds: itemsForSuggestion.map((i) => i.id),
+              context: {
+                style: context.style,
+                environment: context.environment,
+                weather: context.weather,
+              },
+            },
+          });
+
+          if (!error && !data?.error && data?.suggestion) {
+            suggestionText = data.suggestion;
+          }
+        } catch {
+          // fall back to local text silently
         }
-      } catch (remoteErr) {
       }
 
       let newSuggestion: OutfitSuggestion;
@@ -592,7 +870,7 @@ export const useWardrobe = () => {
           .from('outfit_suggestions')
           .insert({
             user_id: userId,
-            item_ids: itemsForSuggestion.map(i => i.id),
+            item_ids: itemsForSuggestion.map((i) => i.id),
             suggestion_text: suggestionText,
           })
           .select()
@@ -606,14 +884,16 @@ export const useWardrobe = () => {
           suggestionText,
           isFavorite: false,
           createdAt: new Date(savedSuggestion.created_at),
+          context: { ...context },
         };
       } else {
         newSuggestion = {
-          id: Date.now().toString(),
+          id: createLocalId(),
           items: itemsForSuggestion,
           suggestionText,
           isFavorite: false,
           createdAt: new Date(),
+          context: { ...context },
         };
       }
 
@@ -626,7 +906,7 @@ export const useWardrobe = () => {
 
       toast({
         title: 'ست جدید ایجاد شد!',
-        description: 'پیشنهاد برای شما آماده است',
+        description: `برای ${contextLabels(context)} آماده شد`,
       });
     } catch (error) {
       toast({
@@ -639,17 +919,27 @@ export const useWardrobe = () => {
     }
   };
 
-  // Update profile
   const updateProfile = async (newProfile: UserProfile) => {
-    setProfile(newProfile);
+    const displayProfile: UserProfile = {
+      ...newProfile,
+      imageUrl: newProfile.imageUrl
+        ? await resolveImageUrl(newProfile.imageUrl)
+        : null,
+    };
+    setProfile(displayProfile);
 
     if (!userId) {
-      saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, newProfile);
-    } else if (newProfile.imageUrl) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.PROFILE, displayProfile);
+    } else {
       try {
+        const path =
+          newProfile.imageUrl && extractStoragePath(newProfile.imageUrl);
         await supabase
           .from('profiles')
-          .update({ image_url: newProfile.imageUrl })
+          .update({
+            image_url: path || newProfile.imageUrl,
+            ...(newProfile.name !== undefined ? { name: newProfile.name } : {}),
+          })
           .eq('user_id', userId);
       } catch (error) {
         console.error('Error updating profile:', error);
@@ -657,7 +947,7 @@ export const useWardrobe = () => {
     }
   };
 
-  const favoriteSuggestions = suggestions.filter(s => s.isFavorite);
+  const favoriteSuggestions = suggestions.filter((s) => s.isFavorite);
 
   return {
     profile,

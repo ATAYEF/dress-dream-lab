@@ -10,6 +10,16 @@ export interface ClothingItem {
   createdAt: Date;
 }
 
+export type OutfitStyle = 'formal' | 'party' | 'casual';
+export type OutfitEnvironment = 'office' | 'gathering';
+export type OutfitWeather = 'sunny' | 'rainy' | 'cold';
+
+export interface OutfitContextMeta {
+  style: OutfitStyle;
+  environment: OutfitEnvironment;
+  weather: OutfitWeather;
+}
+
 export interface OutfitSuggestion {
   id: string;
   items: ClothingItem[];
@@ -17,6 +27,8 @@ export interface OutfitSuggestion {
   generatedImageUrl?: string;
   isFavorite?: boolean;
   createdAt: Date;
+  /** Occasion filters used when the outfit was generated */
+  context?: OutfitContextMeta;
 }
 
 export interface UserProfile {

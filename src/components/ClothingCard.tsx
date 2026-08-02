@@ -9,6 +9,9 @@ interface ClothingCardProps {
   onSelect?: (item: ClothingItem) => void;
   onEdit?: (item: ClothingItem) => void;
   isSelected?: boolean;
+  /** Multi-select mode for bulk wardrobe management */
+  selectionMode?: boolean;
+  onToggleSelect?: (item: ClothingItem) => void;
   showActions?: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -29,6 +32,8 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
   onSelect,
   onEdit,
   isSelected = false,
+  selectionMode = false,
+  onToggleSelect,
   showActions = true,
   className,
   style,
@@ -41,11 +46,30 @@ export const ClothingCard: React.FC<ClothingCardProps> = ({
         'group relative overflow-hidden rounded-2xl bg-gradient-card hairline-border transition-all duration-500 ease-out cursor-pointer',
         'hover:shadow-elevated hover:-translate-y-1.5 hover:scale-[1.02]',
         isSelected && 'ring-2 ring-gold shadow-elevated scale-[1.02] -translate-y-1',
+        selectionMode && isSelected && 'ring-2 ring-indigo-500',
         className
       )}
       style={style}
-      onClick={() => onSelect?.(item)}
+      onClick={() => {
+        if (selectionMode) {
+          onToggleSelect?.(item);
+        } else {
+          onSelect?.(item);
+        }
+      }}
     >
+      {selectionMode && (
+        <div
+          className={cn(
+            'absolute top-2 left-2 z-20 w-7 h-7 rounded-full flex items-center justify-center shadow-md transition-all',
+            isSelected
+              ? 'bg-indigo-500 text-white scale-110'
+              : 'bg-white/90 text-muted-foreground border border-border/60'
+          )}
+        >
+          {isSelected ? <Check className="w-4 h-4" strokeWidth={3} /> : null}
+        </div>
+      )}
       {/* Image Container */}
       <div className="relative aspect-[4/5] overflow-hidden bg-cream/50">
         {/* Image */}

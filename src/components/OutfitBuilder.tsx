@@ -7,10 +7,20 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
+import { ColorHarmonyBadge } from './ColorHarmonyBadge';
+import { AccessorySuggestions } from './AccessorySuggestions';
+import { ShoeSuggestions } from './ShoeSuggestions';
+import { OutfitContextPicker } from './OutfitContextPicker';
+import {
+  DEFAULT_OUTFIT_CONTEXT,
+  OutfitContext,
+  buildContextOutfit,
+  contextLabels,
+} from '@/lib/outfitContext';
 
 interface OutfitBuilderProps {
   clothes: ClothingItem[];
-  onGenerateSuggestion: (items: ClothingItem[]) => void;
+  onGenerateSuggestion: (items: ClothingItem[], context: OutfitContext) => void;
   isGenerating: boolean;
   /** The user's own profile photo, used for a real virtual try-on instead of a generic mannequin */
   profileImageUrl?: string | null;
@@ -28,6 +38,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [draggedItem, setDraggedItem] = useState<ClothingItem | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [mannequinGender, setMannequinGender] = useState<MannequinGender>('female');
+  const [outfitContext, setOutfitContext] = useState<OutfitContext>(DEFAULT_OUTFIT_CONTEXT);
   const isMobile = useIsMobile();
 
   const handleDragStart = (e: React.DragEvent, item: ClothingItem) => {
@@ -98,52 +109,77 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   };
 
   const handleGenerate = () => {
-    if (outfitItems.length >= 2) {
-      onGenerateSuggestion(outfitItems);
-      setOutfitItems([]);
+    // If user picked items, use them as anchors; otherwise auto-build from wardrobe + context
+    const anchors = outfitItems.length >= 1 ? outfitItems : [];
+    const finalItems =
+      outfitItems.length >= 2
+        ? outfitItems
+        : buildContextOutfit(clothes, outfitContext, anchors);
+
+    if (finalItems.length < 2) {
+      return;
     }
+
+    // Reflect auto-picked set on mannequin before clearing
+    setOutfitItems(finalItems);
+    onGenerateSuggestion(finalItems, outfitContext);
+    // Keep items briefly visible on mannequin; clear after short delay
+    window.setTimeout(() => setOutfitItems([]), 400);
+  };
+
+  const handleAutoFill = () => {
+    const built = buildContextOutfit(clothes, outfitContext, []);
+    setOutfitItems(built);
   };
 
   const completedCategories = new Set(outfitItems.map(i => i.category)).size;
   const progressPct = Math.min((completedCategories / 4) * 100, 100);
-  const canGenerate = outfitItems.length >= 2;
+  // Can generate with 2+ selected OR with enough wardrobe items for auto-suggest
+  const canGenerate = outfitItems.length >= 2 || clothes.length >= 2;
 
   return (
     <div className="relative overflow-hidden rounded-[2rem]">
-      {/* Background layers */}
+      {/* Background layers — richer for hero presence */}
       <div className="absolute inset-0 bg-gradient-hero" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--gold)/0.12),_transparent_55%)]" />
       <div
-        className="absolute -top-32 -right-20 w-80 h-80 rounded-full opacity-35 animate-blob pointer-events-none"
+        className="absolute -top-32 -right-20 w-80 h-80 rounded-full opacity-40 animate-blob pointer-events-none"
         style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
       />
       <div
-        className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full opacity-25 animate-blob animation-delay-2000 pointer-events-none"
+        className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full opacity-30 animate-blob animation-delay-2000 pointer-events-none"
         style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
       />
 
-      <div className="relative p-6 md:p-8 lg:p-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-7">
-          <div className="flex items-start gap-3 md:gap-4">
-            <div className="relative shrink-0">
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-gold opacity-30 blur-md animate-glow-pulse" />
-              <div className="relative w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-gold shadow-button-gold flex items-center justify-center">
-                <Sparkles className="w-6 h-6 md:w-7 md:h-7 text-white" />
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                <h2 className="text-xl md:text-2xl font-display font-extrabold tracking-tight">
-                  ست‌ساز هوشمند
-                </h2>
-                <span className="chip bg-gradient-gold/15 border border-gold/20 text-gold font-bold">
-                  ✨ پیشرفته
+      <div className="relative p-5 md:p-7 lg:p-8">
+        {/* Toolbar: steps + mannequin gender */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 md:mb-6">
+          <div className="flex flex-wrap items-center gap-2">
+            {[
+              { n: '۱', t: 'انتخاب لباس' },
+              { n: '۲', t: 'دیدن روی مانکن' },
+              { n: '۳', t: 'ساخت ست AI' },
+            ].map((step, i) => (
+              <div
+                key={step.n}
+                className={cn(
+                  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] md:text-xs font-bold',
+                  i === 0 && outfitItems.length === 0 && 'bg-gold/15 text-gold border border-gold/30',
+                  i === 1 && outfitItems.length > 0 && outfitItems.length < 2 && 'bg-gold/15 text-gold border border-gold/30',
+                  i === 2 && canGenerate && 'bg-gold/15 text-gold border border-gold/30',
+                  !(
+                    (i === 0 && outfitItems.length === 0) ||
+                    (i === 1 && outfitItems.length > 0 && outfitItems.length < 2) ||
+                    (i === 2 && canGenerate)
+                  ) && 'bg-white/50 text-muted-foreground border border-white/60'
+                )}
+              >
+                <span className="w-5 h-5 rounded-lg bg-gradient-gold text-white flex items-center justify-center text-[10px] font-black shadow-sm">
+                  {step.n}
                 </span>
+                {step.t}
               </div>
-              <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-md">
-                لباس‌ها را با درگ یا کلیک به ست خود اضافه کنید و بگذارید هوش مصنوعی توضیحات حرفه‌ای ست را برای شما بنویسد.
-              </p>
-            </div>
+            ))}
           </div>
 
           {/* Gender toggle */}
@@ -154,7 +190,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 type="single"
                 value={mannequinGender}
                 onValueChange={(value) => value && setMannequinGender(value as MannequinGender)}
-                className="bg-white/60 backdrop-blur-md rounded-2xl p-1 shadow-soft border border-white/80 hairline-border"
+                className="bg-white/70 backdrop-blur-md rounded-2xl p-1 shadow-soft border border-white/80 hairline-border"
               >
                 <ToggleGroupItem
                   value="female"
@@ -175,15 +211,42 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               </ToggleGroup>
             </div>
           )}
+          {profileImageUrl && (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
+              <User className="w-3.5 h-3.5" />
+              امتحان روی عکس شما
+            </div>
+          )}
         </div>
 
-        {/* Main Grid */}
+        {/* Occasion / environment / weather context */}
+        <div className="mb-5 md:mb-6 space-y-3">
+          <OutfitContextPicker value={outfitContext} onChange={setOutfitContext} />
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[11px] md:text-xs text-muted-foreground font-medium">
+              پیشنهاد برای: <span className="font-extrabold text-foreground">{contextLabels(outfitContext)}</span>
+            </p>
+            <Button
+              type="button"
+              variant="soft"
+              size="sm"
+              onClick={handleAutoFill}
+              disabled={clothes.length < 2 || isGenerating}
+              className="font-bold"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-gold" />
+              پر کردن خودکار از کمد
+            </Button>
+          </div>
+        </div>
+
+        {/* Main Grid — mannequin first on mobile for focus */}
         <div className="flex flex-col xl:flex-row gap-6 lg:gap-8">
           {/* ========== Mannequin / Drop Zone ========== */}
-          <div className="flex-shrink-0 xl:sticky xl:top-24 self-start">
+          <div className="flex-shrink-0 xl:sticky xl:top-24 self-start w-full xl:w-auto">
             <div className="flex flex-col items-center">
               {/* Progress bar */}
-              <div className="w-full max-w-[320px] mb-4 space-y-2">
+              <div className="w-full max-w-[340px] mb-4 space-y-2">
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-bold text-foreground/80">پیشرفت ست شما</span>
                   <span className="font-extrabold text-gold">
@@ -261,8 +324,8 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 )}
               </div>
 
-              {/* Selected chips + Actions */}
-              <div className="w-full max-w-[320px] mt-5 space-y-4">
+              {/* Selected chips + Color harmony + Actions */}
+              <div className="w-full max-w-[340px] mt-5 space-y-4">
                 {/* Selected chips */}
                 {outfitItems.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center p-3 rounded-2xl bg-white/50 backdrop-blur-sm border border-white/60 hairline-border shadow-soft">
@@ -289,28 +352,68 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   </div>
                 )}
 
-                {/* Action buttons */}
-                <div className="flex gap-2.5 justify-center">
+                {/* Smart color matching */}
+                {outfitItems.length > 0 && (
+                  <ColorHarmonyBadge
+                    items={outfitItems}
+                    wardrobe={clothes}
+                    onSuggestClick={addItemToOutfit}
+                    className="mx-auto"
+                  />
+                )}
+
+                {/* Coordinated accessories */}
+                {outfitItems.length > 0 && (
+                  <AccessorySuggestions
+                    outfitItems={outfitItems}
+                    wardrobe={clothes}
+                    gender={mannequinGender}
+                    context={outfitContext}
+                    onAddWardrobeItem={addItemToOutfit}
+                    className="mx-auto"
+                  />
+                )}
+
+                {/* Coordinated shoes */}
+                {outfitItems.length > 0 && (
+                  <ShoeSuggestions
+                    outfitItems={outfitItems}
+                    wardrobe={clothes}
+                    gender={mannequinGender}
+                    context={outfitContext}
+                    onAddWardrobeItem={addItemToOutfit}
+                    className="mx-auto"
+                  />
+                )}
+
+                {/* Action buttons — primary CTA */}
+                <div className="flex gap-2.5 justify-center w-full max-w-[340px]">
                   <Button
                     onClick={handleGenerate}
                     variant="gold"
-                    size="lg"
+                    size="xl"
                     disabled={!canGenerate || isGenerating}
                     className={cn(
-                      'flex-1 max-w-[240px] relative overflow-hidden group',
-                      canGenerate && !isGenerating && 'animate-glow-pulse'
+                      'flex-1 relative overflow-hidden group shadow-lg',
+                      canGenerate && !isGenerating && 'animate-glow-pulse shadow-[0_0_32px_hsl(var(--gold)/0.35)]'
                     )}
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                     {isGenerating ? (
                       <>
-                        <div className="w-4.5 h-4.5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                        <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
                         <span>در حال ساخت ست...</span>
                       </>
                     ) : (
                       <>
                         <Wand2 className="w-5 h-5 relative" />
-                        <span className="relative">ساخت و توصیف ست</span>
+                        <span className="relative font-extrabold">
+                          {outfitItems.length >= 2
+                            ? 'ساخت ست با هوش مصنوعی'
+                            : clothes.length >= 2
+                              ? 'پیشنهاد ست هوشمند از کمد'
+                              : 'حداقل ۲ لباس در کمد لازم است'}
+                        </span>
                       </>
                     )}
                   </Button>

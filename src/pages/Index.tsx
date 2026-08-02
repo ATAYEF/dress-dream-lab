@@ -16,13 +16,25 @@ import {
 import { ProfileSection } from '@/components/ProfileSection';
 import { CategoryTabs } from '@/components/CategoryTabs';
 import { ClothingCard } from '@/components/ClothingCard';
+import { ClothingCardSkeleton } from '@/components/ClothingCardSkeleton';
 import { AddClothingModal } from '@/components/AddClothingModal';
 import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
 import { EmptyState } from '@/components/EmptyState';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 import { OutfitBuilder } from '@/components/OutfitBuilder';
 import { SearchFilter } from '@/components/SearchFilter';
+import { ActiveFilters } from '@/components/ActiveFilters';
+import { ScrollToTop } from '@/components/ScrollToTop';
+import { MobileFab } from '@/components/MobileFab';
+import { GeneratingBanner } from '@/components/GeneratingBanner';
+import { WardrobeOverview } from '@/components/WardrobeOverview';
+import {
+  WardrobeToolbar,
+  type WardrobeSort,
+  type WardrobeDensity,
+} from '@/components/WardrobeToolbar';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
+import { CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 import { useWardrobe } from '@/hooks/useWardrobe';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -56,6 +68,11 @@ const Index = () => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
+  const [wardrobeSort, setWardrobeSort] = useState<WardrobeSort>('newest');
+  const [wardrobeDensity, setWardrobeDensity] = useState<WardrobeDensity>('comfortable');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const availableColors = useMemo(() => {
     const colors = clothes
@@ -65,7 +82,7 @@ const Index = () => {
   }, [clothes]);
 
   const filteredClothes = useMemo(() => {
-    let result = clothes;
+    let result = [...clothes];
 
     if (activeCategory !== 'all') {
       result = result.filter(item => item.category === activeCategory);
@@ -75,7 +92,8 @@ const Index = () => {
       const query = searchQuery.trim().toLowerCase();
       result = result.filter(item =>
         item.name.toLowerCase().includes(query) ||
-        (item.color && item.color.toLowerCase().includes(query))
+        (item.color && item.color.toLowerCase().includes(query)) ||
+        (item.tags && item.tags.some(t => t.toLowerCase().includes(query)))
       );
     }
 
@@ -85,8 +103,28 @@ const Index = () => {
       );
     }
 
+    // Sort for digital wardrobe management
+    result.sort((a, b) => {
+      switch (wardrobeSort) {
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'name':
+          return a.name.localeCompare(b.name, 'fa');
+        case 'color':
+          return (a.color || 'ی').localeCompare(b.color || 'ی', 'fa');
+        case 'category': {
+          const ai = CATEGORY_CLOTHING_ORDER.indexOf(a.category);
+          const bi = CATEGORY_CLOTHING_ORDER.indexOf(b.category);
+          return ai - bi || a.name.localeCompare(b.name, 'fa');
+        }
+        case 'newest':
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
     return result;
-  }, [clothes, activeCategory, searchQuery, colorFilter]);
+  }, [clothes, activeCategory, searchQuery, colorFilter, wardrobeSort]);
 
   const displayedSuggestions = showFavoritesOnly ? favoriteSuggestions : suggestions;
 
@@ -134,6 +172,44 @@ const Index = () => {
     setEditingItem(null);
   };
 
+  const toggleSelectItem = (item: ClothingItem) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.id)) next.delete(item.id);
+      else next.add(item.id);
+      return next;
+    });
+  };
+
+  const handleSelectAllVisible = () => {
+    setSelectedIds(new Set(filteredClothes.map((c) => c.id)));
+  };
+
+  const handleClearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.size === 0 || bulkDeleting) return;
+    const confirmed = window.confirm(
+      `آیا از حذف ${selectedIds.size.toLocaleString('fa-IR')} لباس انتخاب‌شده مطمئن هستید؟ این کار قابل بازگشت نیست.`
+    );
+    if (!confirmed) return;
+
+    setBulkDeleting(true);
+    const ids = [...selectedIds];
+    let ok = 0;
+    for (const id of ids) {
+      const removed = await removeClothing(id);
+      if (removed) ok += 1;
+    }
+    setSelectedIds(new Set());
+    setSelectionMode(false);
+    setBulkDeleting(false);
+    toast({
+      title: 'حذف گروهی انجام شد',
+      description: `${ok.toLocaleString('fa-IR')} لباس از کمد حذف شد`,
+    });
+  };
+
   const hasActiveFilters = searchQuery || colorFilter || activeCategory !== 'all';
 
   return (
@@ -177,6 +253,18 @@ const Index = () => {
               <ThemeToggle />
 
               <Button
+                onClick={() =>
+                  document.getElementById('outfit-builder')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                variant="soft"
+                size="default"
+                className="hidden md:inline-flex shrink-0 font-bold"
+              >
+                <Sparkles className="w-4 h-4 text-gold" />
+                ست‌ساز
+              </Button>
+
+              <Button
                 onClick={handleOpenAdd}
                 variant="gold"
                 size="default"
@@ -214,9 +302,94 @@ const Index = () => {
       </header>
 
       {/* ========== Main Content ========== */}
-      <main className="container max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-8 md:space-y-12">
-        {/* ========== Profile / Hero Section ========== */}
-        <section className="animate-fade-up">
+      <main className="container max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-7 space-y-8 md:space-y-12">
+        {/* ========== CORE: Outfit Builder (Hero) ========== */}
+        <section id="outfit-builder" className="animate-fade-up relative scroll-mt-24">
+          {/* Hero intro — centered, bold */}
+          <div className="text-center mb-5 md:mb-7 max-w-2xl mx-auto">
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-gold/15 border border-gold/30 text-gold text-[11px] md:text-xs font-extrabold mb-3 shadow-sm">
+              <Sparkles className="w-3.5 h-3.5" />
+              هسته اصلی اپ · امتحان مجازی لباس
+            </div>
+            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-black tracking-tight leading-tight mb-2.5">
+              <span className="text-gradient-gold">ست‌ساز هوشمند</span>
+            </h1>
+            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
+              لباس‌های کمدتان را روی مانکن ببینید، ست بسازید و با هوش مصنوعی استایل حرفه‌ای بگیرید
+            </p>
+            {clothes.length >= 2 && (
+              <div className="mt-3 inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-muted-foreground">
+                <Shirt className="w-4 h-4 text-gold" />
+                <span>{clothes.length.toLocaleString('fa-IR')} لباس آماده برای ست‌سازی</span>
+              </div>
+            )}
+          </div>
+
+          {clothes.length >= 2 ? (
+            <div className="relative">
+              {/* Outer glow frame */}
+              <div
+                className="absolute -inset-[3px] rounded-[2.15rem] opacity-80 blur-[1px] pointer-events-none"
+                style={{
+                  background:
+                    'linear-gradient(135deg, hsl(var(--gold) / 0.55), hsl(var(--rose) / 0.35), hsl(var(--gold) / 0.45))',
+                }}
+              />
+              <div className="relative rounded-[2rem] shadow-elevated ring-1 ring-gold/20 overflow-hidden">
+                <OutfitBuilder
+                  clothes={clothes}
+                  onGenerateSuggestion={generateSuggestion}
+                  isGenerating={isGenerating}
+                  profileImageUrl={profile.imageUrl}
+                />
+              </div>
+            </div>
+          ) : (
+            /* Locked / onboarding state when wardrobe is too small */
+            <div className="relative overflow-hidden rounded-[2rem] border border-gold/25 bg-gradient-card shadow-elevated">
+              <div
+                className="absolute inset-0 opacity-40 pointer-events-none"
+                style={{
+                  background:
+                    'radial-gradient(ellipse at 30% 20%, hsl(var(--gold) / 0.25), transparent 55%), radial-gradient(ellipse at 80% 80%, hsl(var(--rose) / 0.18), transparent 50%)',
+                }}
+              />
+              <div className="relative px-6 py-12 md:py-16 text-center max-w-lg mx-auto">
+                <div className="relative w-20 h-20 mx-auto mb-5">
+                  <div className="absolute inset-0 rounded-3xl bg-gradient-gold opacity-30 blur-xl animate-glow-pulse" />
+                  <div className="relative w-full h-full rounded-3xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
+                    <SparkleIcon className="w-9 h-9 text-white" />
+                  </div>
+                </div>
+                <h2 className="text-xl md:text-2xl font-display font-black mb-2">
+                  برای شروع ست‌سازی آماده شوید
+                </h2>
+                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
+                  حداقل{' '}
+                  <span className="font-extrabold text-gold">۲ لباس</span> در کمد لازم است تا بتوانید
+                  روی مانکن امتحان کنید و ست هوشمند بسازید.
+                  {clothes.length > 0 && (
+                    <>
+                      {' '}
+                      الان{' '}
+                      <span className="font-bold text-foreground">
+                        {clothes.length.toLocaleString('fa-IR')} لباس
+                      </span>{' '}
+                      دارید.
+                    </>
+                  )}
+                </p>
+                <Button onClick={handleOpenAdd} variant="gold" size="xl" className="shadow-lg">
+                  <Plus className="w-5 h-5" />
+                  افزودن لباس به کمد
+                </Button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* ========== Profile (secondary) ========== */}
+        <section className="animate-fade-up stagger-1">
           <ProfileSection
             profile={profile}
             onProfileUpdate={updateProfile}
@@ -225,42 +398,6 @@ const Index = () => {
             favoriteSuggestions={favoriteSuggestions}
           />
         </section>
-
-        {/* ========== Outfit Builder Section ========== */}
-        {clothes.length >= 2 && (
-          <section className="animate-fade-up stagger-1">
-            <div className="flex items-end justify-between mb-5 md:mb-6 flex-wrap gap-3">
-              <div className="flex items-end gap-3 md:gap-4">
-                <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-gold to-gold-dark" />
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2 className="text-2xl md:text-[28px] font-display font-black tracking-tight">
-                      ست‌ساز هوشمند
-                    </h2>
-                    <span className="hidden md:inline-flex chip bg-gradient-gold/15 border border-gold/25 text-gold font-extrabold px-2.5 py-1">
-                      پیشنهاد هوش مصنوعی
-                    </span>
-                  </div>
-                  <p className="text-xs md:text-sm text-muted-foreground leading-relaxed max-w-md">
-                    لباس‌های مورد علاقه‌تان را انتخاب کنید و توضیح حرفه‌ای و شیک را دریافت کنید
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-1.5 text-xs md:text-sm font-bold text-muted-foreground">
-                <Shirt className="w-4 h-4 md:w-5 md:h-5 text-gold" />
-                <span>{clothes.length.toLocaleString('fa-IR')} لباس برای ست‌سازی</span>
-              </div>
-            </div>
-
-            <OutfitBuilder
-              clothes={clothes}
-              onGenerateSuggestion={generateSuggestion}
-              isGenerating={isGenerating}
-              profileImageUrl={profile.imageUrl}
-            />
-          </section>
-        )}
 
         {/* ========== Suggestions Section ========== */}
         {suggestions.length > 0 && (
@@ -350,16 +487,16 @@ const Index = () => {
         )}
 
         {/* ========== Wardrobe Section ========== */}
-        <section className="animate-fade-up stagger-3">
+        <section id="wardrobe" className="animate-fade-up stagger-3 scroll-mt-24">
           <div className="flex items-end justify-between mb-5 md:mb-6 flex-wrap gap-3 md:gap-4">
             <div className="flex items-end gap-3 md:gap-4">
               <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-indigo-400 to-purple-600" />
               <div>
                 <h2 className="text-2xl md:text-[28px] font-display font-black tracking-tight mb-1">
-                  گالری کمد لباس
+                  کمد لباس دیجیتال
                 </h2>
                 <p className="text-xs md:text-sm text-muted-foreground">
-                  مدیریت و مرور تمام لباس‌های خود
+                  مدیریت، جستجو، مرتب‌سازی و سازمان‌دهی لباس‌ها
                 </p>
               </div>
             </div>
@@ -372,10 +509,14 @@ const Index = () => {
                   <span className="text-muted-foreground mx-1">از</span>
                   {clothes.length.toLocaleString('fa-IR')}
                 </span>
-                <span className="text-muted-foreground font-bold hidden md:inline">لباس نمایش داده می‌شود</span>
+                <span className="text-muted-foreground font-bold hidden md:inline">لباس</span>
               </span>
             </div>
           </div>
+
+          {clothes.length > 0 && (
+            <WardrobeOverview clothes={clothes} className="mb-4 md:mb-5" />
+          )}
 
           {/* Category Tabs */}
           <CategoryTabs
@@ -384,9 +525,9 @@ const Index = () => {
             clothes={clothes}
           />
 
-          {/* Search and Filter */}
+          {/* Search, Filter, Sort, Bulk actions */}
           {clothes.length > 0 && (
-            <div className="mt-4 md:mt-5">
+            <div className="mt-4 md:mt-5 space-y-3">
               <SearchFilter
                 searchQuery={searchQuery}
                 onSearchChange={setSearchQuery}
@@ -394,28 +535,53 @@ const Index = () => {
                 onColorFilterChange={setColorFilter}
                 availableColors={availableColors}
               />
+              <ActiveFilters
+                searchQuery={searchQuery}
+                colorFilter={colorFilter}
+                activeCategory={activeCategory}
+                onClearSearch={() => setSearchQuery('')}
+                onClearColor={() => setColorFilter('')}
+                onClearCategory={() => setActiveCategory('all')}
+                onClearAll={handleClearFilters}
+              />
+              <WardrobeToolbar
+                sort={wardrobeSort}
+                onSortChange={setWardrobeSort}
+                density={wardrobeDensity}
+                onDensityChange={setWardrobeDensity}
+                selectionMode={selectionMode}
+                onSelectionModeChange={(v) => {
+                  setSelectionMode(v);
+                  if (!v) setSelectedIds(new Set());
+                }}
+                selectedCount={selectedIds.size}
+                totalVisible={filteredClothes.length}
+                onSelectAll={handleSelectAllVisible}
+                onClearSelection={handleClearSelection}
+                onBulkDelete={() => void handleBulkDelete()}
+              />
+              {bulkDeleting && (
+                <p className="text-xs font-bold text-muted-foreground text-center animate-pulse">
+                  در حال حذف گروهی...
+                </p>
+              )}
             </div>
           )}
 
           {/* Content */}
           <div className="mt-5 md:mt-6">
             {isLoading ? (
-              <div className="flex items-center justify-center py-20 md:py-28">
-                <div className="relative">
-                  <div className="absolute -inset-4 rounded-full bg-gradient-gold/20 blur-xl animate-pulse" />
-                  <div className="relative w-14 h-14 border-4 border-gold/30 border-t-gold rounded-full animate-spin" />
-                </div>
-              </div>
+              <ClothingCardSkeleton count={8} />
             ) : clothes.length === 0 ? (
               <EmptyState onAddClick={handleOpenAdd} />
             ) : filteredClothes.length === 0 ? (
-              <div className="text-center py-14 md:py-20 px-4 rounded-[2rem] bg-gradient-card hairline-border shadow-soft">
+              <div className="text-center py-14 md:py-20 px-4 rounded-[2rem] bg-gradient-card hairline-border shadow-soft animate-fade-up">
                 <div className="relative inline-block mb-5">
                   <div className="text-6xl md:text-7xl animate-float">🔍</div>
                 </div>
                 <h3 className="text-lg md:text-xl font-extrabold mb-2">نتیجه‌ای یافت نشد</h3>
                 <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
-                  با فیلتر دیگری را تغییر دهید یا فیلترهای فعلی را پاک کنید
+                  فیلتر دیگری را امتحان کنید یا فیلترهای فعلی را پاک کنید
                 </p>
                 <Button
                   onClick={handleClearFilters}
@@ -427,7 +593,14 @@ const Index = () => {
                 </Button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 md:gap-4">
+              <div
+                className={cn(
+                  'grid gap-3 md:gap-4',
+                  wardrobeDensity === 'compact'
+                    ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8'
+                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+                )}
+              >
                 {filteredClothes.map((item, index) => (
                   <ClothingCard
                     key={item.id}
@@ -435,6 +608,10 @@ const Index = () => {
                     onSelect={setViewingItem}
                     onEdit={handleOpenEdit}
                     onRemove={handleRequestDelete}
+                    selectionMode={selectionMode}
+                    isSelected={selectionMode ? selectedIds.has(item.id) : false}
+                    onToggleSelect={toggleSelectItem}
+                    showActions={!selectionMode}
                     className="animate-fade-up"
                     style={{ animationDelay: `${Math.min(index * 0.035, 0.5)}s` }}
                   />
@@ -491,9 +668,14 @@ const Index = () => {
           </section>
         )}
 
-        {/* ========== Footer spacer ========== */}
-        <div className="h-8 md:h-12" />
+        {/* ========== Footer spacer (extra room for mobile FAB) ========== */}
+        <div className="h-24 md:h-12" />
       </main>
+
+      {/* Mobile FAB + Scroll to top + Generating banner */}
+      <MobileFab onClick={handleOpenAdd} />
+      <ScrollToTop />
+      <GeneratingBanner visible={isGenerating} />
 
       <ClothingDetailsModal
         item={viewingItem}

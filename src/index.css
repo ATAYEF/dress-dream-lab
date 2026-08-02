@@ -504,3 +504,24 @@
   -webkit-mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
   mask-image: linear-gradient(to bottom, black 0%, black 85%, transparent 100%);
 }
+
+/* Safe area for notched phones */
+.safe-bottom {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+/* Smooth page scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus ring for accessibility */
+:focus-visible {
+  outline: 2px solid hsl(var(--gold));
+  outline-offset: 2px;
+}
+
+/* Prevent layout shift on scrollbar */
+html {
+  scrollbar-gutter: stable;
+}

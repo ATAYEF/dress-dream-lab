@@ -110,10 +110,40 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
 
         {/* Top badges row */}
         <div className="absolute top-3 right-3 left-3 flex items-start justify-between gap-2 z-10">
-          {/* AI Badge */}
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/85 backdrop-blur-md rounded-full shadow-md border border-white/70">
-            <Sparkles className="w-3.5 h-3.5 text-gold" />
-            <span className="text-[10px] md:text-xs font-extrabold text-foreground tracking-tight">پیشنهاد AI</span>
+          {/* AI Badge + context */}
+          <div className="flex flex-col gap-1.5 items-start max-w-[70%]">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-white/85 backdrop-blur-md rounded-full shadow-md border border-white/70">
+              <Sparkles className="w-3.5 h-3.5 text-gold" />
+              <span className="text-[10px] md:text-xs font-extrabold text-foreground tracking-tight">پیشنهاد AI</span>
+            </div>
+            {suggestion.context && (
+              <div className="flex flex-wrap gap-1">
+                {suggestion.context.style === 'formal' && (
+                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/90 text-white text-[9px] font-bold shadow">رسمی</span>
+                )}
+                {suggestion.context.style === 'party' && (
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/90 text-white text-[9px] font-bold shadow">مهمانی</span>
+                )}
+                {suggestion.context.style === 'casual' && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/90 text-white text-[9px] font-bold shadow">روزمره</span>
+                )}
+                {suggestion.context.environment === 'office' && (
+                  <span className="px-2 py-0.5 rounded-full bg-slate-700/90 text-white text-[9px] font-bold shadow">اداری</span>
+                )}
+                {suggestion.context.environment === 'gathering' && (
+                  <span className="px-2 py-0.5 rounded-full bg-violet-500/90 text-white text-[9px] font-bold shadow">دورهمی</span>
+                )}
+                {suggestion.context.weather === 'sunny' && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[9px] font-bold shadow">آفتابی</span>
+                )}
+                {suggestion.context.weather === 'rainy' && (
+                  <span className="px-2 py-0.5 rounded-full bg-sky-600/90 text-white text-[9px] font-bold shadow">بارانی</span>
+                )}
+                {suggestion.context.weather === 'cold' && (
+                  <span className="px-2 py-0.5 rounded-full bg-cyan-700/90 text-white text-[9px] font-bold shadow">سرد</span>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Items count */}
