@@ -1,8 +1,7 @@
 import React, { useRef, useMemo } from 'react';
 import { User, Sparkles, Upload, Shirt, Palette, Heart, Wand2, Camera } from 'lucide-react';
-import { UserProfile, ClothingItem, OutfitSuggestion, ClothingCategory } from '@/types/wardrobe';
+import { UserProfile, ClothingItem, OutfitSuggestion } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
-import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 
 interface ProfileSectionProps {
   profile: UserProfile;
@@ -76,21 +75,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
   favoriteSuggestions,
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const categoryCounts = useMemo(() => {
-    const counts: Record<ClothingCategory, number> = {
-      tops: 0,
-      bottoms: 0,
-      dresses: 0,
-      outerwear: 0,
-      shoes: 0,
-      accessories: 0,
-    };
-    clothes.forEach(item => {
-      counts[item.category]++;
-    });
-    return counts;
-  }, [clothes]);
 
   const uniqueColors = useMemo(() => {
     return new Set(clothes.map(c => c.color).filter(Boolean)).size;
@@ -268,54 +252,6 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
           />
         </div>
 
-        {/* Category progress */}
-        {clothes.length > 0 && (
-          <div className="mt-6 md:mt-8 p-5 md:p-6 rounded-2xl bg-white/40 backdrop-blur-md border border-white/60 shadow-soft animate-fade-up stagger-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-gold animate-pulse" />
-                پر شدن دسته‌بندی‌ها
-              </h3>
-              <span className="text-xs text-muted-foreground font-medium">
-                {Object.values(categoryCounts).filter(c => c > 0).length} از 6 دسته
-              </span>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-              {CATEGORY_CLOTHING_ORDER.map((catKey) => {
-                const cat = CATEGORY_CONFIG[catKey];
-                const Icon = cat.icon;
-                const count = categoryCounts[catKey as ClothingCategory];
-                const maxCount = Math.max(...Object.values(categoryCounts), 1);
-                const progress = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                return (
-                  <div key={catKey} className="space-y-2 group">
-                    <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-1.5 text-foreground/80 group-hover:text-foreground transition-colors">
-                        <span style={{ color: cat.hexFrom }} className="inline-flex">
-                          <Icon className="w-3.5 h-3.5" />
-                        </span>
-
-                        <span className="font-medium">{cat.label}</span>
-                      </div>
-                      <span className="text-[10px] font-bold text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">
-                        {count.toLocaleString('fa-IR')}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full rounded-full bg-background/60 overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-1000 ease-out"
-                        style={{
-                          width: `${progress}%`,
-                          background: `linear-gradient(90deg, ${cat.hexFrom} 0%, ${cat.hexTo} 100%)`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import { ClothingItem } from '@/types/wardrobe';
-import { productSvg, SAMPLE_COLORS } from '@/lib/sampleAssets';
 
-/* ========== Local PNG assets (bundled with the app — always available) ========== */
+/* ========== Real local product photos (bundled — always available) ========== */
 import whiteShirt from '@/assets/sample-top-white-shirt.png';
 import blackSweater from '@/assets/sample-top-black-sweater.png';
 import jeans from '@/assets/sample-bottom-jeans.png';
@@ -17,11 +16,26 @@ import beltBlack from '@/assets/belt-black.png';
 import bagTote from '@/assets/bag-tote.png';
 import bagClutch from '@/assets/bag-clutch.png';
 
-/**
- * Version bumped when sample set changes so guests refresh local cache
- * without losing their own (non-sample) items.
- */
-export const SAMPLE_WARDROBE_VERSION = 'v3-local-assets';
+/* Photo samples downloaded & stored in-app (no external runtime dependency) */
+import topPink from '@/assets/sample-photo-top-pink.jpg';
+import topCream from '@/assets/sample-photo-top-cream.jpg';
+import topLeather from '@/assets/sample-photo-top-leather.jpg';
+import pantsBlack from '@/assets/sample-photo-pants-black.jpg';
+import pantsFormal from '@/assets/sample-photo-pants-formal.jpg';
+import pantsBeige from '@/assets/sample-photo-pants-beige.jpg';
+import dressRed from '@/assets/sample-photo-dress-red.jpg';
+import dressBlack from '@/assets/sample-photo-dress-black.jpg';
+import dressCream from '@/assets/sample-photo-dress-cream.jpg';
+import blazer from '@/assets/sample-photo-blazer.jpg';
+import coat from '@/assets/sample-photo-coat.jpg';
+import denimJkt from '@/assets/sample-photo-denim-jkt.jpg';
+import heelsNude from '@/assets/sample-photo-heels-nude.jpg';
+import sneakersSport from '@/assets/sample-photo-sneakers-red.jpg';
+import scarf from '@/assets/sample-photo-scarf.jpg';
+import bagRed from '@/assets/sample-photo-bag-red.jpg';
+
+/** Bump when samples change so guest localStorage refreshes */
+export const SAMPLE_WARDROBE_VERSION = 'v4-real-photos';
 
 const base = (
   id: string,
@@ -40,129 +54,52 @@ const base = (
   createdAt: new Date('2026-01-01T00:00:00.000Z'),
 });
 
-/** Stable SVG catalog item (no network). */
-const svgItem = (
-  id: string,
-  name: string,
-  category: ClothingItem['category'],
-  colorName: string,
-  hex: string,
-  tags?: string[]
-) =>
-  base(
-    id,
-    name,
-    category,
-    productSvg({ label: name.replace(/\s*\(.*?\)\s*/g, '').slice(0, 28), color: hex, category }),
-    colorName,
-    tags
-  );
-
 /**
- * Demo wardrobe for guests — **only local / in-app assets**.
- * No external image APIs (trae, etc.) so images never break offline.
+ * Demo wardrobe — only bundled images (PNG/JPG in src/assets).
+ * No SVG silhouettes, no external image APIs at runtime.
  */
 export const SAMPLE_CLOTHES: ClothingItem[] = [
-  // ===== Tops — real PNGs + local SVGs =====
+  // Tops
   base('top-shirt', 'پیراهن سفید (نمونه)', 'tops', whiteShirt, 'سفید', ['نمونه', 'اساسی']),
   base('top-sweater', 'پلیور مشکی (نمونه)', 'tops', blackSweater, 'مشکی', ['نمونه', 'اساسی']),
-  svgItem('top-blouse-pink', 'بلوز ساتن صورتی', 'tops', 'صورتی', SAMPLE_COLORS.pink, [
-    'لوکس',
-    'مهمانی',
-  ]),
-  svgItem('top-knit-cream', 'ژاکت بافتنی کرم', 'tops', 'کرم', SAMPLE_COLORS.cream, [
-    'زمستانه',
-    'بافتنی',
-  ]),
-  svgItem('top-leather-black', 'شومیز چرم مشکی', 'tops', 'مشکی', SAMPLE_COLORS.black, [
-    'چرم',
-    'شیک',
-  ]),
+  base('top-blouse-pink', 'بلوز صورتی', 'tops', topPink, 'صورتی', ['لوکس', 'مهمانی']),
+  base('top-knit-cream', 'ژاکت بافتنی کرم', 'tops', topCream, 'کرم', ['زمستانه', 'بافتنی']),
+  base('top-leather-black', 'کاپشن چرم مشکی', 'tops', topLeather, 'مشکی', ['چرم', 'شیک']),
 
-  // ===== Bottoms =====
+  // Bottoms
   base('bottom-jeans', 'شلوار جین آبی (نمونه)', 'bottoms', jeans, 'آبی', ['نمونه', 'روزمره']),
   base('bottom-skirt', 'دامن پلیسه کرم (نمونه)', 'bottoms', skirt, 'کرم', ['نمونه']),
-  svgItem('bottom-leather', 'شلوار چرم مشکی', 'bottoms', 'مشکی', SAMPLE_COLORS.black, [
-    'چرم',
-    'شیک',
-  ]),
-  svgItem('bottom-trouser-navy', 'شلوار پارچه‌ای سرمه‌ای', 'bottoms', 'سرمه', SAMPLE_COLORS.navy, [
-    'رسمی',
-    'اداری',
-  ]),
-  svgItem('bottom-wide-beige', 'شلوار گشاد بژ', 'bottoms', 'بژ', SAMPLE_COLORS.beige, [
-    'روزمره',
-    'کژوال',
-  ]),
+  base('bottom-leather', 'شلوار جین تیره', 'bottoms', pantsBlack, 'مشکی', ['چرم', 'شیک']),
+  base('bottom-trouser-navy', 'شلوار پارچه‌ای رسمی', 'bottoms', pantsFormal, 'سرمه', ['رسمی', 'اداری']),
+  base('bottom-wide-beige', 'شلوار کژوال', 'bottoms', pantsBeige, 'بژ', ['روزمره', 'کژوال']),
 
-  // ===== Dresses =====
+  // Dresses
   base('dress-navy', 'لباس سرمه‌ای (نمونه)', 'dresses', navyDress, 'سرمه', ['نمونه', 'مجلسی']),
-  svgItem('dress-red', 'لباس مجلسی قرمز', 'dresses', 'قرمز', SAMPLE_COLORS.red, [
-    'مهمانی',
-    'مجلسی',
-  ]),
-  svgItem('dress-black', 'لباس مشکی کلاسیک', 'dresses', 'مشکی', SAMPLE_COLORS.black, [
-    'رسمی',
-    'شب',
-  ]),
-  svgItem('dress-cream', 'پیراهن کرم تابستانی', 'dresses', 'کرم', SAMPLE_COLORS.cream, [
-    'تابستانه',
-    'روزمره',
-  ]),
+  base('dress-red', 'لباس مجلسی قرمز', 'dresses', dressRed, 'قرمز', ['مهمانی', 'مجلسی']),
+  base('dress-black', 'لباس مشکی کلاسیک', 'dresses', dressBlack, 'مشکی', ['رسمی', 'شب']),
+  base('dress-cream', 'پیراهن روشن تابستانی', 'dresses', dressCream, 'کرم', ['تابستانه', 'روزمره']),
 
-  // ===== Outerwear =====
+  // Outerwear
   base('outer-trench', 'بارانی ترنچ (نمونه)', 'outerwear', trench, 'بژ', ['نمونه', 'بارانی']),
-  svgItem('outer-blazer-navy', 'کت بلیزر سرمه‌ای', 'outerwear', 'سرمه', SAMPLE_COLORS.navy, [
-    'رسمی',
-    'اداری',
-  ]),
-  svgItem('outer-coat-black', 'پالتو مشکی زمستانه', 'outerwear', 'مشکی', SAMPLE_COLORS.black, [
-    'زمستانه',
-    'سرد',
-  ]),
-  svgItem('outer-jacket-denim', 'کت جین آبی', 'outerwear', 'آبی', SAMPLE_COLORS.denim, [
-    'روزمره',
-    'کژوال',
-  ]),
+  base('outer-blazer-navy', 'کت بلیزر', 'outerwear', blazer, 'سرمه', ['رسمی', 'اداری']),
+  base('outer-coat-black', 'پالتو زمستانه', 'outerwear', coat, 'مشکی', ['زمستانه', 'سرد']),
+  base('outer-jacket-denim', 'کت جین', 'outerwear', denimJkt, 'آبی', ['روزمره', 'کژوال']),
 
-  // ===== Shoes — local PNGs =====
+  // Shoes
   base('shoes-sneakers', 'کتانی سفید (نمونه)', 'shoes', sneakers, 'سفید', ['نمونه', 'روزمره']),
-  base('shoes-heels', 'کفش پاشنه‌دار مشکی (نمونه)', 'shoes', heels, 'مشکی', [
-    'نمونه',
-    'مهمانی',
-  ]),
+  base('shoes-heels', 'کفش پاشنه‌دار مشکی (نمونه)', 'shoes', heels, 'مشکی', ['نمونه', 'مهمانی']),
   base('shoes-boots', 'بوت چرم (نمونه)', 'shoes', boots, 'قهوه‌ای', ['نمونه', 'زمستانه']),
   base('shoes-loafers', 'کفش رسمی (نمونه)', 'shoes', loafers, 'مشکی', ['نمونه', 'اداری']),
-  svgItem('shoes-heels-nude', 'پاشنه نود', 'shoes', 'بژ', SAMPLE_COLORS.beige, [
-    'مهمانی',
-    'مجلسی',
-  ]),
-  svgItem('shoes-sneakers-sport', 'کتانی ورزشی', 'shoes', 'سفید', SAMPLE_COLORS.white, [
-    'روزمره',
-    'اسپرت',
-  ]),
+  base('shoes-heels-nude', 'پاشنه نود', 'shoes', heelsNude, 'بژ', ['مهمانی', 'مجلسی']),
+  base('shoes-sneakers-sport', 'کتانی ورزشی', 'shoes', sneakersSport, 'قرمز', ['روزمره', 'اسپرت']),
 
-  // ===== Accessories — local PNGs + SVG =====
-  base('acc-belt-brown', 'کمربند چرم قهوه‌ای (نمونه)', 'accessories', beltBrown, 'قهوه‌ای', [
-    'نمونه',
-  ]),
+  // Accessories
+  base('acc-belt-brown', 'کمربند چرم قهوه‌ای (نمونه)', 'accessories', beltBrown, 'قهوه‌ای', ['نمونه']),
   base('acc-belt-black', 'کمربند مشکی (نمونه)', 'accessories', beltBlack, 'مشکی', ['نمونه', 'رسمی']),
   base('acc-bag-tote', 'کیف دوشی (نمونه)', 'accessories', bagTote, 'بژ', ['نمونه', 'روزمره']),
-  base('acc-bag-clutch', 'کیف مجلسی (نمونه)', 'accessories', bagClutch, 'مشکی', [
-    'نمونه',
-    'مهمانی',
-  ]),
-  svgItem('acc-scarf-blue', 'شال آبی', 'accessories', 'آبی', SAMPLE_COLORS.sky, [
-    'شیک',
-    'لایه',
-  ]),
-  svgItem('acc-bag-red', 'کیف قرمز', 'accessories', 'قرمز', SAMPLE_COLORS.red, [
-    'مهمانی',
-    'چرم',
-  ]),
+  base('acc-bag-clutch', 'کیف مجلسی (نمونه)', 'accessories', bagClutch, 'مشکی', ['نمونه', 'مهمانی']),
+  base('acc-scarf-blue', 'شال', 'accessories', scarf, 'آبی', ['شیک', 'لایه']),
+  base('acc-bag-red', 'کیف قرمز', 'accessories', bagRed, 'قرمز', ['مهمانی', 'چرم']),
 ];
 
-/** Only the core photo samples (for lighter demos if needed). */
-export const SAMPLE_CLOTHES_CORE = SAMPLE_CLOTHES.filter((c) =>
-  c.tags?.includes('نمونه')
-);
+export const SAMPLE_CLOTHES_CORE = SAMPLE_CLOTHES.filter((c) => c.tags?.includes('نمونه'));

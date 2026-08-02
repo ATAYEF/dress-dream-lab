@@ -130,47 +130,6 @@ export const WardrobeOverview: React.FC<WardrobeOverviewProps> = ({ clothes, cla
         ))}
       </div>
 
-      {/* Category mini bars */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
-        {CATEGORY_CLOTHING_ORDER.map((key) => {
-          const cat = CATEGORY_CONFIG[key];
-          const count = stats.byCategory[key];
-          const max = Math.max(...Object.values(stats.byCategory), 1);
-          const pct = (count / max) * 100;
-          const Icon = cat.icon;
-          return (
-            <div
-              key={key}
-              className={cn(
-                'rounded-xl p-2.5 border transition-colors',
-                count === 0
-                  ? 'bg-muted/40 border-dashed border-border/60'
-                  : 'bg-white/50 dark:bg-white/5 border-white/60'
-              )}
-            >
-              <div className="flex items-center justify-between gap-1 mb-1.5">
-                <div className="flex items-center gap-1 min-w-0">
-                  <Icon className="w-3 h-3 shrink-0" style={{ color: cat.hexFrom }} />
-                  <span className="text-[10px] font-bold truncate">{cat.label}</span>
-                </div>
-                <span className="text-[10px] font-black text-muted-foreground">
-                  {count.toLocaleString('fa-IR')}
-                </span>
-              </div>
-              <div className="h-1 rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${pct}%`,
-                    background: `linear-gradient(90deg, ${cat.hexFrom}, ${cat.hexTo})`,
-                  }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
       {/* Color palette strip */}
       {stats.topColors.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
