@@ -143,13 +143,29 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       const baseImageUrl = await toDataUrl(mannequinImage, 768);
       // Cap the number of garments and downscale them harder — keeps the
       // request payload small enough for the edge function to accept it.
-      const clothingItems = await Promise.all(
-        items.slice(0, 5).map(async (item) => ({
-          name: item.name,
-          category: item.category,
-          imageUrl: await toDataUrl(item.imageUrl, 512),
-        }))
+      const converted = await Promise.all(
+        items.slice(0, 5).map(async (item) => {
+          try {
+            return {
+              name: item.name,
+              category: item.category,
+              imageUrl: await toDataUrl(item.imageUrl, 512),
+            };
+          } catch (e) {
+            console.warn('Skipping unreadable garment image:', item.name, e);
+            return null;
+          }
+        })
       );
+      const clothingItems = converted.filter(Boolean) as {
+        name: string;
+        category: string;
+        imageUrl: string;
+      }[];
+      if (clothingItems.length === 0) {
+        throw new Error('تصویر لباس‌ها قابل خواندن نیست؛ لباس دیگری امتحان کنید');
+      }
+
 
       const suggestedFootwear =
         !items.some((i) => i.category === 'shoes') && activeShoe ? activeShoe.name : undefined;
