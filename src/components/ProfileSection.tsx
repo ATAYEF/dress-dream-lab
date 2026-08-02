@@ -109,7 +109,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
         style={{ background: 'radial-gradient(circle, hsl(270, 40%, 70%) 0%, transparent 70%)' }}
       />
 
-      <div className="relative p-6 md:p-8 lg:p-10">
+      <div className="relative p-4 md:p-6">
         {/* Main hero content */}
         <div className="flex flex-col lg:flex-row items-center gap-8 mb-8 md:mb-10">
           {/* Profile image */}
@@ -127,7 +127,7 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 {/* Glow ring */}
                 <div className="absolute -inset-2 rounded-full bg-gradient-gold opacity-20 blur-xl group-hover:opacity-40 transition-opacity duration-700" />
 
-                <div className="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden ring-4 ring-white/80 shadow-elevated">
+                <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden ring-4 ring-white/80 shadow-elevated">
                   <img
                     src={profile.imageUrl}
                     alt="Profile"
@@ -158,10 +158,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                 <div className="absolute -inset-1.5 rounded-full bg-gradient-gold opacity-25 blur-lg animate-glow-pulse" />
                 <button
                   onClick={() => inputRef.current?.click()}
-                  className="relative w-32 h-32 md:w-40 md:h-40 rounded-full border-2 border-dashed border-gold/50 flex flex-col items-center justify-center gap-2.5 bg-white/40 backdrop-blur-sm hover:bg-white/70 hover:border-gold hover:scale-[1.02] transition-all duration-500 cursor-pointer group shadow-soft"
+                  className="relative w-24 h-24 md:w-28 md:h-28 rounded-full border-2 border-dashed border-gold/50 flex flex-col items-center justify-center gap-2.5 bg-white/40 backdrop-blur-sm hover:bg-white/70 hover:border-gold hover:scale-[1.02] transition-all duration-500 cursor-pointer group shadow-soft"
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold group-hover:scale-110 transition-transform duration-500">
-                    <Upload className="w-7 h-7 text-white" />
+                  <div className="w-11 h-11 rounded-xl bg-gradient-gold flex items-center justify-center shadow-button-gold group-hover:scale-110 transition-transform duration-500">
+                    <Upload className="w-5 h-5 text-white" />
                   </div>
                   <div className="text-center">
                     <p className="text-sm font-semibold text-foreground">عکس شما</p>
@@ -184,31 +184,14 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
             </div>
 
             {/* Heading */}
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold mb-3 leading-[1.15] animate-fade-up stagger-2">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-display font-bold mb-2 leading-[1.15] animate-fade-up stagger-2">
               به <span className="text-gradient-gold">کمد رویایی</span> خود خوش آمدید
             </h1>
 
             {/* Subtitle */}
-            <p className="text-muted-foreground max-w-lg mb-6 mx-auto lg:mx-0 text-sm md:text-base leading-relaxed animate-fade-up stagger-3">
-              لباس‌های خود را مدیریت کنید، بهترین ست‌ها را با هوش مصنوعی بسازید
-              و هر روز با اعتماد به نفس بیشتری از خانه خارج شوید. ✨
+            <p className="text-muted-foreground max-w-lg mx-auto lg:mx-0 text-sm leading-relaxed animate-fade-up stagger-3">
+              لباس‌ها را مدیریت کنید و با هوش مصنوعی ست بسازید
             </p>
-
-            {/* Quick hint chips */}
-            <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 animate-fade-up stagger-4">
-              <div className="chip bg-white/60 backdrop-blur-sm text-foreground">
-                <Shirt className="w-3 h-3 text-gold" />
-                لباس‌ خود را اضافه کنید
-              </div>
-              <div className="chip bg-white/60 backdrop-blur-sm text-foreground">
-                <Wand2 className="w-3 h-3 text-gold" />
-                ست هوشمند بسازید
-              </div>
-              <div className="chip bg-white/60 backdrop-blur-sm text-foreground">
-                <Heart className="w-3 h-3 text-rose" />
-                علاقه‌مندی‌های خود را انتخاب کنید
-              </div>
-            </div>
           </div>
         </div>
 

@@ -36,7 +36,7 @@ export function ClothingDetailsModal({
   return (
     <Dialog open={Boolean(item)} onOpenChange={(open) => !open && onClose()}>
       {item && (
-        <DialogContent dir="rtl" className="max-h-[92vh] max-w-2xl overflow-y-auto p-0 sm:rounded-3xl">
+        <DialogContent dir="rtl" className="max-h-[92vh] max-w-2xl overflow-y-auto p-0 sm:rounded-3xl max-md:h-[100dvh] max-md:max-h-[100dvh] max-md:w-full max-md:rounded-none">
           <div className="grid md:grid-cols-[1.05fr_1fr]">
             <div className="aspect-square overflow-hidden bg-muted md:aspect-auto md:min-h-[430px]">
               <img
@@ -46,7 +46,7 @@ export function ClothingDetailsModal({
               />
             </div>
 
-            <div className="flex flex-col gap-6 p-6 sm:p-8">
+            <div className="flex flex-col gap-4 p-4 sm:gap-6 sm:p-8">
               <DialogHeader className="gap-2 text-right sm:text-right">
                 <Badge variant="secondary" className="w-fit">
                   {categoryLabels[item.category]}
@@ -87,7 +87,7 @@ export function ClothingDetailsModal({
                 </div>
               </dl>
 
-              <DialogFooter className="mt-auto flex-row gap-2 sm:justify-start">
+              <DialogFooter className="mt-auto flex-row gap-2 sm:justify-start sticky bottom-0 bg-background/95 backdrop-blur-sm pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:static sm:bg-transparent sm:p-0">
                 <Button variant="gold" className="flex-1" onClick={() => onEdit(item)}>
                   <Pencil data-icon="inline-start" aria-hidden="true" />
                   ویرایش لباس

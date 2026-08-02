@@ -36,7 +36,7 @@ function SegmentRow<T extends string>({
         {icon}
         {label}
       </div>
-      <div className="flex flex-wrap gap-1.5 md:gap-2">
+      <div className="grid grid-cols-3 gap-1.5 md:flex md:flex-wrap md:gap-2">
         {options.map((opt) => {
           const active = value === opt.value;
           return (
@@ -46,7 +46,7 @@ function SegmentRow<T extends string>({
               onClick={() => onChange(opt.value)}
               title={opt.hint}
               className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs md:text-sm font-extrabold transition-all duration-300 border',
+                'inline-flex items-center gap-1 px-2.5 py-2 min-h-[40px] rounded-xl text-xs md:text-sm font-extrabold transition-all duration-300 border touch-manipulation',
                 active
                   ? 'bg-gradient-gold text-white border-transparent shadow-md scale-[1.02]'
                   : 'bg-white/60 dark:bg-white/5 text-foreground/75 border-border/50 hover:border-gold/35 hover:bg-gold/5'
@@ -70,7 +70,7 @@ export const OutfitContextPicker: React.FC<OutfitContextPickerProps> = ({
   return (
     <div
       className={cn(
-        'rounded-2xl md:rounded-3xl bg-white/55 dark:bg-white/5 backdrop-blur-md border border-white/70 hairline-border shadow-soft p-3.5 md:p-5 space-y-4',
+        'rounded-2xl md:rounded-3xl bg-white/55 dark:bg-white/5 backdrop-blur-md border border-white/70 hairline-border shadow-soft p-3 md:p-5 space-y-3 md:space-y-4',
         className
       )}
       dir="rtl"

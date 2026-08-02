@@ -227,9 +227,9 @@ const Index = () => {
       </div>
 
       {/* ========== Header ========== */}
-      <header className="sticky top-0 z-50">
+      <header className="sticky top-0 z-50 safe-top">
         <div className="glass-strong">
-          <div className="container max-w-7xl mx-auto px-4 md:px-6 py-3 md:py-4 flex items-center justify-between gap-3 md:gap-4">
+          <div className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2.5 md:py-4 flex items-center justify-between gap-2 md:gap-4">
             {/* Logo */}
             <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group">
               <div className="relative">
@@ -302,16 +302,28 @@ const Index = () => {
       </header>
 
       {/* ========== Main Content ========== */}
-      <main className="container max-w-7xl mx-auto px-4 md:px-6 py-5 md:py-7 space-y-8 md:space-y-12">
+      <main className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-7 space-y-5 md:space-y-8 mobile-content-pad">
+
+        {/* ========== Welcome / Profile (top hero) ========== */}
+        <section className="animate-fade-up stagger-1">
+          <ProfileSection
+            profile={profile}
+            onProfileUpdate={updateProfile}
+            clothes={clothes}
+            suggestions={suggestions}
+            favoriteSuggestions={favoriteSuggestions}
+          />
+        </section>
+
         {/* ========== CORE: Outfit Builder (Hero) ========== */}
-        <section id="outfit-builder" className="animate-fade-up relative scroll-mt-24">
+        <section id="outfit-builder" className="animate-fade-up relative scroll-mt-20 md:scroll-mt-24">
           {/* Hero intro — centered, bold */}
-          <div className="text-center mb-5 md:mb-7 max-w-2xl mx-auto">
+          <div className="text-center mb-3 md:mb-7 max-w-2xl mx-auto">
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-gold/15 border border-gold/30 text-gold text-[11px] md:text-xs font-extrabold mb-3 shadow-sm">
               <Sparkles className="w-3.5 h-3.5" />
               هسته اصلی اپ · امتحان مجازی لباس
             </div>
-            <h1 className="text-3xl md:text-4xl lg:text-[2.75rem] font-display font-black tracking-tight leading-tight mb-2.5">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-display font-black tracking-tight leading-tight mb-2">
               <span className="text-gradient-gold">ست‌ساز هوشمند</span>
             </h1>
             <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
@@ -386,17 +398,6 @@ const Index = () => {
               </div>
             </div>
           )}
-        </section>
-
-        {/* ========== Profile (secondary) ========== */}
-        <section className="animate-fade-up stagger-1">
-          <ProfileSection
-            profile={profile}
-            onProfileUpdate={updateProfile}
-            clothes={clothes}
-            suggestions={suggestions}
-            favoriteSuggestions={favoriteSuggestions}
-          />
         </section>
 
         {/* ========== Suggestions Section ========== */}
@@ -487,7 +488,7 @@ const Index = () => {
         )}
 
         {/* ========== Wardrobe Section ========== */}
-        <section id="wardrobe" className="animate-fade-up stagger-3 scroll-mt-24">
+        <section id="wardrobe" className="animate-fade-up stagger-3 scroll-mt-20 md:scroll-mt-24">
           <div className="flex items-end justify-between mb-5 md:mb-6 flex-wrap gap-3 md:gap-4">
             <div className="flex items-end gap-3 md:gap-4">
               <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-indigo-400 to-purple-600" />
@@ -515,26 +516,29 @@ const Index = () => {
           </div>
 
           {clothes.length > 0 && (
-            <WardrobeOverview clothes={clothes} className="mb-4 md:mb-5" />
+            <WardrobeOverview clothes={clothes} className="mb-3" />
           )}
 
-          {/* Category Tabs */}
-          <CategoryTabs
-            activeCategory={activeCategory}
-            onCategoryChange={setActiveCategory}
-            clothes={clothes}
-          />
-
-          {/* Search, Filter, Sort, Bulk actions */}
+          {/* Filters: category dropdown (collapsed) + search — compact single row */}
           {clothes.length > 0 && (
-            <div className="mt-4 md:mt-5 space-y-3">
-              <SearchFilter
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                colorFilter={colorFilter}
-                onColorFilterChange={setColorFilter}
-                availableColors={availableColors}
-              />
+            <div className="mt-3 space-y-2.5">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
+                <CategoryTabs
+                  activeCategory={activeCategory}
+                  onCategoryChange={setActiveCategory}
+                  clothes={clothes}
+                  defaultOpen={false}
+                />
+                <div className="flex-1 min-w-0">
+                  <SearchFilter
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    colorFilter={colorFilter}
+                    onColorFilterChange={setColorFilter}
+                    availableColors={availableColors}
+                  />
+                </div>
+              </div>
               <ActiveFilters
                 searchQuery={searchQuery}
                 colorFilter={colorFilter}

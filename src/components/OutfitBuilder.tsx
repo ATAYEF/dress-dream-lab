@@ -151,7 +151,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
       />
 
-      <div className="relative p-5 md:p-7 lg:p-8">
+      <div className="relative p-3 sm:p-5 md:p-7 lg:p-8">
         {/* Toolbar: steps + mannequin gender */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 md:mb-6">
           <div className="flex flex-wrap items-center gap-2">
@@ -387,7 +387,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 )}
 
                 {/* Action buttons — primary CTA */}
-                <div className="flex gap-2.5 justify-center w-full max-w-[340px]">
+                <div className="flex gap-2.5 justify-center w-full max-w-[340px] mobile-sticky-actions md:!static md:!bg-transparent md:!p-0 md:!z-auto">
                   <Button
                     onClick={handleGenerate}
                     variant="gold"
@@ -512,7 +512,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       </div>
 
                       {/* Items grid */}
-                      <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-2.5">
+                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-2.5">
                         {categoryItems.map(item => {
                           const isSelected = outfitItems.some(i => i.id === item.id);
                           return (

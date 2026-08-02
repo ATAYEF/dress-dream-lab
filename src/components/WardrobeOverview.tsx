@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Layers, Palette, LayoutGrid, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
@@ -12,6 +12,7 @@ interface WardrobeOverviewProps {
 
 /** Digital wardrobe health + coverage overview */
 export const WardrobeOverview: React.FC<WardrobeOverviewProps> = ({ clothes, className }) => {
+  const [expanded, setExpanded] = useState(false);
   const stats = useMemo(() => {
     const byCategory = CATEGORY_CLOTHING_ORDER.reduce(
       (acc, key) => {
@@ -95,8 +96,18 @@ export const WardrobeOverview: React.FC<WardrobeOverviewProps> = ({ clothes, cla
             سلامت کمد {stats.completeness.toLocaleString('fa-IR')}٪
           </span>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-xs font-extrabold px-3 py-1.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-colors"
+        >
+          {expanded ? 'بستن' : 'جزئیات'}
+        </button>
       </div>
 
+      {expanded && (
+      <>
       {/* KPI row */}
       <div className="grid grid-cols-3 gap-2 md:gap-3">
         {[
@@ -158,6 +169,8 @@ export const WardrobeOverview: React.FC<WardrobeOverviewProps> = ({ clothes, cla
             .join('، ')}{' '}
           هنوز خالی‌اند — با افزودن لباس، ست‌سازی قوی‌تر می‌شود.
         </p>
+      )}
+      </>
       )}
     </div>
   );

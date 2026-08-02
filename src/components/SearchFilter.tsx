@@ -35,7 +35,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
   const hasFilter = searchQuery || colorFilter;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 md:gap-4" dir="rtl">
+    <div className="flex flex-col sm:flex-row gap-2 md:gap-4" dir="rtl">
       {/* Search Input */}
       <div className="relative flex-1 group">
         <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-0 blur-md group-focus-within:opacity-40 transition-all duration-500" />
@@ -50,7 +50,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
             placeholder="جستجوی نام لباس، برند یا رنگ..."
             maxLength={60}
             className={cn(
-              'relative w-full rounded-2xl pr-12 md:pr-14 pl-10 md:pl-12 py-3 md:py-3.5 outline-none transition-all duration-400 font-medium text-sm md:text-[15px]',
+              'relative w-full rounded-2xl pr-12 md:pr-14 pl-10 md:pl-12 py-3 md:py-3.5 min-h-[44px] text-base outline-none transition-all duration-400 font-medium',
               'bg-gradient-card hairline-border shadow-soft',
               'placeholder:text-muted-foreground/60',
               'hover:shadow-card hover:border-gold/30',
@@ -74,7 +74,7 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
         <button
           onClick={() => setShowColors(!showColors)}
           className={cn(
-            'group relative flex items-center gap-2 md:gap-2.5 px-4 md:px-5 py-3 md:py-3.5 rounded-2xl whitespace-nowrap transition-all duration-400 text-sm md:text-[15px] font-extrabold',
+            'group relative flex items-center gap-2 md:gap-2.5 px-4 md:px-5 py-3 md:py-3.5 min-h-[44px] text-base rounded-2xl whitespace-nowrap transition-all duration-400 text-sm md:text-[15px] font-extrabold',
             'bg-gradient-card hairline-border shadow-soft hover:shadow-card',
             colorFilter
               ? 'border-gold/50 shadow-[hsl(42,85%,45%)/0.15] bg-gradient-to-br from-gold/10 via-white/80 to-gold/5'
