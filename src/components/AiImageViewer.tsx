@@ -28,6 +28,7 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0, ox: 0, oy: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const reset = useCallback(() => {
     setZoom(1);
@@ -39,6 +40,27 @@ const AiImageViewer = ({ src, alt = '', onClose, className }: AiImageViewerProps
   useEffect(() => {
     reset();
   }, [src, reset]);
+
+  // reset transform when switching between inline and fullscreen
+  useEffect(() => {
+    reset();
+  }, [isFullscreen, reset]);
+
+  // Esc closes fullscreen, lock body scroll while fullscreen
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsFullscreen(false);
+    };
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isFullscreen]);
+
 
   // zoom anchored at a point inside the container
   const zoomAt = useCallback((next: number, px: number, py: number) => {
