@@ -10,6 +10,7 @@ import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@
 import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import AiImageViewer from './AiImageViewer';
 
 /**
  * Converts any image (bundled asset, blob, data url or remote url) into a
@@ -521,17 +522,13 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
         {/* AI generated try-on result */}
         {aiImage && (
-          <div className="absolute inset-0 z-40 animate-fade-in">
-            <img src={aiImage} alt="نتیجه پرو مجازی با هوش مصنوعی" className="w-full h-full object-cover" />
-            <button
-              onClick={() => setAiImage(null)}
-              className="absolute top-2 left-2 z-50 inline-flex items-center gap-1 rounded-full bg-background/90 backdrop-blur px-2.5 py-1 text-[10px] font-black shadow-lg hairline-border"
-            >
-              <X className="w-3 h-3" />
-              بازگشت به مانکن
-            </button>
-          </div>
+          <AiImageViewer
+            src={aiImage}
+            alt="نتیجه پرو مجازی با هوش مصنوعی"
+            onClose={() => setAiImage(null)}
+          />
         )}
+
 
         {/* Generating overlay */}
         {aiLoading && (

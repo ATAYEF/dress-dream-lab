@@ -382,7 +382,7 @@ export const useWardrobe = () => {
 
         const firstTry = await supabase
           .from('clothing_items')
-          .insert(insertPayload)
+          .insert(insertPayload as never)
           .select()
           .single();
 
@@ -390,7 +390,7 @@ export const useWardrobe = () => {
           delete insertPayload.tags;
           const secondTry = await supabase
             .from('clothing_items')
-            .insert(insertPayload)
+            .insert(insertPayload as never)
             .select()
             .single();
           data = secondTry.data;
@@ -514,7 +514,7 @@ export const useWardrobe = () => {
 
         const firstTry = await supabase
           .from('clothing_items')
-          .insert(insertPayload)
+          .insert(insertPayload as never)
           .select()
           .single();
 
@@ -522,7 +522,7 @@ export const useWardrobe = () => {
           delete insertPayload.tags;
           const secondTry = await supabase
             .from('clothing_items')
-            .insert(insertPayload)
+            .insert(insertPayload as never)
             .select()
             .single();
           data = secondTry.data;
