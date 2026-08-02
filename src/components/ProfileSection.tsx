@@ -291,7 +291,10 @@ export const ProfileSection: React.FC<ProfileSectionProps> = ({
                   <div key={catKey} className="space-y-2 group">
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5 text-foreground/80 group-hover:text-foreground transition-colors">
-                        <Icon className="w-3.5 h-3.5" style={{ color: cat.hexFrom }} />
+                        <span style={{ color: cat.hexFrom }} className="inline-flex">
+                          <Icon className="w-3.5 h-3.5" />
+                        </span>
+
                         <span className="font-medium">{cat.label}</span>
                       </div>
                       <span className="text-[10px] font-bold text-muted-foreground bg-background/60 px-1.5 py-0.5 rounded-full">
