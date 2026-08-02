@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Maximize2, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ZoomIn, ZoomOut, RotateCcw, RotateCw, Maximize2, Minimize2, Expand, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
