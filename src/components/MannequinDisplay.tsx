@@ -305,26 +305,26 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             draggable={false}
           />
 
-          {/* User clothing overlays */}
+          {/* Instant CSS composite — garments laid on the silhouette (no AI needed) */}
           {dress && !top && !bottom && (
             <div
               key={dress.id}
-              className="absolute overflow-hidden z-10 animate-fade-up"
+              className="absolute z-10 animate-fade-up"
               style={{
-                top: '13%',
-                left: '22%',
-                width: '56%',
-                height: '55%',
-                clipPath: 'polygon(20% 0%, 80% 0%, 88% 5%, 90% 18%, 85% 40%, 95% 100%, 5% 100%, 15% 40%, 10% 18%, 12% 5%)',
+                top: '15%',
+                left: '25%',
+                width: '50%',
+                height: '58%',
                 animationDelay: '0.05s',
                 animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.3))',
+                filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.25))',
+                mixBlendMode: 'multiply',
               }}
             >
               <img
                 src={dress.imageUrl}
                 alt={dress.name}
-                className="w-full h-full object-cover scale-110 transition-all duration-500 hover:brightness-110"
+                className="w-full h-full object-contain transition-all duration-500"
                 draggable={false}
               />
             </div>
@@ -333,22 +333,22 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {top && (
             <div
               key={top.id}
-              className="absolute overflow-hidden z-10 animate-fade-up"
+              className="absolute z-10 animate-fade-up"
               style={{
-                top: '13%',
-                left: '18%',
-                width: '64%',
-                height: '28%',
-                clipPath: 'polygon(18% 0%, 82% 0%, 92% 8%, 100% 22%, 95% 100%, 50% 95%, 5% 100%, 0% 22%, 8% 8%)',
+                top: '15%',
+                left: '22%',
+                width: '56%',
+                height: '30%',
                 animationDelay: '0.05s',
                 animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 6px 18px rgba(0,0,0,0.25))',
+                filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.2))',
+                mixBlendMode: 'multiply',
               }}
             >
               <img
                 src={top.imageUrl}
                 alt={top.name}
-                className="w-full h-full object-cover scale-110 transition-all duration-500 hover:brightness-110"
+                className="w-full h-full object-contain transition-all duration-500"
                 draggable={false}
               />
             </div>
@@ -357,22 +357,22 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {outerwear && (
             <div
               key={outerwear.id}
-              className="absolute overflow-hidden z-30 animate-fade-up"
+              className="absolute z-30 animate-fade-up"
               style={{
-                top: '12%',
-                left: '15%',
-                width: '70%',
+                top: '14%',
+                left: '17%',
+                width: '66%',
                 height: '38%',
-                clipPath: 'polygon(15% 0%, 85% 0%, 100% 8%, 100% 100%, 80% 95%, 75% 35%, 50% 38%, 25% 35%, 20% 95%, 0% 100%, 0% 8%)',
                 animationDelay: '0.15s',
                 animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.3))',
+                filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.22))',
+                mixBlendMode: 'multiply',
               }}
             >
               <img
                 src={outerwear.imageUrl}
                 alt={outerwear.name}
-                className="w-full h-full object-cover transition-all duration-500 hover:brightness-110"
+                className="w-full h-full object-contain transition-all duration-500"
                 draggable={false}
               />
             </div>
@@ -381,26 +381,27 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {bottom && (
             <div
               key={bottom.id}
-              className="absolute overflow-hidden z-10 animate-fade-up"
+              className="absolute z-20 animate-fade-up"
               style={{
-                top: '38%',
-                left: '24%',
-                width: '52%',
-                height: '48%',
-                clipPath: 'polygon(0% 0%, 100% 0%, 95% 25%, 88% 50%, 78% 100%, 55% 98%, 50% 45%, 45% 98%, 22% 100%, 12% 50%, 5% 25%)',
+                top: '42%',
+                left: '28%',
+                width: '44%',
+                height: '46%',
                 animationDelay: '0.1s',
                 animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.25))',
+                filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.2))',
+                mixBlendMode: 'multiply',
               }}
             >
               <img
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-cover scale-105 transition-all duration-500 hover:brightness-110"
+                className="w-full h-full object-contain transition-all duration-500"
                 draggable={false}
               />
             </div>
           )}
+
 
           {/* Active shoes - either user's own, or suggested */}
           {activeShoe && (
