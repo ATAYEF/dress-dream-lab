@@ -318,7 +318,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 animationDelay: '0.05s',
                 animationFillMode: 'backwards',
                 filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.25))',
-                mixBlendMode: 'multiply',
               }}
             >
               <img
@@ -342,7 +341,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 animationDelay: '0.05s',
                 animationFillMode: 'backwards',
                 filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.2))',
-                mixBlendMode: 'multiply',
               }}
             >
               <img
@@ -366,7 +364,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 animationDelay: '0.15s',
                 animationFillMode: 'backwards',
                 filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.22))',
-                mixBlendMode: 'multiply',
               }}
             >
               <img
@@ -390,7 +387,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 animationDelay: '0.1s',
                 animationFillMode: 'backwards',
                 filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.2))',
-                mixBlendMode: 'multiply',
               }}
             >
               <img
