@@ -247,8 +247,13 @@ Render a full-body, photorealistic fashion image of a ${isUserPhoto ? 'person' :
         ? 'اعتبار هوش مصنوعی کافی نیست (همه مدل‌های جایگزین هم امتحان شدند)'
         : 'ساخت تصویر با هیچ‌کدام از مدل‌ها ممکن نشد';
 
-    return new Response(JSON.stringify({ error: errorMessage, attempts }), {
-      status: lastStatus === 402 || lastStatus === 429 ? lastStatus : 500,
+    // HTTP 200 + error field: client can read Persian message without "non-2xx" wrapper
+    return new Response(JSON.stringify({
+      error: errorMessage,
+      code: lastStatus === 402 ? 'credits' : lastStatus === 429 ? 'rate_limit' : 'failed',
+      attempts,
+    }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

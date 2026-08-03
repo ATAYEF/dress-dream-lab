@@ -11,6 +11,7 @@ import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggest
 import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@/lib/accessorySuggestion';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { persianEdgeError, readFunctionErrorBody } from '@/lib/edgeFunctionError';
 import AiImageViewer from './AiImageViewer';
 
 /**
@@ -185,22 +186,32 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory },
       });
 
-      if (error) throw new Error(error.message || 'ارتباط با سرویس برقرار نشد');
-      if (data?.error) throw new Error(data.error);
-      if (!data?.imageUrl) throw new Error('تصویری تولید نشد، دوباره تلاش کنید');
+      // Non-2xx: Supabase sets error with English "Edge Function returned a non-2xx..."
+      // Real Persian message is usually in the response body (error.context).
+      if (error) {
+        const body = await readFunctionErrorBody(error);
+        throw new Error(persianEdgeError(error, body || data));
+      }
+      if (data?.error) {
+        throw new Error(persianEdgeError(null, data));
+      }
+      if (!data?.imageUrl) {
+        throw new Error('تصویری تولید نشد، دوباره تلاش کنید');
+      }
 
       setAiImage(data.imageUrl as string);
       if (data.fallbackUsed) {
         toast({
           title: 'تصویر آماده شد',
-          description: 'با مدل پشتیبان تولید شد (مدل اول در دسترس نبود یا اعتبار نداشت)',
+          description: 'با مدل پشتیبان تولید شد (مدل اول در دسترس نبود)',
         });
       }
     } catch (err) {
       console.error('Virtual try-on failed:', err);
+      const message = persianEdgeError(err, null);
       toast({
-        title: 'خطا در تصویرسازی',
-        description: err instanceof Error ? err.message : 'مشکلی در ساخت تصویر پیش آمد',
+        title: /اعتبار/i.test(message) ? 'اعتبار تمام شده' : 'خطا در تصویرسازی',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -558,19 +569,19 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         {zoomControls}
       </div>
 
-      {/* ===== AI generate (model chosen automatically in background) ===== */}
+      {/* ===== AI generate — no model picker; server auto-selects ===== */}
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
-        <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-foreground">
+        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-foreground">
           <Wand2 className="w-3.5 h-3.5 text-gold" />
-          پرو مجازی با هوش مصنوعی
+          پرو مجازی
         </div>
-        <p className="text-[10px] text-muted-foreground font-medium mb-2 leading-relaxed">
-          مدل مناسب به‌صورت خودکار از بین مدل‌های در دسترس و دارای اعتبار انتخاب می‌شود.
+        <p className="text-[10px] text-muted-foreground font-medium mb-2.5 leading-relaxed">
+          با یک کلیک تصویر ست ساخته می‌شود. انتخاب مدل در پس‌زمینه و خودکار است.
         </p>
         <Button
           onClick={handleGenerate}
           disabled={items.length === 0 || aiLoading}
-          className="w-full h-9 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
+          className="w-full h-10 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
         >
           {aiLoading ? (
             <>
