@@ -616,6 +616,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               )}
             </div>
           </div>
+        </div>
+
+
 
         <div className="mt-7 md:mt-8 p-4 md:p-5 rounded-3xl bg-gradient-to-r from-gold/10 via-white/60 to-rose/10 backdrop-blur-sm border border-white/70 shadow-soft">
           <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3">
