@@ -521,6 +521,15 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           )}
         </div>
 
+        {/* Instant composite indicator (before any AI generation) */}
+        {hasSelectedItems && !aiImage && !aiLoading && (
+          <div className="absolute top-2 right-2 z-40 flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-foreground/80 shadow-md hairline-border animate-fade-in">
+            <Sparkles className="w-3 h-3 text-gold" />
+            پیش‌نمایش فوری (بدون هوش مصنوعی)
+          </div>
+        )}
+
+
         {/* AI generated try-on result */}
         {aiImage && (
           <AiImageViewer
