@@ -18,6 +18,7 @@ import { AddClothingModal } from '@/components/AddClothingModal';
 import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 import { OutfitBuilder } from '@/components/OutfitBuilder';
+import { MyWardrobeSection } from '@/components/MyWardrobeSection';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
@@ -93,6 +94,18 @@ const Index = () => {
     setEditingItem(null);
   };
 
+  const handleBulkRemove = async (ids: string[]) => {
+    let ok = 0;
+    for (const id of ids) {
+      const removed = await removeClothing(id);
+      if (removed) ok += 1;
+    }
+    toast({
+      title: 'حذف گروهی انجام شد',
+      description: `${ok.toLocaleString('fa-IR')} لباس از کمد حذف شد`,
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background relative" dir="rtl">
       {/* Background decorative blobs */}
@@ -143,6 +156,18 @@ const Index = () => {
               >
                 <Sparkles className="w-4 h-4 text-gold" />
                 ست‌ساز
+              </Button>
+
+              <Button
+                onClick={() =>
+                  document.getElementById('my-wardrobe')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                variant="soft"
+                size="default"
+                className="hidden md:inline-flex shrink-0 font-bold"
+              >
+                <Shirt className="w-4 h-4 text-indigo-500" />
+                کمد من
               </Button>
 
               <Button
@@ -370,6 +395,17 @@ const Index = () => {
             ) : null}
           </section>
         )}
+
+        {/* ========== My Wardrobe (full management) ========== */}
+        <MyWardrobeSection
+          clothes={clothes}
+          isLoading={isLoading}
+          onAdd={handleOpenAdd}
+          onView={setViewingItem}
+          onEdit={handleOpenEdit}
+          onRemove={handleRequestDelete}
+          onBulkRemove={handleBulkRemove}
+        />
 
         {/* ========== Login CTA for anonymous users ========== */}
         {!userId && clothes.length > 0 && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Loader2, Sparkles, Wand2, RefreshCw, Image as ImageIcon, Save, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ImageUploader } from './ImageUploader';
+import { ImageCropDialog } from './ImageCropDialog';
 import { ClothingCategory, ClothingItem } from '@/types/wardrobe';
 import { uploadClothingImage, compressImage } from '@/lib/storage';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +45,10 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   const [colorWasAutoFilled, setColorWasAutoFilled] = useState(false);
   const [analyzeMethod, setAnalyzeMethod] = useState<'cloud' | 'local' | null>(null);
   const imageFileNameRef = useRef<string>('');
+  /** Raw image before crop — shown in crop dialog */
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const pendingFileNameRef = useRef<string>('');
 
   // ============ Prefill for Edit mode ============
   useEffect(() => {
@@ -200,10 +205,11 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   };
 
   const handleImageSelect = (file: File) => {
-    setImageFile(file);
     setImageChangedByUser(true);
+    pendingFileNameRef.current = file.name || '';
     imageFileNameRef.current = file.name || '';
 
+    // Lightweight category guess from filename only (before crop / AI)
     if (!editingItem) {
       const guessFromFile = guessCategoryFromText(file.name || '');
       if (!name) {
@@ -220,12 +226,47 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
     }
 
     const reader = new FileReader();
-    reader.onloadend = async () => {
+    reader.onloadend = () => {
       const dataUrl = reader.result as string;
-      setImagePreview(dataUrl);
-      await analyzeImage(dataUrl, file.name);
+      // Crop BEFORE AI analysis so busy backgrounds don't reduce accuracy
+      setCropSource(dataUrl);
+      setCropOpen(true);
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropCancel = () => {
+    setCropOpen(false);
+    setCropSource(null);
+    // Keep previous preview if user already had one; otherwise clear pending
+    if (!imagePreview) {
+      setImageFile(null);
+    }
+  };
+
+  const handleCropComplete = async (croppedDataUrl: string) => {
+    setCropOpen(false);
+    setCropSource(null);
+    setImagePreview(croppedDataUrl);
+    setImageChangedByUser(true);
+
+    // Build a File from cropped JPEG for upload pipeline
+    try {
+      const res = await fetch(croppedDataUrl);
+      const blob = await res.blob();
+      const file = new File(
+        [blob],
+        (pendingFileNameRef.current || 'clothing').replace(/\.[^.]+$/, '') + '-cropped.jpg',
+        { type: 'image/jpeg' }
+      );
+      setImageFile(file);
+      imageFileNameRef.current = file.name;
+      await analyzeImage(croppedDataUrl, file.name);
+    } catch (e) {
+      console.error(e);
+      // Still analyze with data URL even if File build fails
+      await analyzeImage(croppedDataUrl, pendingFileNameRef.current);
+    }
   };
 
   const handleReanalyze = async () => {
@@ -325,7 +366,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
   };
 
   const handleClose = () => {
-    if (!isUploading) {
+    if (!isUploading && !cropOpen) {
       setImageFile(null);
       setImagePreview('');
       setImageChangedByUser(false);
@@ -338,13 +379,31 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
       setColorWasAutoFilled(false);
       setAnalyzeMethod(null);
       imageFileNameRef.current = '';
+      setCropOpen(false);
+      setCropSource(null);
       onClose();
     }
   };
 
-  if (!isOpen) return null;
+  // Crop dialog can stay mounted while main modal is open
+  const cropDialog = (
+    <ImageCropDialog
+      open={cropOpen}
+      imageSrc={cropSource}
+      aspect={4 / 5}
+      onCancel={handleCropCancel}
+      onComplete={(url) => void handleCropComplete(url)}
+    />
+  );
+
+  if (!isOpen) {
+    return cropOpen ? cropDialog : null;
+  }
 
   return (
+    <>
+
+
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
       {/* Backdrop */}
       <div
@@ -439,6 +498,11 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                   aspectRatio="square"
                   disabled={isUploading}
                 />
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  پس از انتخاب عکس، مرحله{' '}
+                  <span className="font-extrabold text-foreground/80">برش</span> باز می‌شود تا لباس در
+                  کادر باشد و پس‌زمینه شلوغ دقت تشخیص AI را کم نکند.
+                </p>
 
                 {/* Analyzing status bar */}
                 <div className="mt-3 min-h-[44px]">
@@ -680,5 +744,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
         </div>
       </div>
     </div>
-  );
+    {cropDialog}
+    </>
+    );
 };
