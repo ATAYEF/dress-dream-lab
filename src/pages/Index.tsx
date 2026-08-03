@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Sparkles, LogIn, LogOut, Heart, Shirt, Sparkles as SparkleIcon } from 'lucide-react';
+import { Plus, Sparkles, LogIn, LogOut, Heart, Shirt } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,27 +14,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { ProfileSection } from '@/components/ProfileSection';
-import { CategoryTabs } from '@/components/CategoryTabs';
-import { ClothingCard } from '@/components/ClothingCard';
-import { ClothingCardSkeleton } from '@/components/ClothingCardSkeleton';
 import { AddClothingModal } from '@/components/AddClothingModal';
 import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
-import { EmptyState } from '@/components/EmptyState';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 import { OutfitBuilder } from '@/components/OutfitBuilder';
-import { SearchFilter } from '@/components/SearchFilter';
-import { ActiveFilters } from '@/components/ActiveFilters';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
-import { WardrobeOverview } from '@/components/WardrobeOverview';
-import {
-  WardrobeToolbar,
-  type WardrobeSort,
-  type WardrobeDensity,
-} from '@/components/WardrobeToolbar';
-import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
-import { CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
+import { ClothingItem } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -59,72 +46,12 @@ const Index = () => {
     updateProfile,
   } = useWardrobe();
 
-  const [activeCategory, setActiveCategory] = useState<ClothingCategory | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<ClothingItem | null>(null);
   const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ClothingItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [colorFilter, setColorFilter] = useState('');
-  const [wardrobeSort, setWardrobeSort] = useState<WardrobeSort>('newest');
-  const [wardrobeDensity, setWardrobeDensity] = useState<WardrobeDensity>('comfortable');
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkDeleting, setBulkDeleting] = useState(false);
-
-  const availableColors = useMemo(() => {
-    const colors = clothes
-      .map(item => item.color)
-      .filter((color): color is string => !!color && color.trim() !== '');
-    return [...new Set(colors)];
-  }, [clothes]);
-
-  const filteredClothes = useMemo(() => {
-    let result = [...clothes];
-
-    if (activeCategory !== 'all') {
-      result = result.filter(item => item.category === activeCategory);
-    }
-
-    if (searchQuery.trim()) {
-      const query = searchQuery.trim().toLowerCase();
-      result = result.filter(item =>
-        item.name.toLowerCase().includes(query) ||
-        (item.color && item.color.toLowerCase().includes(query)) ||
-        (item.tags && item.tags.some(t => t.toLowerCase().includes(query)))
-      );
-    }
-
-    if (colorFilter) {
-      result = result.filter(item =>
-        item.color && item.color.toLowerCase() === colorFilter.toLowerCase()
-      );
-    }
-
-    // Sort for digital wardrobe management
-    result.sort((a, b) => {
-      switch (wardrobeSort) {
-        case 'oldest':
-          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-        case 'name':
-          return a.name.localeCompare(b.name, 'fa');
-        case 'color':
-          return (a.color || 'ی').localeCompare(b.color || 'ی', 'fa');
-        case 'category': {
-          const ai = CATEGORY_CLOTHING_ORDER.indexOf(a.category);
-          const bi = CATEGORY_CLOTHING_ORDER.indexOf(b.category);
-          return ai - bi || a.name.localeCompare(b.name, 'fa');
-        }
-        case 'newest':
-        default:
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-      }
-    });
-
-    return result;
-  }, [clothes, activeCategory, searchQuery, colorFilter, wardrobeSort]);
 
   const displayedSuggestions = showFavoritesOnly ? favoriteSuggestions : suggestions;
 
@@ -134,12 +61,6 @@ const Index = () => {
       title: 'خروج موفق',
       description: 'با موفقیت خارج شدید',
     });
-  };
-
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setColorFilter('');
-    setActiveCategory('all');
   };
 
   const handleOpenAdd = () => {
@@ -171,46 +92,6 @@ const Index = () => {
     setIsModalOpen(false);
     setEditingItem(null);
   };
-
-  const toggleSelectItem = (item: ClothingItem) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(item.id)) next.delete(item.id);
-      else next.add(item.id);
-      return next;
-    });
-  };
-
-  const handleSelectAllVisible = () => {
-    setSelectedIds(new Set(filteredClothes.map((c) => c.id)));
-  };
-
-  const handleClearSelection = () => setSelectedIds(new Set());
-
-  const handleBulkDelete = async () => {
-    if (selectedIds.size === 0 || bulkDeleting) return;
-    const confirmed = window.confirm(
-      `آیا از حذف ${selectedIds.size.toLocaleString('fa-IR')} لباس انتخاب‌شده مطمئن هستید؟ این کار قابل بازگشت نیست.`
-    );
-    if (!confirmed) return;
-
-    setBulkDeleting(true);
-    const ids = [...selectedIds];
-    let ok = 0;
-    for (const id of ids) {
-      const removed = await removeClothing(id);
-      if (removed) ok += 1;
-    }
-    setSelectedIds(new Set());
-    setSelectionMode(false);
-    setBulkDeleting(false);
-    toast({
-      title: 'حذف گروهی انجام شد',
-      description: `${ok.toLocaleString('fa-IR')} لباس از کمد حذف شد`,
-    });
-  };
-
-  const hasActiveFilters = searchQuery || colorFilter || activeCategory !== 'all';
 
   return (
     <div className="min-h-screen bg-background relative" dir="rtl">
@@ -353,6 +234,9 @@ const Index = () => {
                   onGenerateSuggestion={generateSuggestion}
                   isGenerating={isGenerating}
                   profileImageUrl={profile.imageUrl}
+                  onViewItem={setViewingItem}
+                  onEditItem={handleOpenEdit}
+                  onRemoveItem={handleRequestDelete}
                 />
               </div>
             </div>
@@ -370,7 +254,7 @@ const Index = () => {
                 <div className="relative w-20 h-20 mx-auto mb-5">
                   <div className="absolute inset-0 rounded-3xl bg-gradient-gold opacity-30 blur-xl animate-glow-pulse" />
                   <div className="relative w-full h-full rounded-3xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
-                    <SparkleIcon className="w-9 h-9 text-white" />
+                    <Sparkles className="w-9 h-9 text-white" />
                   </div>
                 </div>
                 <h2 className="text-xl md:text-2xl font-display font-black mb-2">
@@ -486,144 +370,6 @@ const Index = () => {
             ) : null}
           </section>
         )}
-
-        {/* ========== Wardrobe Section ========== */}
-        <section id="wardrobe" className="animate-fade-up stagger-3 scroll-mt-20 md:scroll-mt-24">
-          <div className="flex items-end justify-between mb-5 md:mb-6 flex-wrap gap-3 md:gap-4">
-            <div className="flex items-end gap-3 md:gap-4">
-              <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-indigo-400 to-purple-600" />
-              <div>
-                <h2 className="text-2xl md:text-[28px] font-display font-black tracking-tight mb-1">
-                  کمد لباس دیجیتال
-                </h2>
-                <p className="text-xs md:text-sm text-muted-foreground">
-                  مدیریت، جستجو، مرتب‌سازی و سازمان‌دهی لباس‌ها
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs md:text-sm">
-              <span className="inline-flex items-center gap-1.5 px-3 md:px-3.5 py-1.5 md:py-2 rounded-2xl bg-gradient-card hairline-border shadow-soft">
-                <SparkleIcon className="w-4 h-4 text-gold" />
-                <span className="font-extrabold text-foreground/85">
-                  {filteredClothes.length.toLocaleString('fa-IR')}
-                  <span className="text-muted-foreground mx-1">از</span>
-                  {clothes.length.toLocaleString('fa-IR')}
-                </span>
-                <span className="text-muted-foreground font-bold hidden md:inline">لباس</span>
-              </span>
-            </div>
-          </div>
-
-          {clothes.length > 0 && (
-            <WardrobeOverview clothes={clothes} className="mb-3" />
-          )}
-
-          {/* Filters: category dropdown (collapsed) + search — compact single row */}
-          {clothes.length > 0 && (
-            <div className="mt-3 space-y-2.5">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-3">
-                <CategoryTabs
-                  activeCategory={activeCategory}
-                  onCategoryChange={setActiveCategory}
-                  clothes={clothes}
-                  defaultOpen={false}
-                />
-                <div className="flex-1 min-w-0">
-                  <SearchFilter
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    colorFilter={colorFilter}
-                    onColorFilterChange={setColorFilter}
-                    availableColors={availableColors}
-                  />
-                </div>
-              </div>
-              <ActiveFilters
-                searchQuery={searchQuery}
-                colorFilter={colorFilter}
-                activeCategory={activeCategory}
-                onClearSearch={() => setSearchQuery('')}
-                onClearColor={() => setColorFilter('')}
-                onClearCategory={() => setActiveCategory('all')}
-                onClearAll={handleClearFilters}
-              />
-              <WardrobeToolbar
-                sort={wardrobeSort}
-                onSortChange={setWardrobeSort}
-                density={wardrobeDensity}
-                onDensityChange={setWardrobeDensity}
-                selectionMode={selectionMode}
-                onSelectionModeChange={(v) => {
-                  setSelectionMode(v);
-                  if (!v) setSelectedIds(new Set());
-                }}
-                selectedCount={selectedIds.size}
-                totalVisible={filteredClothes.length}
-                onSelectAll={handleSelectAllVisible}
-                onClearSelection={handleClearSelection}
-                onBulkDelete={() => void handleBulkDelete()}
-              />
-              {bulkDeleting && (
-                <p className="text-xs font-bold text-muted-foreground text-center animate-pulse">
-                  در حال حذف گروهی...
-                </p>
-              )}
-            </div>
-          )}
-
-          {/* Content */}
-          <div className="mt-5 md:mt-6">
-            {isLoading ? (
-              <ClothingCardSkeleton count={8} />
-            ) : clothes.length === 0 ? (
-              <EmptyState onAddClick={handleOpenAdd} />
-            ) : filteredClothes.length === 0 ? (
-              <div className="text-center py-14 md:py-20 px-4 rounded-[2rem] bg-gradient-card hairline-border shadow-soft animate-fade-up">
-                <div className="relative inline-block mb-5">
-                  <div className="text-6xl md:text-7xl animate-float">🔍</div>
-                </div>
-                <h3 className="text-lg md:text-xl font-extrabold mb-2">نتیجه‌ای یافت نشد</h3>
-                <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-5">
-                  فیلتر دیگری را امتحان کنید یا فیلترهای فعلی را پاک کنید
-                </p>
-                <Button
-                  onClick={handleClearFilters}
-                  variant="soft"
-                  size="lg"
-                  className="shadow-md"
-                >
-                  پاک کردن فیلترها
-                </Button>
-              </div>
-            ) : (
-              <div
-                className={cn(
-                  'grid gap-3 md:gap-4',
-                  wardrobeDensity === 'compact'
-                    ? 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8'
-                    : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
-                )}
-              >
-                {filteredClothes.map((item, index) => (
-                  <ClothingCard
-                    key={item.id}
-                    item={item}
-                    onSelect={setViewingItem}
-                    onEdit={handleOpenEdit}
-                    onRemove={handleRequestDelete}
-                    selectionMode={selectionMode}
-                    isSelected={selectionMode ? selectedIds.has(item.id) : false}
-                    onToggleSelect={toggleSelectItem}
-                    showActions={!selectionMode}
-                    className="animate-fade-up"
-                    style={{ animationDelay: `${Math.min(index * 0.035, 0.5)}s` }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </section>
 
         {/* ========== Login CTA for anonymous users ========== */}
         {!userId && clothes.length > 0 && (

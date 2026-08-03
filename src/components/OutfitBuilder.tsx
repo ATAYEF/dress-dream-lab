@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt, Search, X, Pencil, Eye } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay, MannequinGender } from './MannequinDisplay';
 import { Button } from './ui/button';
@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
 import { ColorHarmonyBadge } from './ColorHarmonyBadge';
+import { CategoryTabs } from './CategoryTabs';
 import { AccessorySuggestions } from './AccessorySuggestions';
 import { ShoeSuggestions } from './ShoeSuggestions';
 import { OutfitContextPicker } from './OutfitContextPicker';
@@ -24,6 +25,9 @@ interface OutfitBuilderProps {
   isGenerating: boolean;
   /** The user's own profile photo, used for a real virtual try-on instead of a generic mannequin */
   profileImageUrl?: string | null;
+  onEditItem?: (item: ClothingItem) => void;
+  onViewItem?: (item: ClothingItem) => void;
+  onRemoveItem?: (item: ClothingItem) => void;
 }
 
 const LAYERABLE_CATEGORIES: ClothingCategory[] = ['tops', 'outerwear', 'accessories'];
@@ -33,13 +37,35 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   onGenerateSuggestion,
   isGenerating,
   profileImageUrl = null,
+  onEditItem,
+  onViewItem,
+  onRemoveItem,
 }) => {
   const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<ClothingItem | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const [mannequinGender, setMannequinGender] = useState<MannequinGender>('female');
   const [outfitContext, setOutfitContext] = useState<OutfitContext>(DEFAULT_OUTFIT_CONTEXT);
+  const [galleryQuery, setGalleryQuery] = useState('');
+  const [galleryCategory, setGalleryCategory] = useState<ClothingCategory | 'all'>('all');
   const isMobile = useIsMobile();
+
+  const galleryClothes = useMemo(() => {
+    let list = clothes;
+    if (galleryCategory !== 'all') {
+      list = list.filter((c) => c.category === galleryCategory);
+    }
+    const q = galleryQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.color && c.color.toLowerCase().includes(q)) ||
+          (c.tags && c.tags.some((tag) => tag.toLowerCase().includes(q)))
+      );
+    }
+    return list;
+  }, [clothes, galleryQuery, galleryCategory]);
 
   const handleDragStart = (e: React.DragEvent, item: ClothingItem) => {
     setDraggedItem(item);
@@ -437,167 +463,160 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           {/* ========== Clothing Palette ========== */}
           <div className="flex-1 min-w-0">
             {/* Palette Header */}
-            <div className="flex items-center justify-between mb-4 md:mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-400/20 to-purple-400/10 flex items-center justify-center border border-indigo-200/50">
+            <div className="flex items-center justify-between mb-3 md:mb-4 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-400/20 to-purple-400/10 flex items-center justify-center border border-indigo-200/50 shrink-0">
                   <Shirt className="w-4 h-4 text-gold" />
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h3 className="text-base md:text-lg font-display font-extrabold tracking-tight">
                     گالری لباس‌های شما
                   </h3>
-                  <p className="text-[11px] md:text-xs text-muted-foreground font-medium">
-                    {isMobile ? 'برای انتخاب تپ کنید' : 'برای اضافه کردن به ست، بکشید یا کلیک کنید'}
+                  <p className="text-[11px] md:text-xs text-muted-foreground font-medium truncate">
+                    جستجو، ویرایش و انتخاب برای ست
                   </p>
                 </div>
               </div>
-
-              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                <span>{clothes.length.toLocaleString('fa-IR')}</span>
-                <span>لباس آماده</span>
+              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground shrink-0">
+                <span>{galleryClothes.length.toLocaleString('fa-IR')}</span>
+                <span className="hidden sm:inline">از</span>
+                <span className="hidden sm:inline">{clothes.length.toLocaleString('fa-IR')}</span>
               </div>
             </div>
 
-            {/* Categories list */}
-            <div className="space-y-4 md:space-y-5 max-h-[620px] overflow-y-auto pr-1 pl-2 custom-scroll-smooth">
-              {CATEGORY_CLOTHING_ORDER.map((catKey) => {
-                const group = CATEGORY_CONFIG[catKey];
-                const Icon = group.icon;
-                const categoryItems = clothes.filter(c => c.category === catKey);
-                if (categoryItems.length === 0) return null;
-
-                const hasSelected = categoryItems.some(i =>
-                  outfitItems.some(s => s.id === i.id)
-                );
-
-                return (
-                  <div
-                    key={catKey}
-                    className="relative rounded-3xl bg-gradient-to-br p-[1px] overflow-hidden shadow-soft"
-                    style={{
-                      background: hasSelected
-                        ? `linear-gradient(135deg, ${group.hexFrom} 0%, ${group.hexFrom}00 60%)`
-                        : `linear-gradient(135deg, hsl(var(--border)) 0%, transparent 60%)`,
-                    }}
+            {/* Search + category dropdown (closed by default) */}
+            <div className="flex flex-col gap-2.5 mb-3 md:mb-4">
+              <div className="relative flex-1">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="search"
+                  value={galleryQuery}
+                  onChange={(e) => setGalleryQuery(e.target.value)}
+                  placeholder="جستجوی نام، رنگ یا تگ..."
+                  className="w-full rounded-xl pr-10 pl-9 py-2.5 min-h-[44px] text-base bg-white/70 dark:bg-white/5 border border-border/50 outline-none focus:ring-2 focus:ring-gold/40 font-medium"
+                />
+                {galleryQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setGalleryQuery('')}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground hover:text-rose"
+                    aria-label="پاک کردن جستجو"
                   >
-                    <div className={cn(
-                      'relative rounded-[calc(1.5rem-1px)] bg-white/70 backdrop-blur-sm p-4 md:p-5',
-                    )}>
-                      {/* Group header */}
-                      <div className="flex items-center justify-between mb-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div
-                            className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-sm"
-                            style={{
-                              background: `linear-gradient(135deg, ${group.hexFrom}33 0%, ${group.hexFrom}0d 100%)`,
-                              color: group.hexFrom,
-                            }}
-                          >
-                            <Icon className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-extrabold text-foreground">{group.label}</h4>
-                            <p className="text-[10px] text-muted-foreground font-medium">
-                              {categoryItems.length.toLocaleString('fa-IR')} گزینه
-                            </p>
-                          </div>
-                        </div>
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              <CategoryTabs
+                activeCategory={galleryCategory}
+                onCategoryChange={setGalleryCategory}
+                clothes={clothes}
+                defaultOpen={false}
+              />
+            </div>
 
-                        {hasSelected && (
-                          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gradient-gold text-white shadow-md">
-                            <Check className="w-3 h-3" strokeWidth={3} />
-                            <span className="text-[10px] font-bold">انتخاب شد</span>
+            {/* Flat item grid (filtered by dropdown + search) */}
+            <div className="max-h-[620px] overflow-y-auto pr-1 pl-1 custom-scroll-smooth">
+              {galleryClothes.length === 0 ? (
+                <div className="text-center py-10 px-4 rounded-2xl bg-white/50 border border-dashed border-border/60">
+                  <p className="text-sm font-extrabold mb-1">لباسی یافت نشد</p>
+                  <p className="text-xs text-muted-foreground">جستجو یا دسته را تغییر دهید</p>
+                  {(galleryQuery || galleryCategory !== 'all') && (
+                    <button
+                      type="button"
+                      className="mt-3 text-xs font-bold text-gold underline"
+                      onClick={() => {
+                        setGalleryQuery('');
+                        setGalleryCategory('all');
+                      }}
+                    >
+                      پاک کردن فیلترها
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-2.5">
+                  {galleryClothes.map((item) => {
+                    const isSelected = outfitItems.some((i) => i.id === item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          'group relative aspect-square rounded-2xl overflow-hidden transition-all duration-400 ease-out select-none',
+                          !isMobile && 'cursor-grab active:cursor-grabbing active:scale-95',
+                          isMobile && 'cursor-pointer active:scale-95',
+                          'hover:-translate-y-1 hover:shadow-lg',
+                          isSelected
+                            ? 'ring-[3px] ring-gold shadow-xl -translate-y-1 scale-[1.03]'
+                            : 'ring-1 ring-black/5 bg-cream/40 hover:ring-gold/50',
+                          draggedItem?.id === item.id && 'opacity-40 scale-95'
+                        )}
+                        draggable={!isMobile}
+                        onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
+                        onDragEnd={!isMobile ? handleDragEnd : undefined}
+                        onClick={() => handleItemTap(item)}
+                      >
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-115"
+                          draggable={false}
+                          loading="lazy"
+                        />
+                        <div className="absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
+                        <p className="absolute bottom-1 right-1 left-1 text-[9px] font-bold text-white truncate drop-shadow pointer-events-none">
+                          {item.name}
+                        </p>
+                        {isSelected && (
+                          <div className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-gradient-gold text-white flex items-center justify-center shadow-md z-10">
+                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
                           </div>
                         )}
-                      </div>
-
-                      {/* Items grid */}
-                      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-5 2xl:grid-cols-6 gap-2 md:gap-2.5">
-                        {categoryItems.map(item => {
-                          const isSelected = outfitItems.some(i => i.id === item.id);
-                          return (
-                            <div
-                              key={item.id}
-                              draggable={!isMobile}
-                              onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
-                              onDragEnd={!isMobile ? handleDragEnd : undefined}
-                              onClick={() => handleItemTap(item)}
-                              className={cn(
-                                'group relative aspect-square rounded-2xl overflow-hidden transition-all duration-400 ease-out select-none',
-                                !isMobile && 'cursor-grab active:cursor-grabbing active:scale-95',
-                                isMobile && 'cursor-pointer active:scale-95',
-                                'hover:-translate-y-1 hover:shadow-lg',
-                                isSelected
-                                  ? 'ring-[3px] ring-gold shadow-xl -translate-y-1 scale-[1.03]'
-                                  : 'ring-1 ring-black/5 bg-cream/40 hover:ring-gold/50',
-                                draggedItem?.id === item.id && 'opacity-40 scale-95'
-                              )}
+                        <div
+                          className={cn(
+                            'absolute top-1 left-1 z-20 flex flex-col gap-1 transition-opacity duration-200',
+                            isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                          )}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {onViewItem && (
+                            <button
+                              type="button"
+                              title="مشاهده"
+                              className="w-7 h-7 rounded-lg bg-white/90 shadow flex items-center justify-center text-foreground/80 hover:text-gold"
+                              onClick={() => onViewItem(item)}
                             >
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-115"
-                                draggable={false}
-                                loading="lazy"
-                              />
-
-                              {/* Overlay bottom gradient */}
-                              <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
-
-                              {/* Name hint on hover */}
-                              <div className="absolute inset-x-0 bottom-0 p-1.5 translate-y-full group-hover:translate-y-0 transition-transform duration-400 pointer-events-none">
-                                <p className="text-[9px] font-bold text-white text-center truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.7)]">
-                                  {item.name}
-                                </p>
-                              </div>
-
-                              {/* Selected badge */}
-                              {isSelected && (
-                                <div className="absolute inset-0 bg-gradient-to-br from-gold/28 via-transparent to-gold/18 flex items-start justify-end p-1.5 pointer-events-none">
-                                  <div className="w-6 h-6 rounded-full bg-gradient-gold shadow-md flex items-center justify-center animate-scale-in">
-                                    <Check className="w-3.5 h-3.5 text-white" strokeWidth={3.5} />
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Drag indicator (desktop only) */}
-                              {!isMobile && !isSelected && (
-                                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none">
-                                  <div className="w-8 h-8 rounded-full bg-white/85 backdrop-blur-sm shadow-md flex items-center justify-center transition-transform duration-400 group-hover:scale-110">
-                                    {outfitItems.some(i => i.id === item.id) ? (
-                                      <Check className="w-4 h-4 text-emerald-500" strokeWidth={3} />
-                                    ) : (
-                                      isMobile ? (
-                                        <Plus className="w-4 h-4 text-gold" strokeWidth={3} />
-                                      ) : (
-                                        <GripVertical className="w-4 h-4 text-foreground/70" strokeWidth={2.5} />
-                                      )
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onEditItem && (
+                            <button
+                              type="button"
+                              title="ویرایش"
+                              className="w-7 h-7 rounded-lg bg-white/90 shadow flex items-center justify-center text-foreground/80 hover:text-indigo-600"
+                              onClick={() => onEditItem(item)}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          {onRemoveItem && (
+                            <button
+                              type="button"
+                              title="حذف"
+                              className="w-7 h-7 rounded-lg bg-white/90 shadow flex items-center justify-center text-foreground/80 hover:text-destructive"
+                              onClick={() => onRemoveItem(item)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {clothes.length === 0 && (
-                <div className="py-14 text-center">
-                  <div className="text-5xl mb-3 animate-float">👗</div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    هنوز لباسی به کمد اضافه نکرده‌اید
-                  </p>
+                    );
+                  })}
                 </div>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Tip bar */}
         <div className="mt-7 md:mt-8 p-4 md:p-5 rounded-3xl bg-gradient-to-r from-gold/10 via-white/60 to-rose/10 backdrop-blur-sm border border-white/70 shadow-soft">
           <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3">
             <div className="flex items-center gap-3">
