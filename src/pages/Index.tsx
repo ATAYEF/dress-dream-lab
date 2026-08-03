@@ -42,6 +42,7 @@ const Index = () => {
     removeClothing,
     updateClothing,
     generateSuggestion,
+    feedbackOutfit,
     toggleFavorite,
     deleteSuggestion,
     updateProfile,
@@ -385,6 +386,7 @@ const Index = () => {
                   key={suggestion.id}
                   suggestion={suggestion}
                   onToggleFavorite={toggleFavorite}
+                  onFeedback={(liked) => feedbackOutfit(suggestion, liked)}
                   onDelete={deleteSuggestion}
                 />
               ))}

@@ -8,6 +8,7 @@ import { toast } from '@/hooks/use-toast';
 interface OutfitSuggestionCardProps {
   suggestion: OutfitSuggestion;
   onToggleFavorite?: (id: string, isFavorite: boolean) => void;
+  onFeedback?: (liked: boolean) => void;
   onDelete?: (id: string) => void;
   className?: string;
   style?: React.CSSProperties;
@@ -17,6 +18,7 @@ interface OutfitSuggestionCardProps {
 export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
   suggestion,
   onToggleFavorite,
+  onFeedback,
   onDelete,
   className,
   style,
@@ -293,7 +295,27 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
             </div>
           </div>
         )}
-      </div>
+      
+      {onFeedback && (
+        <div className="flex items-center gap-2 pt-2 border-t border-border/40">
+          <span className="text-[10px] font-bold text-muted-foreground">این پیشنهاد؟</span>
+          <button
+            type="button"
+            onClick={() => onFeedback(true)}
+            className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20"
+          >
+            👍 پسندیدم
+          </button>
+          <button
+            type="button"
+            onClick={() => onFeedback(false)}
+            className="px-2.5 py-1 rounded-lg text-xs font-extrabold bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            👎 نپسندیدم
+          </button>
+        </div>
+      )}
+</div>
     </div>
   );
 };

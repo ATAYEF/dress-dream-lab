@@ -14,6 +14,14 @@ import { toast } from '@/hooks/use-toast';
 import { SAMPLE_CLOTHES, SAMPLE_WARDROBE_VERSION } from '@/lib/sampleWardrobe';
 import { describeColorHarmony, scoreOutfitColors } from '@/lib/colorHarmony';
 import {
+  runOutfitEngine,
+  loadPreferences,
+  savePreferences,
+  applyLike,
+  applyDislike,
+  markWorn,
+} from '@/lib/outfitEngine';
+import {
   OutfitContext,
   DEFAULT_OUTFIT_CONTEXT,
   buildContextOutfit,
@@ -817,10 +825,20 @@ export const useWardrobe = () => {
     };
 
     try {
+      // Rules engine: analyze → score → candidates → rank (1–3 top outfits)
+      const prefs = typeof window !== 'undefined' ? loadPreferences() : undefined;
+      const ranked = runOutfitEngine(
+        clothes,
+        { context, limit: 3 },
+        prefs,
+        selectedItems
+      );
+
+      const best = ranked[0];
       const itemsForSuggestion =
         selectedItems.length >= 2
           ? selectedItems
-          : buildContextOutfit(clothes, context, selectedItems);
+          : best?.items || buildContextOutfit(clothes, context, selectedItems);
 
       if (itemsForSuggestion.length < 2) {
         toast({
@@ -832,8 +850,17 @@ export const useWardrobe = () => {
         return;
       }
 
-      // Local text is free and instant — always available as baseline
-      let suggestionText = generateLocalSuggestion(itemsForSuggestion, context);
+      // Explanation from engine + optional gaps
+      const engineReason = best?.reason || '';
+      const gapsText = best?.gaps?.length
+        ? ' ' + best.gaps.join(' ')
+        : '';
+
+      // Local text is free baseline; prefer engine reason when present
+      let suggestionText =
+        engineReason
+          ? `${engineReason}${gapsText}`
+          : generateLocalSuggestion(itemsForSuggestion, context);
 
       // Optional AI polish: short timeout, only the chosen outfit items (not full wardrobe)
       // to minimize token cost. Failures fall back to local text silently.
@@ -957,6 +984,25 @@ export const useWardrobe = () => {
 
   const favoriteSuggestions = suggestions.filter((s) => s.isFavorite);
 
+  const feedbackOutfit = (
+    suggestion: OutfitSuggestion,
+    liked: boolean
+  ) => {
+    if (typeof window === 'undefined') return;
+    let prefs = loadPreferences();
+    const colors = suggestion.items.map((i) => i.color);
+    const ids = suggestion.items.map((i) => i.id);
+    prefs = liked ? applyLike(prefs, ids, colors) : applyDislike(prefs, ids, colors);
+    if (liked) prefs = markWorn(prefs, ids);
+    savePreferences(prefs);
+    toast({
+      title: liked ? 'یاد گرفتیم ✓' : 'ثبت شد',
+      description: liked
+        ? 'پیشنهادهای بعدی به سلیقه شما نزدیک‌تر می‌شوند'
+        : 'از این ترکیب در پیشنهادهای بعدی کمتر استفاده می‌شود',
+    });
+  };
+
   return {
     profile,
     clothes,
@@ -969,6 +1015,7 @@ export const useWardrobe = () => {
     removeClothing,
     updateClothing,
     generateSuggestion,
+    feedbackOutfit,
     toggleFavorite,
     deleteSuggestion,
     updateProfile,
