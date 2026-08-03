@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useStagedProgress, OUTFIT_SUGGESTION_STAGES } from '@/hooks/useStagedProgress';
 import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt, Search, X, Pencil, Eye } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay, MannequinGender } from './MannequinDisplay';
@@ -49,6 +50,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [galleryQuery, setGalleryQuery] = useState('');
   const [galleryCategory, setGalleryCategory] = useState<ClothingCategory | 'all'>('all');
   const isMobile = useIsMobile();
+  const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
 
   const galleryClothes = useMemo(() => {
     let list = clothes;
@@ -428,7 +430,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                     {isGenerating ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                        <span>در حال ساخت ست...</span>
+                        <span className="relative truncate max-w-[200px]">{genProgress.stage.label}</span>
                       </>
                     ) : (
                       <>

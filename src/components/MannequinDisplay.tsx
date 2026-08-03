@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
+import { useStagedProgress, TRYON_RENDER_STAGES } from '@/hooks/useStagedProgress';
+import { StagedProgress } from '@/components/StagedProgress';
 import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
@@ -129,6 +131,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const [aiModel, setAiModel] = useState<string>(DEFAULT_TRYON_MODEL);
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const tryonProgress = useStagedProgress(aiLoading, TRYON_RENDER_STAGES);
 
   // Drop a stale generated image whenever the outfit or model changes
   const generationKey = `${outfitKey}-${aiModel}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
@@ -536,11 +539,16 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         )}
 
 
-        {/* Generating overlay */}
+        {/* Generating overlay — multi-stage progress */}
         {aiLoading && (
-          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-sm animate-fade-in">
-            <Loader2 className="w-8 h-8 animate-spin text-gold" />
-            <p className="text-xs font-black text-foreground">در حال ساخت تصویر با هوش مصنوعی...</p>
+          <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm animate-fade-in">
+            <StagedProgress
+              stages={TRYON_RENDER_STAGES}
+              stageIndex={tryonProgress.stageIndex}
+              label={tryonProgress.stage.label}
+              progress={tryonProgress.progress}
+              variant="full"
+            />
           </div>
         )}
 
@@ -589,7 +597,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {aiLoading ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              در حال ساخت...
+              <span className="truncate">{tryonProgress.stage.label}</span>
             </>
           ) : (
             <>

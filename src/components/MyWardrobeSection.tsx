@@ -20,6 +20,7 @@ interface MyWardrobeSectionProps {
   clothes: ClothingItem[];
   isLoading?: boolean;
   onAdd: () => void;
+  onBulkAdd?: () => void;
   onView: (item: ClothingItem) => void;
   onEdit: (item: ClothingItem) => void;
   onRemove: (item: ClothingItem) => void;
@@ -34,6 +35,7 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
   clothes,
   isLoading,
   onAdd,
+  onBulkAdd,
   onView,
   onEdit,
   onRemove,
@@ -165,6 +167,11 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">افزودن</span>
           </Button>
+          {onBulkAdd && (
+            <Button onClick={onBulkAdd} variant="soft" size="sm" className="font-extrabold shrink-0">
+              گروهی
+            </Button>
+          )}
         </div>
       </div>
 

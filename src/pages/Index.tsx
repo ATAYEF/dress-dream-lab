@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ProfileSection } from '@/components/ProfileSection';
 import { AddClothingModal } from '@/components/AddClothingModal';
+import { BulkAddClothingModal } from '@/components/BulkAddClothingModal';
 import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
 import { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 import { OutfitBuilder } from '@/components/OutfitBuilder';
@@ -48,6 +49,7 @@ const Index = () => {
   } = useWardrobe();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [viewingItem, setViewingItem] = useState<ClothingItem | null>(null);
   const [editingItem, setEditingItem] = useState<ClothingItem | null>(null);
   const [deletingItem, setDeletingItem] = useState<ClothingItem | null>(null);
@@ -179,6 +181,16 @@ const Index = () => {
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                 <Plus className="w-4.5 h-4.5 relative" strokeWidth={2.75} />
                 <span className="hidden sm:inline relative font-extrabold">افزودن لباس</span>
+              </Button>
+
+              <Button
+                onClick={() => setIsBulkModalOpen(true)}
+                variant="soft"
+                size="default"
+                className="hidden sm:inline-flex shrink-0 font-bold"
+                title="افزودن چند لباس با هم"
+              >
+                افزودن گروهی
               </Button>
 
               {userId ? (
@@ -401,6 +413,7 @@ const Index = () => {
           clothes={clothes}
           isLoading={isLoading}
           onAdd={handleOpenAdd}
+          onBulkAdd={() => setIsBulkModalOpen(true)}
           onView={setViewingItem}
           onEdit={handleOpenEdit}
           onRemove={handleRequestDelete}
@@ -476,6 +489,12 @@ const Index = () => {
         onAdd={addClothing}
         editingItem={editingItem}
         onEdit={updateClothing}
+      />
+
+      <BulkAddClothingModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onAdd={addClothing}
       />
 
       <AlertDialog

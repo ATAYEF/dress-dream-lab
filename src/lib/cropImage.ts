@@ -98,3 +98,20 @@ export function displayCropToPixels(
     height: Math.max(1, Math.round(height)),
   };
 }
+
+
+/** Auto center-crop to aspect ratio (used in bulk import to skip manual crop). */
+export async function autoCenterCropDataUrl(
+  imageSrc: string,
+  aspect = 4 / 5,
+  maxEdge = 1024
+): Promise<string> {
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('load failed'));
+    img.src = imageSrc;
+  });
+  const crop = centeredCrop(image.naturalWidth, image.naturalHeight, aspect);
+  return getCroppedDataUrl(imageSrc, crop, maxEdge);
+}
