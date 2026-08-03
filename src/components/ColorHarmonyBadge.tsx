@@ -114,7 +114,7 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
             پیشنهاد تکمیل ست
           </div>
           <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-            {suggestions.map(({ item, score, reason }) => (
+            {suggestions.map(({ item, score, reason, fromCatalog }) => (
               <button
                 key={item.id}
                 type="button"
@@ -122,11 +122,18 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
                 className="group shrink-0 flex flex-col items-center gap-1 w-[72px] p-1.5 rounded-xl bg-white/60 dark:bg-white/5 border border-white/70 hover:border-gold/40 hover:shadow-md transition-all duration-300"
                 title={`${item.name} · ${reason} (${score})`}
               >
-                <img
-                  src={item.imageUrl}
-                  alt={item.name}
-                  className="w-12 h-12 rounded-lg object-cover ring-1 ring-black/5 group-hover:scale-105 transition-transform"
-                />
+                <div className="relative">
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="w-12 h-12 rounded-lg object-cover ring-1 ring-black/5 group-hover:scale-105 transition-transform"
+                  />
+                  {fromCatalog && (
+                    <span className="absolute -top-1 -left-1 text-[8px] font-black px-1 py-0.5 rounded-md bg-indigo-500 text-white shadow">
+                      الگو
+                    </span>
+                  )}
+                </div>
                 <span className="text-[9px] font-bold text-center line-clamp-1 w-full">
                   {item.name}
                 </span>

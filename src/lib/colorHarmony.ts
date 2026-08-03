@@ -1,4 +1,5 @@
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
+import { SAMPLE_CLOTHES } from '@/lib/sampleWardrobe';
 
 /* ============================================================================
  * Smart Color Matching Algorithm
@@ -40,6 +41,8 @@ export interface ItemMatchSuggestion {
   item: ClothingItem;
   score: number;
   reason: string;
+  /** True when suggestion comes from catalog samples (user may own it offline) */
+  fromCatalog?: boolean;
 }
 
 /* ---------- Canonical color dictionary (Persian → RGB) ---------- */
@@ -379,6 +382,41 @@ export function scoreOutfitColors(items: ClothingItem[]): ColorMatchResult {
 /**
  * Rank wardrobe items by how well they match the currently selected outfit colors.
  * Prefer different categories from what's already selected.
+ *
+ * Selection policy:
+ * - shoes / accessories are excluded (dedicated ShoeSuggestions / AccessorySuggestions widgets)
+ * - reserved slots for missing core categories: tops, bottoms, dresses, outerwear
+ * - remaining slots filled by highest overall score (existing bonuses/penalties)
+ */
+const CORE_MATCH_CATEGORIES: ClothingCategory[] = [
+  'tops',
+  'bottoms',
+  'dresses',
+  'outerwear',
+];
+
+const EXCLUDED_MATCH_CATEGORIES = new Set<ClothingCategory>(['shoes', 'accessories']);
+
+const CATALOG_REASON = 'الگوی پیشنهادی — شاید در کمد واقعی داشته باشید';
+
+/** Sample items usable as fallback when user wardrobe lacks a category */
+function catalogFallbacks(): ClothingItem[] {
+  return SAMPLE_CLOTHES.filter(
+    (item) =>
+      !EXCLUDED_MATCH_CATEGORIES.has(item.category) &&
+      CORE_MATCH_CATEGORIES.includes(item.category)
+  );
+}
+
+/**
+ * Rank wardrobe items by how well they match the currently selected outfit colors.
+ * Prefer different categories from what's already selected.
+ *
+ * Selection policy:
+ * - shoes / accessories excluded (dedicated widgets)
+ * - reserved slots for missing core categories
+ * - if wardrobe has no item in a missing core category, use catalog sample images
+ * - remaining slots by highest overall score
  */
 export function suggestMatchingItems(
   selected: ClothingItem[],
@@ -392,25 +430,82 @@ export function suggestMatchingItems(
     .map((s) => s.color)
     .filter(Boolean) as string[];
 
-  if (selectedColors.length === 0) {
-    // No color info — suggest underrepresented categories
-    return wardrobe
-      .filter((item) => !selectedIds.has(item.id) && !selectedCategories.has(item.category))
-      .slice(0, limit)
-      .map((item) => ({
-        item,
-        score: 60,
-        reason: 'تکمیل دسته‌بندی ست',
-      }));
+  // Categories the user's wardrobe actually contains (excluding selected)
+  const wardrobeCategories = new Set(
+    wardrobe.filter((i) => !selectedIds.has(i.id)).map((i) => i.category)
+  );
+
+  const isUserCandidate = (item: ClothingItem) =>
+    !selectedIds.has(item.id) && !EXCLUDED_MATCH_CATEGORIES.has(item.category);
+
+  // Catalog samples only for core categories the wardrobe does not cover at all
+  const catalogIds = new Set(catalogFallbacks().map((c) => c.id));
+  const catalogPool = catalogFallbacks().filter(
+    (item) =>
+      !selectedIds.has(item.id) &&
+      !wardrobeCategories.has(item.category) &&
+      !selectedCategories.has(item.category)
+  );
+
+  // Avoid duplicate ids if samples already live in wardrobe
+  const wardrobePool = wardrobe.filter(isUserCandidate);
+  const seen = new Set(wardrobePool.map((i) => i.id));
+  const mergedPool: { item: ClothingItem; fromCatalog: boolean }[] = [
+    ...wardrobePool.map((item) => ({ item, fromCatalog: false })),
+  ];
+  for (const item of catalogPool) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    mergedPool.push({ item, fromCatalog: true });
   }
 
-  const candidates = wardrobe.filter((item) => !selectedIds.has(item.id));
+  const pickWithCoreSlots = (ranked: ItemMatchSuggestion[]): ItemMatchSuggestion[] => {
+    const result: ItemMatchSuggestion[] = [];
+    const usedIds = new Set<string>();
 
-  const ranked: ItemMatchSuggestion[] = candidates.map((item) => {
+    const missingCore = CORE_MATCH_CATEGORIES.filter(
+      (cat) => !selectedCategories.has(cat)
+    );
+
+    for (const cat of missingCore) {
+      if (result.length >= limit) break;
+      // Prefer user wardrobe item for this category; then catalog
+      const bestUser = ranked.find(
+        (r) =>
+          r.item.category === cat &&
+          !usedIds.has(r.item.id) &&
+          !r.fromCatalog
+      );
+      const bestAny = ranked.find(
+        (r) => r.item.category === cat && !usedIds.has(r.item.id)
+      );
+      const pick = bestUser || bestAny;
+      if (pick) {
+        result.push(pick);
+        usedIds.add(pick.item.id);
+      }
+    }
+
+    for (const r of ranked) {
+      if (result.length >= limit) break;
+      if (usedIds.has(r.item.id)) continue;
+      result.push(r);
+      usedIds.add(r.item.id);
+    }
+
+    return result;
+  };
+
+  const scoreItem = (
+    item: ClothingItem,
+    fromCatalog: boolean
+  ): ItemMatchSuggestion => {
     let best = 0;
     let bestHarmony: HarmonyType = 'unknown';
 
-    if (!item.color) {
+    if (selectedColors.length === 0) {
+      best = fromCatalog ? 58 : 60;
+    } else if (!item.color) {
       best = 48;
     } else {
       for (const c of selectedColors) {
@@ -422,27 +517,39 @@ export function suggestMatchingItems(
       }
     }
 
-    // Prefer filling missing categories
     if (!selectedCategories.has(item.category)) {
       best = Math.min(100, best + 6);
     } else {
-      best = Math.max(0, best - 8); // already have this category
+      best = Math.max(0, best - 8);
     }
 
-    // Prefer preferred categories if provided
     if (options?.preferCategories?.includes(item.category)) {
       best = Math.min(100, best + 5);
+    }
+
+    // Slight preference for real wardrobe over catalog when scores are close
+    if (fromCatalog) {
+      best = Math.max(0, best - 2);
     }
 
     return {
       item,
       score: Math.round(best),
-      reason: HARMONY_LABELS[bestHarmony],
+      reason:
+        fromCatalog || catalogIds.has(item.id)
+          ? CATALOG_REASON
+          : selectedColors.length === 0
+            ? 'تکمیل دسته‌بندی ست'
+            : HARMONY_LABELS[bestHarmony],
+      fromCatalog: fromCatalog || catalogIds.has(item.id),
     };
-  });
+  };
 
-  ranked.sort((a, b) => b.score - a.score);
-  return ranked.slice(0, limit);
+  const ranked = mergedPool
+    .map(({ item, fromCatalog }) => scoreItem(item, fromCatalog))
+    .sort((a, b) => b.score - a.score);
+
+  return pickWithCoreSlots(ranked);
 }
 
 /** Persian sentence for local outfit description based on color harmony. */
