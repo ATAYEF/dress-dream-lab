@@ -27,7 +27,13 @@ function buildChain(requested?: string): string[] {
   return [start, ...FALLBACK_CHAIN.filter((m) => m !== start)];
 }
 
-const isOpenAiImageModel = (model: string) => model.startsWith('openai/gpt-image');
+// Models that are image-only (must use /v1/images/generations instead of chat completions)
+const IMAGE_ONLY_MODELS = [
+  'openai/gpt-image-2',
+  'openai/gpt-image-1-mini',
+  'google/gemini-3.1-flash-lite-image',
+];
+const isImageOnlyModel = (model: string) => IMAGE_ONLY_MODELS.includes(model);
 
 type CallResult =
   | { ok: true; imageUrl: string }
@@ -193,7 +199,7 @@ Render a full-body, photorealistic fashion image of a ${isUserPhoto ? 'person' :
 
     for (const candidate of chain) {
       console.log('Trying model:', candidate);
-      const result = isOpenAiImageModel(candidate)
+      const result = isImageOnlyModel(candidate)
         ? await callImageModel(LOVABLE_API_KEY, candidate, textOnlyPrompt)
         : await callChatModel(LOVABLE_API_KEY, candidate, content);
 
@@ -219,9 +225,9 @@ Render a full-body, photorealistic fashion image of a ${isUserPhoto ? 'person' :
     }
 
     // Every model in the chain failed
-    const lastStatus = attempts[attempts.length - 1]?.status ?? 500;
-    const allRateLimited = attempts.every((a) => a.status === 429);
+    const allRateLimited = attempts.length > 0 && attempts.every((a) => a.status === 429);
     const allOutOfCredits = attempts.some((a) => a.status === 402);
+    const lastStatus = allOutOfCredits ? 402 : allRateLimited ? 429 : (attempts[attempts.length - 1]?.status ?? 500);
 
     const errorMessage = allRateLimited
       ? 'همه مدل‌ها در حال حاضر محدودیت درخواست دارند، لطفا کمی صبر کنید'
