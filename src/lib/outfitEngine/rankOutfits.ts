@@ -5,6 +5,11 @@ import { scoreItem } from './scoring';
 import { isHardConflict, outfitColorScore, outfitFabricScore } from './styleRules';
 import { suggestGaps } from './gaps';
 import { ClothingProfile, EngineOptions, PreferenceState, RankedOutfit } from './types';
+import {
+  loadRankerModel,
+  extractOutfitFeatures,
+  predictScore,
+} from './mlRanker';
 
 function pickBest(
   pool: ClothingItem[],
@@ -163,12 +168,22 @@ function scoreOutfit(
     }, 0)
   );
 
-  const total = Math.round(
-    Math.min(
-      100,
-      color + seasonPart + occasionPart + fabric + preference + freshness
-    )
+  const rulesTotal = Math.min(
+    100,
+    color + seasonPart + occasionPart + fabric + preference + freshness
   );
+
+  // Online ML ranker blend (learns from 👍/👎). Cold start → trust rules more.
+  let total = Math.round(rulesTotal);
+  try {
+    const model = loadRankerModel();
+    const feats = extractOutfitFeatures(items, profiles, ctx, prefs);
+    const mlPart = predictScore(model, feats);
+    const mlWeight = model.updates < 8 ? 0.15 : model.updates < 25 ? 0.35 : 0.5;
+    total = Math.round(Math.min(100, rulesTotal * (1 - mlWeight) + mlPart * mlWeight));
+  } catch {
+    /* keep rules-only score */
+  }
 
   const reason = buildReason(items, profs, ctx, total);
   const gaps = suggestGaps(items, profiles, ctx);

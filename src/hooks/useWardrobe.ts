@@ -22,6 +22,14 @@ import {
   markWorn,
 } from '@/lib/outfitEngine';
 import {
+  loadRankerModel,
+  saveRankerModel,
+  updateModel,
+  extractOutfitFeatures,
+  modelAccuracy,
+} from '@/lib/outfitEngine/mlRanker';
+import { buildProfileMap } from '@/lib/outfitEngine/profile';
+import {
   OutfitContext,
   DEFAULT_OUTFIT_CONTEXT,
   buildContextOutfit,
@@ -995,12 +1003,36 @@ export const useWardrobe = () => {
     prefs = liked ? applyLike(prefs, ids, colors) : applyDislike(prefs, ids, colors);
     if (liked) prefs = markWorn(prefs, ids);
     savePreferences(prefs);
-    toast({
-      title: liked ? 'یاد گرفتیم ✓' : 'ثبت شد',
-      description: liked
-        ? 'پیشنهادهای بعدی به سلیقه شما نزدیک‌تر می‌شوند'
-        : 'از این ترکیب در پیشنهادهای بعدی کمتر استفاده می‌شود',
-    });
+
+    // Online ML update (logistic regression SGD)
+    try {
+      const ctx = suggestion.context || {
+        style: 'casual' as const,
+        environment: 'gathering' as const,
+        weather: 'sunny' as const,
+      };
+      const profiles = buildProfileMap(suggestion.items);
+      const features = extractOutfitFeatures(suggestion.items, profiles, ctx, prefs);
+      let model = loadRankerModel();
+      model = updateModel(model, features, liked ? 1 : 0);
+      saveRankerModel(model);
+      const acc = modelAccuracy(model);
+      toast({
+        title: liked ? 'یادگیری مدل ✓' : 'بازخورد ثبت شد',
+        description: acc
+          ? `پیشنهادها شخصی‌سازی شد · دقت تقریبی مدل: ${acc.toLocaleString('fa-IR')}٪`
+          : liked
+            ? 'با چند بازخورد بعدی مدل دقیق‌تر می‌شود'
+            : 'از این الگو کمتر استفاده می‌شود',
+      });
+    } catch {
+      toast({
+        title: liked ? 'یاد گرفتیم ✓' : 'ثبت شد',
+        description: liked
+          ? 'پیشنهادهای بعدی به سلیقه شما نزدیک‌تر می‌شوند'
+          : 'از این ترکیب در پیشنهادهای بعدی کمتر استفاده می‌شود',
+      });
+    }
   };
 
   return {

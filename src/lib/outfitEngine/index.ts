@@ -16,3 +16,12 @@ export type {
   EngineOptions,
   PreferenceState,
 } from './types';
+
+export {
+  loadRankerModel,
+  saveRankerModel,
+  extractOutfitFeatures,
+  predictScore,
+  updateModel,
+  modelAccuracy,
+} from './mlRanker';
