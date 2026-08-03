@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Sparkles, LogIn, LogOut, Heart, Shirt } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -13,7 +13,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ProfileSection } from '@/components/ProfileSection';
 import { AddClothingModal } from '@/components/AddClothingModal';
 import { BulkAddClothingModal } from '@/components/BulkAddClothingModal';
 import { ClothingDetailsModal } from '@/components/ClothingDetailsModal';
@@ -55,6 +54,15 @@ const Index = () => {
   const [deletingItem, setDeletingItem] = useState<ClothingItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [mainTab, setMainTab] = useState<'start' | 'builder' | 'wardrobe' | 'outfits'>('start');
+
+  // First-time users stay on guided start; once they have clothes, open builder
+  useEffect(() => {
+    if (clothes.length >= 2 && mainTab === 'start') {
+      setMainTab('builder');
+    }
+  }, [clothes.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
 
   const displayedSuggestions = showFavoritesOnly ? favoriteSuggestions : suggestions;
 
@@ -149,30 +157,6 @@ const Index = () => {
               <ThemeToggle />
 
               <Button
-                onClick={() =>
-                  document.getElementById('outfit-builder')?.scrollIntoView({ behavior: 'smooth' })
-                }
-                variant="soft"
-                size="default"
-                className="hidden md:inline-flex shrink-0 font-bold"
-              >
-                <Sparkles className="w-4 h-4 text-gold" />
-                ست‌ساز
-              </Button>
-
-              <Button
-                onClick={() =>
-                  document.getElementById('my-wardrobe')?.scrollIntoView({ behavior: 'smooth' })
-                }
-                variant="soft"
-                size="default"
-                className="hidden md:inline-flex shrink-0 font-bold"
-              >
-                <Shirt className="w-4 h-4 text-indigo-500" />
-                کمد من
-              </Button>
-
-              <Button
                 onClick={handleOpenAdd}
                 variant="gold"
                 size="default"
@@ -181,16 +165,6 @@ const Index = () => {
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                 <Plus className="w-4.5 h-4.5 relative" strokeWidth={2.75} />
                 <span className="hidden sm:inline relative font-extrabold">افزودن لباس</span>
-              </Button>
-
-              <Button
-                onClick={() => setIsBulkModalOpen(true)}
-                variant="soft"
-                size="default"
-                className="hidden sm:inline-flex shrink-0 font-bold"
-                title="افزودن چند لباس با هم"
-              >
-                افزودن گروهی
               </Button>
 
               {userId ? (
@@ -220,205 +194,203 @@ const Index = () => {
       </header>
 
       {/* ========== Main Content ========== */}
-      <main className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-7 space-y-5 md:space-y-8 mobile-content-pad">
+      <main className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad">
 
-        {/* ========== Welcome / Profile (top hero) ========== */}
-        <section className="animate-fade-up stagger-1">
-          <ProfileSection
-            profile={profile}
-            onProfileUpdate={updateProfile}
-            clothes={clothes}
-            suggestions={suggestions}
-            favoriteSuggestions={favoriteSuggestions}
+        {/* Compact welcome strip */}
+        <section className="animate-fade-up">
+          <div className="flex items-center gap-3 p-3 md:p-4 rounded-2xl bg-gradient-card hairline-border shadow-soft">
+            <button
+              type="button"
+              onClick={() => document.getElementById('profile-photo-trigger')?.click()}
+              className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-gold/30 shrink-0 bg-muted"
+              title="عکس پروفایل"
+            >
+              {profile.imageUrl ? (
+                <img src={profile.imageUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <span className="flex items-center justify-center w-full h-full text-lg">👤</span>
+              )}
+            </button>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm md:text-base font-black truncate">سلام؛ از اینجا شروع کنید</p>
+              <p className="text-[11px] md:text-xs text-muted-foreground font-medium">
+                {clothes.length < 2
+                  ? '۱) لباس اضافه کنید  ۲) ست بسازید  ۳) پیشنهاد بگیرید'
+                  : `${clothes.length.toLocaleString('fa-IR')} لباس در کمد · یک کار را انتخاب کنید`}
+              </p>
+            </div>
+            <Button onClick={handleOpenAdd} variant="gold" size="sm" className="shrink-0 font-extrabold">
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">لباس</span>
+            </Button>
+          </div>
+          <input
+            id="profile-photo-trigger"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                updateProfile({ ...profile, imageUrl: reader.result as string });
+              };
+              reader.readAsDataURL(file);
+              e.target.value = '';
+            }}
           />
         </section>
 
-        {/* ========== CORE: Outfit Builder (Hero) ========== */}
-        <section id="outfit-builder" className="animate-fade-up relative scroll-mt-20 md:scroll-mt-24">
-          {/* Hero intro — centered, bold */}
-          <div className="text-center mb-3 md:mb-7 max-w-2xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-gold/15 border border-gold/30 text-gold text-[11px] md:text-xs font-extrabold mb-3 shadow-sm">
-              <Sparkles className="w-3.5 h-3.5" />
-              هسته اصلی اپ · امتحان مجازی لباس
-            </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.75rem] font-display font-black tracking-tight leading-tight mb-2">
-              <span className="text-gradient-gold">ست‌ساز هوشمند</span>
-            </h1>
-            <p className="text-sm md:text-base text-muted-foreground leading-relaxed">
-              لباس‌های کمدتان را روی مانکن ببینید، ست بسازید و با هوش مصنوعی استایل حرفه‌ای بگیرید
-            </p>
-            {clothes.length >= 2 && (
-              <div className="mt-3 inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-muted-foreground">
-                <Shirt className="w-4 h-4 text-gold" />
-                <span>{clothes.length.toLocaleString('fa-IR')} لباس آماده برای ست‌سازی</span>
-              </div>
-            )}
-          </div>
-
-          {clothes.length >= 2 ? (
-            <div className="relative">
-              {/* Outer glow frame */}
-              <div
-                className="absolute -inset-[3px] rounded-[2.15rem] opacity-80 blur-[1px] pointer-events-none"
-                style={{
-                  background:
-                    'linear-gradient(135deg, hsl(var(--gold) / 0.55), hsl(var(--rose) / 0.35), hsl(var(--gold) / 0.45))',
-                }}
-              />
-              <div className="relative rounded-[2rem] shadow-elevated ring-1 ring-gold/20 overflow-hidden">
-                <OutfitBuilder
-                  clothes={clothes}
-                  onGenerateSuggestion={generateSuggestion}
-                  isGenerating={isGenerating}
-                  profileImageUrl={profile.imageUrl}
-                  onViewItem={setViewingItem}
-                  onEditItem={handleOpenEdit}
-                  onRemoveItem={handleRequestDelete}
-                />
-              </div>
-            </div>
-          ) : (
-            /* Locked / onboarding state when wardrobe is too small */
-            <div className="relative overflow-hidden rounded-[2rem] border border-gold/25 bg-gradient-card shadow-elevated">
-              <div
-                className="absolute inset-0 opacity-40 pointer-events-none"
-                style={{
-                  background:
-                    'radial-gradient(ellipse at 30% 20%, hsl(var(--gold) / 0.25), transparent 55%), radial-gradient(ellipse at 80% 80%, hsl(var(--rose) / 0.18), transparent 50%)',
-                }}
-              />
-              <div className="relative px-6 py-12 md:py-16 text-center max-w-lg mx-auto">
-                <div className="relative w-20 h-20 mx-auto mb-5">
-                  <div className="absolute inset-0 rounded-3xl bg-gradient-gold opacity-30 blur-xl animate-glow-pulse" />
-                  <div className="relative w-full h-full rounded-3xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
-                    <Sparkles className="w-9 h-9 text-white" />
-                  </div>
-                </div>
-                <h2 className="text-xl md:text-2xl font-display font-black mb-2">
-                  برای شروع ست‌سازی آماده شوید
-                </h2>
-                <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                  حداقل{' '}
-                  <span className="font-extrabold text-gold">۲ لباس</span> در کمد لازم است تا بتوانید
-                  روی مانکن امتحان کنید و ست هوشمند بسازید.
-                  {clothes.length > 0 && (
-                    <>
-                      {' '}
-                      الان{' '}
-                      <span className="font-bold text-foreground">
-                        {clothes.length.toLocaleString('fa-IR')} لباس
-                      </span>{' '}
-                      دارید.
-                    </>
-                  )}
-                </p>
-                <Button onClick={handleOpenAdd} variant="gold" size="xl" className="shadow-lg">
-                  <Plus className="w-5 h-5" />
-                  افزودن لباس به کمد
-                </Button>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ========== Suggestions Section ========== */}
-        {suggestions.length > 0 && (
-          <section className="animate-fade-up stagger-2">
-            <div className="flex items-end justify-between mb-5 md:mb-6 flex-wrap gap-3 md:gap-4">
-              <div className="flex items-end gap-3 md:gap-4">
-                <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-rose to-pink-500" />
-                <div>
-                  <h2 className="text-2xl md:text-[28px] font-display font-black tracking-tight mb-1">
-                    ست‌های پیشنهادی شما
-                  </h2>
-                  <p className="text-xs md:text-sm text-muted-foreground">
-                    ساخته شده با طعم تخصص و سلیقه شما
-                  </p>
-                </div>
-              </div>
-
-              {/* Favorites Toggle */}
-              <div className="flex items-center gap-2">
+        {/* Primary navigation — only one focus at a time */}
+        <nav
+          className="sticky top-[3.6rem] md:top-[4.2rem] z-30 -mx-1 px-1 py-1.5 rounded-2xl bg-background/90 backdrop-blur-md border border-border/40 shadow-sm"
+          aria-label="بخش‌های اصلی"
+        >
+          <div className="grid grid-cols-3 gap-1">
+            {(
+              [
+                { id: 'builder' as const, label: 'ست‌ساز', icon: Sparkles },
+                { id: 'wardrobe' as const, label: 'کمد من', icon: Shirt },
+                { id: 'outfits' as const, label: 'پیشنهادها', icon: Heart },
+              ] as const
+            ).map((tab) => {
+              const active =
+                mainTab === tab.id || (mainTab === 'start' && tab.id === 'builder');
+              const Icon = tab.icon;
+              const disabled = tab.id === 'outfits' && suggestions.length === 0;
+              return (
                 <button
-                  onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                  key={tab.id}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => setMainTab(tab.id)}
                   className={cn(
-                    'group flex items-center gap-2 pl-3 md:pl-4 pr-3 md:pr-4 py-2 md:py-2.5 rounded-2xl text-xs md:text-sm font-extrabold transition-all duration-400',
-                    'shadow-sm hover:shadow-md',
-                    showFavoritesOnly
-                      ? 'bg-gradient-to-br from-rose to-pink-500 text-white shadow-rose-500/20'
-                      : 'bg-gradient-card hairline-border text-foreground/75 hover:text-foreground hover:bg-white/80'
+                    'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2.5 px-2 rounded-xl text-[11px] sm:text-sm font-extrabold transition-all min-h-[44px]',
+                    active
+                      ? 'bg-gradient-gold text-white shadow-md'
+                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    disabled && 'opacity-40 cursor-not-allowed'
                   )}
                 >
-                  <Heart
-                    className={cn(
-                      'w-4 h-4 md:w-[18px] md:h-[18px] transition-all duration-400',
-                      showFavoritesOnly && 'fill-white scale-110',
-                      !showFavoritesOnly && 'group-hover:text-rose'
-                    )}
-                    strokeWidth={showFavoritesOnly ? 0 : 2.25}
-                  />
-                  <span>علاقه‌مندی‌ها</span>
-                  {favoriteSuggestions.length > 0 && (
-                    <span
-                      className={cn(
-                        'flex items-center justify-center min-w-[22px] md:min-w-[24px] h-[22px] md:h-6 px-1.5 rounded-full text-[10px] md:text-xs transition-all duration-400 font-black',
-                        showFavoritesOnly
-                          ? 'bg-white/25 text-white backdrop-blur-sm'
-                          : 'bg-foreground/8 text-foreground/70 group-hover:bg-rose/15 group-hover:text-rose'
-                      )}
-                    >
-                      {favoriteSuggestions.length.toLocaleString('fa-IR')}
+                  <Icon className="w-4 h-4" />
+                  {tab.label}
+                  {tab.id === 'outfits' && suggestions.length > 0 && (
+                    <span className={cn('text-[10px] tabular-nums', active ? 'text-white/90' : 'text-muted-foreground')}>
+                      {suggestions.length.toLocaleString('fa-IR')}
                     </span>
                   )}
                 </button>
-              </div>
-            </div>
+              );
+            })}
+          </div>
+        </nav>
 
-            {displayedSuggestions.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-                {displayedSuggestions.map((suggestion, index) => (
-                  <OutfitSuggestionCard
-                    key={suggestion.id}
-                    suggestion={suggestion}
-                    onToggleFavorite={toggleFavorite}
-                    onDelete={deleteSuggestion}
-                    profileImageUrl={profile.imageUrl}
-                    className="animate-fade-up"
-                    style={{ animationDelay: `${index * 0.06}s` }}
-                  />
-                ))}
-              </div>
-            ) : showFavoritesOnly ? (
-              <div className="relative py-14 md:py-20 text-center rounded-[2rem] overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-rose/8 via-transparent to-transparent" />
-                <div className="relative">
-                  <div className="relative w-20 h-20 mx-auto mb-5 animate-float">
-                    <div className="absolute inset-0 rounded-full bg-rose/20 blur-xl animate-glow-pulse" />
-                    <div className="relative w-full h-full rounded-3xl bg-gradient-card hairline-border shadow-card flex items-center justify-center">
-                      <Heart className="w-10 h-10 text-rose" />
-                    </div>
-                  </div>
-                  <h3 className="text-lg md:text-xl font-extrabold mb-2">هنوز علاقه‌مندی ثبت نشده</h3>
-                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
-                    از میان ست‌های پیشنهادی، مورد علاقه‌هاتون رو با دکمه ❤️ ذخیره کنید
-                  </p>
-                </div>
-              </div>
-            ) : null}
+        {/* ===== START / empty guidance ===== */}
+        {(mainTab === 'start' || (mainTab === 'builder' && clothes.length < 2)) && (
+          <section className="animate-fade-up rounded-3xl border border-gold/25 bg-gradient-card p-6 md:p-10 text-center shadow-soft">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-xl md:text-2xl font-display font-black mb-2">۳ قدم تا ست هوشمند</h1>
+            <ol className="text-sm text-muted-foreground space-y-2 max-w-sm mx-auto text-right mb-6">
+              <li className="flex gap-2 items-start">
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۱</span>
+                <span>چند لباس به کمد اضافه کنید (حداقل ۲ تا)</span>
+              </li>
+              <li className="flex gap-2 items-start">
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۲</span>
+                <span>در ست‌ساز لباس‌ها را روی مانکن بچینید</span>
+              </li>
+              <li className="flex gap-2 items-start">
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۳</span>
+                <span>با یک دکمه پیشنهاد هوشمند بگیرید</span>
+              </li>
+            </ol>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={handleOpenAdd} variant="gold" size="lg" className="font-extrabold shadow-lg">
+                <Plus className="w-5 h-5" />
+                افزودن اولین لباس
+              </Button>
+              <Button onClick={() => setIsBulkModalOpen(true)} variant="soft" size="lg" className="font-bold">
+                افزودن چندتایی
+              </Button>
+            </div>
+            {clothes.length > 0 && (
+              <p className="mt-4 text-xs font-bold text-muted-foreground">
+                الان {clothes.length.toLocaleString('fa-IR')} لباس دارید — یکی دیگر اضافه کنید
+              </p>
+            )}
           </section>
         )}
 
-        {/* ========== My Wardrobe (full management) ========== */}
-        <MyWardrobeSection
-          clothes={clothes}
-          isLoading={isLoading}
-          onAdd={handleOpenAdd}
-          onBulkAdd={() => setIsBulkModalOpen(true)}
-          onView={setViewingItem}
-          onEdit={handleOpenEdit}
-          onRemove={handleRequestDelete}
-          onBulkRemove={handleBulkRemove}
-        />
+        {/* ===== BUILDER ===== */}
+        {mainTab === 'builder' && clothes.length >= 2 && (
+          <section id="outfit-builder" className="animate-fade-up relative scroll-mt-28">
+            <div className="text-center mb-3 max-w-xl mx-auto">
+              <h1 className="text-xl md:text-2xl font-display font-black tracking-tight">
+                <span className="text-gradient-gold">ست‌ساز</span>
+              </h1>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">
+                لباس انتخاب کنید، روی مانکن ببینید، ست بسازید
+              </p>
+            </div>
+            <div className="relative rounded-[1.75rem] shadow-elevated ring-1 ring-gold/15 overflow-hidden">
+              <OutfitBuilder
+                clothes={clothes}
+                onGenerateSuggestion={generateSuggestion}
+                isGenerating={isGenerating}
+                profileImageUrl={profile.imageUrl}
+                onViewItem={setViewingItem}
+                onEditItem={handleOpenEdit}
+                onRemoveItem={handleRequestDelete}
+              />
+            </div>
+          </section>
+        )}
+
+        {/* ===== WARDROBE ===== */}
+        {mainTab === 'wardrobe' && (
+          <MyWardrobeSection
+            clothes={clothes}
+            isLoading={isLoading}
+            onAdd={handleOpenAdd}
+            onBulkAdd={() => setIsBulkModalOpen(true)}
+            onView={setViewingItem}
+            onEdit={handleOpenEdit}
+            onRemove={handleRequestDelete}
+            onBulkRemove={handleBulkRemove}
+          />
+        )}
+
+        {/* ===== OUTFITS ===== */}
+        {mainTab === 'outfits' && suggestions.length > 0 && (
+          <section className="animate-fade-up space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-lg md:text-xl font-display font-black">ست‌های شما</h2>
+              <button
+                type="button"
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={cn(
+                  'text-xs font-extrabold px-3 py-1.5 rounded-xl transition-colors',
+                  showFavoritesOnly ? 'bg-rose text-white' : 'bg-muted text-muted-foreground'
+                )}
+              >
+                {showFavoritesOnly ? 'همه' : 'علاقه‌مندی‌ها'}
+              </button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {displayedSuggestions.map((suggestion) => (
+                <OutfitSuggestionCard
+                  key={suggestion.id}
+                  suggestion={suggestion}
+                  onToggleFavorite={toggleFavorite}
+                  onDelete={deleteSuggestion}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ========== Login CTA for anonymous users ========== */}
         {!userId && clothes.length > 0 && (

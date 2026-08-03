@@ -51,6 +51,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [galleryCategory, setGalleryCategory] = useState<ClothingCategory | 'all'>('all');
   const isMobile = useIsMobile();
   const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
+  const [showContext, setShowContext] = useState(false);
 
   const galleryClothes = useMemo(() => {
     let list = clothes;
@@ -247,25 +248,37 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           )}
         </div>
 
-        {/* Occasion / environment / weather context */}
-        <div className="mb-5 md:mb-6 space-y-3">
-          <OutfitContextPicker value={outfitContext} onChange={setOutfitContext} />
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-[11px] md:text-xs text-muted-foreground font-medium">
-              پیشنهاد برای: <span className="font-extrabold text-foreground">{contextLabels(outfitContext)}</span>
-            </p>
+        {/* Occasion context — collapsed by default to reduce noise */}
+        <div className="mb-4 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowContext((v) => !v)}
+              className="flex-1 min-w-[140px] flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-extrabold bg-white/55 border border-border/40 hover:bg-white/80 transition-colors"
+            >
+              <span>شرایط ست (اختیاری)</span>
+              <span className="text-muted-foreground font-bold">{showContext ? 'بستن' : 'باز کردن'}</span>
+            </button>
             <Button
               type="button"
               variant="soft"
               size="sm"
               onClick={handleAutoFill}
               disabled={clothes.length < 2 || isGenerating}
-              className="font-bold"
+              className="font-bold shrink-0"
             >
               <Sparkles className="w-3.5 h-3.5 text-gold" />
-              پر کردن خودکار از کمد
+              پر کردن خودکار
             </Button>
           </div>
+          {!showContext && (
+            <p className="text-[11px] text-muted-foreground font-medium px-1">
+              پیشنهاد برای: <span className="font-extrabold text-foreground">{contextLabels(outfitContext)}</span>
+            </p>
+          )}
+          {showContext && (
+            <OutfitContextPicker value={outfitContext} onChange={setOutfitContext} />
+          )}
         </div>
 
         {/* Main Grid — mannequin first on mobile for focus */}
@@ -622,41 +635,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
 
 
-        <div className="mt-7 md:mt-8 p-4 md:p-5 rounded-3xl bg-gradient-to-r from-gold/10 via-white/60 to-rose/10 backdrop-blur-sm border border-white/70 shadow-soft">
-          <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="relative shrink-0">
-                <div className="w-11 h-11 rounded-2xl bg-gradient-gold/15 flex items-center justify-center border border-gold/25">
-                  <Sparkles className="w-5 h-5 text-gold" />
-                </div>
-                <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-gradient-gold flex items-center justify-center text-[9px] text-white font-black animate-bounce">
-                  !
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-xs md:text-sm font-extrabold text-foreground">
-                  نکته ست‌سازی حرفه‌ای
-                </p>
-                <p className="text-[11px] md:text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                  سعی کنید در هر ست یک دسته بالا، پایین، کفش و اکسسوری داشته باشید تا ست کامل و چشمگیر شود. 💡
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground">
-              <span className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/70 border border-white hairline-border">
-                <ArrowLeft className="w-3.5 h-3.5" />
-                بکشید
-              </span>
-              <span className="px-3 py-1.5 rounded-2xl bg-gradient-gold/10 text-gold border border-gold/20">
-                یا
-              </span>
-              <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/70 border border-white hairline-border">
-                تپ کنید
-                <ArrowRight className="w-3.5 h-3.5" />
-              </span>
-            </div>
-          </div>
+        <p className="mt-4 text-center text-[11px] text-muted-foreground font-medium">
+          برای انتخاب لباس تپ کنید · حداقل ۲ لباس برای ساخت ست
+        </p>
         </div>
       </div>
     </div>
