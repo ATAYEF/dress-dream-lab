@@ -15,7 +15,7 @@ export interface AnalyzeResult {
 export async function analyzeClothingImage(
   dataUrl: string,
   fileName = '',
-  cloudTimeoutMs = 3500
+  cloudTimeoutMs = 2200
 ): Promise<AnalyzeResult> {
   const cloudPromise = (async (): Promise<AnalyzeResult | null> => {
     try {
@@ -61,7 +61,7 @@ export async function analyzeClothingImage(
 
   const cloudRes = await Promise.race([
     cloudPromise,
-    new Promise<null>((r) => setTimeout(() => r(null), 2800)),
+    new Promise<null>((r) => setTimeout(() => r(null), 1800)),
   ]);
 
   if (cloudRes) {

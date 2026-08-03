@@ -9,7 +9,6 @@ import mannequinFemale from '@/assets/mannequin-female.png';
 import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
 import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@/lib/accessorySuggestion';
-import { TRYON_MODELS, DEFAULT_TRYON_MODEL } from '@/lib/tryonModels';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import AiImageViewer from './AiImageViewer';
@@ -54,7 +53,7 @@ async function toDataUrl(src: string, maxSize = 768): Promise<string> {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', 0.82);
+  return canvas.toDataURL('image/jpeg', 0.72);
 }
 
 
@@ -128,13 +127,12 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   };
 
   // ===== AI Virtual Try-on =====
-  const [aiModel, setAiModel] = useState<string>(DEFAULT_TRYON_MODEL);
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const tryonProgress = useStagedProgress(aiLoading, TRYON_RENDER_STAGES);
 
   // Drop a stale generated image whenever the outfit or model changes
-  const generationKey = `${outfitKey}-${aiModel}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
+  const generationKey = `${outfitKey}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
   useEffect(() => {
     setAiImage(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -144,16 +142,16 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     if (items.length === 0 || aiLoading) return;
     setAiLoading(true);
     try {
-      const baseImageUrl = await toDataUrl(mannequinImage, 768);
+      const baseImageUrl = await toDataUrl(mannequinImage, 512);
       // Cap the number of garments and downscale them harder — keeps the
       // request payload small enough for the edge function to accept it.
       const converted = await Promise.all(
-        items.slice(0, 5).map(async (item) => {
+        items.slice(0, 4).map(async (item) => {
           try {
             return {
               name: item.name,
               category: item.category,
-              imageUrl: await toDataUrl(item.imageUrl, 512),
+              imageUrl: await toDataUrl(item.imageUrl, 384),
             };
           } catch (e) {
             console.warn('Skipping unreadable garment image:', item.name, e);
@@ -181,18 +179,23 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       const payloadKb = Math.round(
         (baseImageUrl.length + clothingItems.reduce((s, c) => s + c.imageUrl.length, 0)) / 1024
       );
-      console.log('Virtual try-on payload ~', payloadKb, 'KB, model', aiModel);
+      console.log('Virtual try-on payload ~', payloadKb, 'KB (auto model chain)');
 
       const { data, error } = await supabase.functions.invoke('virtual-tryon', {
-        body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory, model: aiModel },
+        body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory },
       });
 
       if (error) throw new Error(error.message || 'ارتباط با سرویس برقرار نشد');
       if (data?.error) throw new Error(data.error);
       if (!data?.imageUrl) throw new Error('تصویری تولید نشد، دوباره تلاش کنید');
 
-
-      setAiImage(data.imageUrl);
+      setAiImage(data.imageUrl as string);
+      if (data.fallbackUsed) {
+        toast({
+          title: 'تصویر آماده شد',
+          description: 'با مدل پشتیبان تولید شد (مدل اول در دسترس نبود یا اعتبار نداشت)',
+        });
+      }
     } catch (err) {
       console.error('Virtual try-on failed:', err);
       toast({
@@ -555,44 +558,19 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         {zoomControls}
       </div>
 
-      {/* ===== AI model picker + generate ===== */}
+      {/* ===== AI generate (model chosen automatically in background) ===== */}
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-black text-foreground">
           <Wand2 className="w-3.5 h-3.5 text-gold" />
           پرو مجازی با هوش مصنوعی
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {TRYON_MODELS.map((m) => {
-            const isActive = aiModel === m.id;
-            return (
-              <button
-                key={m.id}
-                onClick={() => setAiModel(m.id)}
-                className={cn(
-                  'flex flex-col items-start rounded-xl border px-2.5 py-1.5 text-right transition-all duration-300',
-                  isActive
-                    ? 'border-transparent bg-gradient-gold text-white shadow-button-gold scale-[1.02]'
-                    : 'border-border/70 bg-white/60 text-foreground/75 hover:border-gold/40 hover:bg-white/90 hover:text-foreground hover:-translate-y-0.5'
-                )}
-              >
-                <span className="flex items-center gap-1 text-[11px] font-black whitespace-nowrap">
-                  {m.name}
-                  {m.free && !isActive && (
-                    <span className="rounded-md bg-emerald-500/15 px-1 text-[9px] font-black text-emerald-600">رایگان</span>
-                  )}
-                  {isActive && <Check className="w-3 h-3" strokeWidth={3.5} />}
-                </span>
-                <span className={cn('text-[9px] font-medium', isActive ? 'text-white/80' : 'text-muted-foreground/70')}>
-                  {m.description}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <p className="text-[10px] text-muted-foreground font-medium mb-2 leading-relaxed">
+          مدل مناسب به‌صورت خودکار از بین مدل‌های در دسترس و دارای اعتبار انتخاب می‌شود.
+        </p>
         <Button
           onClick={handleGenerate}
           disabled={items.length === 0 || aiLoading}
-          className="mt-2.5 w-full h-9 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
+          className="w-full h-9 rounded-xl bg-gradient-gold text-white text-xs font-black shadow-button-gold"
         >
           {aiLoading ? (
             <>

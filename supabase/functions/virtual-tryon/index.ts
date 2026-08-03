@@ -9,22 +9,34 @@ const corsHeaders = {
  * Fallback chain: if a model hits a rate limit (429) or runs out of credits (402),
  * we automatically move on to the next model in the list.
  */
+/**
+ * Cost-optimized order:
+ * 1) lite/flash (cheap)  2) mini image  3) full flash  4) expensive pro last
+ * We try at most MAX_MODEL_ATTEMPTS so a prolonged outage does not burn paid tiers.
+ */
 const FALLBACK_CHAIN = [
-  'google/gemini-3.1-flash-image',
+  'google/gemini-3.1-flash-lite-image', // cheapest Gemini image
   'google/gemini-2.5-flash-image',
-  'google/gemini-3.1-flash-lite-image',
-  'google/gemini-3-pro-image',
-  'openai/gpt-image-2',
+  'google/gemini-3.1-flash-image',
   'openai/gpt-image-1-mini',
+  // Paid / premium — only if cheaper tiers fail
+  'openai/gpt-image-2',
+  'google/gemini-3-pro-image',
 ];
+
+/** Stop after this many attempts to avoid cascading paid-model spend */
+const MAX_MODEL_ATTEMPTS = 4;
 
 const ALLOWED_MODELS = FALLBACK_CHAIN;
 const DEFAULT_MODEL = FALLBACK_CHAIN[0];
 
-/** Build the ordered list of models to try, starting from the requested one. */
-function buildChain(requested?: string): string[] {
-  const start = ALLOWED_MODELS.includes(requested ?? '') ? requested! : DEFAULT_MODEL;
-  return [start, ...FALLBACK_CHAIN.filter((m) => m !== start)];
+/**
+ * Always try models in priority order (cheaper / free-tier first).
+ * Client no longer picks a model — we walk the chain until one has quota & succeeds.
+ * `requested` is ignored so availability, not user preference, decides.
+ */
+function buildChain(_requested?: string): string[] {
+  return FALLBACK_CHAIN.slice(0, MAX_MODEL_ATTEMPTS);
 }
 
 // Models that are image-only (must use /v1/images/generations instead of chat completions)

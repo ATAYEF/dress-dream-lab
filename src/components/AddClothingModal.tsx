@@ -119,7 +119,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
     setIsAnalyzing(true);
     setAnalyzeMethod(null);
 
-    const cloudTimeoutMs = 3500;
+    const cloudTimeoutMs = 2200;
     const cloudPromise = (async () => {
       try {
         const timeout = new Promise<null>((_, reject) =>
@@ -159,7 +159,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
 
     const cloudRes = await Promise.race([
       cloudPromise,
-      new Promise<undefined>((r) => setTimeout(() => r(undefined), 2800)),
+      new Promise<undefined>((r) => setTimeout(() => r(undefined), 1800)),
     ]);
 
     if (cloudRes && cloudRes.type === 'cloud') {

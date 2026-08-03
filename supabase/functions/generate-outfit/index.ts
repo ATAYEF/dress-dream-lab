@@ -92,34 +92,10 @@ serve(async (req) => {
         ? `\n\nPreferred / selected item ids to prioritize in the outfit: ${selectedItemIds.join(', ')}`
         : '';
 
-    const contextBlock = `
-Occasion context (MUST follow):
-- Style / dress code: ${style} (${STYLE_FA[style] || style})
-- Environment: ${environment} (${ENV_FA[environment] || environment})
-- Weather: ${weather} (${WEATHER_FA[weather] || weather})
+    const contextBlock = `مناسبت: ${STYLE_FA[style] || style} | محیط: ${ENV_FA[environment] || environment} | هوا: ${WEATHER_FA[weather] || weather}`;
 
-Rules for context:
-- formal + office → polished, modest, professional; avoid flashy party pieces
-- party + gathering → elevated, stylish, statement-friendly
-- casual → comfortable everyday wear
-- cold → prefer layers, outerwear, closed shoes when available in wardrobe
-- rainy → prefer outerwear and practical shoes when available
-- sunny → lighter layers; avoid heavy coats unless needed for formal look
-ONLY recommend items that appear in the wardrobe list below.
-`;
-
-    const systemPrompt = `You are a professional fashion stylist AI for a Persian-speaking user.
-Your job is to suggest ONE complete outfit from the user's digital wardrobe that fits the given style, environment, and weather.
-
-Rules:
-- Only use items from the provided wardrobe
-- Respect style (formal / party / casual), environment (office / gathering), and weather (sunny / rainy / cold)
-- Prefer color coordination
-- Prefer complete outfits (e.g. top+bottom+shoes, or dress+shoes, plus outerwear when weather needs it)
-- Explain briefly why this set fits the occasion
-- Respond entirely in Persian (Farsi)
-- Keep the answer practical and wearable
-- Mention the occasion labels in Persian in your opening sentence`;
+    const systemPrompt = `استایلیست فارسی. از لباس‌های داده‌شده یک ست مناسب بساز.
+قوانین: فقط همان لباس‌ها؛ رعایت مناسبت/محیط/هوا؛ کوتاه (۳–۵ جمله)؛ فارسی روان.`;
 
     const userPrompt = `کمد لباس من:
 
@@ -130,32 +106,64 @@ ${contextBlock}
 
 لطفاً یک ست کامل و مناسب از همین لباس‌ها برای این شرایط پیشنهاد بده و دلیل هماهنگی را کوتاه توضیح بده.`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt },
-        ],
-      }),
-    });
+    // Prefer free/fast text models; fall back when rate-limited or out of credits
+    // Cheapest text models first; avoid premium chat models for styling copy
+    const TEXT_MODEL_CHAIN = [
+      'google/gemini-2.5-flash-lite',
+      'google/gemini-2.5-flash',
+      'google/gemini-3-flash',
+    ];
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
+    let suggestion: string | undefined;
+    let lastStatus = 0;
+    let lastErrorText = '';
 
-      if (response.status === 429) {
+    for (const model of TEXT_MODEL_CHAIN) {
+      console.log('generate-outfit trying model:', model);
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt },
+          ],
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        suggestion = data.choices?.[0]?.message?.content;
+        if (suggestion) break;
+        lastStatus = 502;
+        lastErrorText = 'empty suggestion';
+        continue;
+      }
+
+      lastStatus = response.status;
+      lastErrorText = await response.text();
+      console.error('AI gateway error:', model, response.status, lastErrorText);
+
+      // Retry next model on rate limit / payment required / server errors
+      if (response.status === 429 || response.status === 402 || response.status >= 500) {
+        continue;
+      }
+      // Non-retryable
+      break;
+    }
+
+    if (!suggestion) {
+      if (lastStatus === 429) {
         return new Response(JSON.stringify({ error: 'محدودیت درخواست، لطفا کمی صبر کنید' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402) {
+      if (lastStatus === 402) {
         return new Response(JSON.stringify({ error: 'اعتبار کافی نیست' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -163,9 +171,6 @@ ${contextBlock}
       }
       throw new Error('AI service error');
     }
-
-    const data = await response.json();
-    const suggestion = data.choices?.[0]?.message?.content;
 
     return new Response(JSON.stringify({ suggestion }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

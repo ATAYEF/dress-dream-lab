@@ -832,19 +832,21 @@ export const useWardrobe = () => {
         return;
       }
 
+      // Local text is free and instant — always available as baseline
       let suggestionText = generateLocalSuggestion(itemsForSuggestion, context);
 
-      // Remote AI only works when authenticated (edge function requires JWT)
+      // Optional AI polish: short timeout, only the chosen outfit items (not full wardrobe)
+      // to minimize token cost. Failures fall back to local text silently.
       if (userId) {
         try {
-          const { data, error } = await supabase.functions.invoke('generate-outfit', {
+          const AI_TIMEOUT_MS = 4500;
+          const invokePromise = supabase.functions.invoke('generate-outfit', {
             body: {
-              clothes: clothes.map((c) => ({
+              clothes: itemsForSuggestion.map((c) => ({
                 id: c.id,
                 name: c.name,
                 category: c.category,
                 color: c.color,
-                tags: c.tags,
               })),
               selectedItemIds: itemsForSuggestion.map((i) => i.id),
               context: {
@@ -854,12 +856,18 @@ export const useWardrobe = () => {
               },
             },
           });
-
-          if (!error && !data?.error && data?.suggestion) {
-            suggestionText = data.suggestion;
+          const timed = await Promise.race([
+            invokePromise,
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), AI_TIMEOUT_MS)),
+          ]);
+          if (timed && !('error' in timed && timed.error) && (timed as any).data?.suggestion) {
+            const aiText = (timed as any).data.suggestion as string;
+            if (aiText && aiText.trim().length > 20) {
+              suggestionText = aiText.trim();
+            }
           }
         } catch {
-          // fall back to local text silently
+          // keep local text
         }
       }
 
