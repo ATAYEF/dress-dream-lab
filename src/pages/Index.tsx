@@ -132,7 +132,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background relative" dir="rtl">
       {/* Background decorative blobs */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10" aria-hidden="true">
         <div
           className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full opacity-30 animate-blob"
           style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 65%)' }}
@@ -148,8 +148,8 @@ const Index = () => {
         <div className="glass-strong">
           <div className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2.5 md:py-4 flex items-center justify-between gap-2 md:gap-4">
             {/* Logo */}
-            <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group">
-              <div className="relative">
+            <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group" role="banner">
+              <div className="relative" aria-hidden="true">
                 <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-40 blur-md group-hover:opacity-70 transition-opacity duration-500 animate-glow-pulse" />
                 <div className="relative w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold group-hover:scale-105 transition-transform duration-500">
                   <Sparkles className="w-5 h-5 md:w-[22px] md:h-[22px] text-white" />
@@ -174,9 +174,10 @@ const Index = () => {
                 variant="gold"
                 size="default"
                 className="group relative overflow-hidden shrink-0"
+                aria-label="افزودن لباس جدید"
               >
-                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                <Plus className="w-4.5 h-4.5 relative" strokeWidth={2.75} />
+                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" aria-hidden="true" />
+                <Plus className="w-4.5 h-4.5 relative" strokeWidth={2.75} aria-hidden="true" />
                 <span className="hidden sm:inline relative font-extrabold">افزودن لباس</span>
               </Button>
 
@@ -186,9 +187,10 @@ const Index = () => {
                   variant="soft"
                   size="icon"
                   className="shrink-0"
+                  aria-label="خروج از حساب"
                   title="خروج"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-5 h-5" aria-hidden="true" />
                 </Button>
               ) : (
                 <Button
@@ -196,8 +198,9 @@ const Index = () => {
                   variant="soft"
                   size="default"
                   className="shrink-0"
+                  aria-label="ورود یا ثبت‌نام"
                 >
-                  <LogIn className="w-4 h-4" />
+                  <LogIn className="w-4 h-4" aria-hidden="true" />
                   <span className="hidden sm:inline font-bold">ورود</span>
                 </Button>
               )}
@@ -207,21 +210,22 @@ const Index = () => {
       </header>
 
       {/* ========== Main Content ========== */}
-      <main className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad pb-28 md:pb-12">
+      <main id="main-content" className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad pb-28 md:pb-12" tabIndex={-1}>
 
         {/* Compact welcome strip */}
-        <section className="animate-fade-up">
+        <section className="animate-fade-up" aria-label="خلاصه کمد">
           <div className="flex items-center gap-3 p-3 md:p-4 rounded-2xl bg-gradient-card hairline-border shadow-soft">
             <button
               type="button"
               onClick={() => document.getElementById('profile-photo-trigger')?.click()}
-              className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-gold/30 shrink-0 bg-muted"
-              title="عکس پروفایل"
+              className="relative w-12 h-12 md:w-14 md:h-14 rounded-full overflow-hidden ring-2 ring-gold/30 shrink-0 bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
+              title="تغییر عکس پروفایل"
+              aria-label="تغییر عکس پروفایل"
             >
               {profile.imageUrl ? (
-                <img src={profile.imageUrl} alt="" className="w-full h-full object-cover" />
+                <img src={profile.imageUrl} alt="عکس پروفایل شما" className="w-full h-full object-cover" />
               ) : (
-                <span className="flex items-center justify-center w-full h-full text-lg">👤</span>
+                <span className="flex items-center justify-center w-full h-full text-lg" aria-hidden="true">👤</span>
               )}
             </button>
             <div className="min-w-0 flex-1">
@@ -232,8 +236,8 @@ const Index = () => {
                   : `${clothes.length.toLocaleString('fa-IR')} لباس در کمد · یک کار را انتخاب کنید`}
               </p>
             </div>
-            <Button onClick={handleOpenAdd} variant="gold" size="sm" className="shrink-0 font-extrabold">
-              <Plus className="w-4 h-4" />
+            <Button onClick={handleOpenAdd} variant="gold" size="sm" className="shrink-0 font-extrabold" aria-label="افزودن لباس">
+              <Plus className="w-4 h-4" aria-hidden="true" />
               <span className="hidden sm:inline">لباس</span>
             </Button>
           </div>
@@ -242,6 +246,8 @@ const Index = () => {
             type="file"
             accept="image/*"
             className="hidden"
+            aria-hidden="true"
+            tabIndex={-1}
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
@@ -260,7 +266,7 @@ const Index = () => {
           className="sticky top-[3.6rem] md:top-[4.2rem] z-30 -mx-1 px-1 py-1.5 rounded-2xl bg-background/90 backdrop-blur-md border border-border/40 shadow-sm"
           aria-label="بخش‌های اصلی"
         >
-          <div className="grid grid-cols-3 gap-1">
+          <div className="grid grid-cols-3 gap-1" role="tablist">
             {(
               [
                 { id: 'builder' as const, label: 'پیشنهاد امروز', icon: Sparkles },
@@ -276,20 +282,24 @@ const Index = () => {
                 <button
                   key={tab.id}
                   type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-disabled={disabled}
                   disabled={disabled}
                   onClick={() => setMainTab(tab.id)}
                   className={cn(
                     'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2.5 px-2 rounded-xl text-[11px] sm:text-sm font-extrabold transition-all min-h-[44px]',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
                     active
                       ? 'bg-gradient-gold text-white shadow-md'
                       : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                     disabled && 'opacity-40 cursor-not-allowed'
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-4 h-4" aria-hidden="true" />
                   {tab.label}
                   {tab.id === 'outfits' && suggestions.length > 0 && (
-                    <span className={cn('text-[10px] tabular-nums', active ? 'text-white/90' : 'text-muted-foreground')}>
+                    <span className={cn('text-[10px] tabular-nums', active ? 'text-white/90' : 'text-muted-foreground')} aria-label={`${suggestions.length} ست`}>
                       {suggestions.length.toLocaleString('fa-IR')}
                     </span>
                   )}
@@ -301,28 +311,28 @@ const Index = () => {
 
         {/* ===== START / empty guidance ===== */}
         {(mainTab === 'start' || (mainTab === 'builder' && clothes.length < 2)) && (
-          <section className="animate-fade-up rounded-3xl border border-gold/25 bg-gradient-card p-6 md:p-10 text-center shadow-soft">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
+          <section className="animate-fade-up rounded-3xl border border-gold/25 bg-gradient-card p-6 md:p-10 text-center shadow-soft" aria-labelledby="onboarding-title">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold" aria-hidden="true">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-xl md:text-2xl font-display font-black mb-2">۳ قدم تا پیشنهاد امروز</h1>
+            <h1 id="onboarding-title" className="text-xl md:text-2xl font-display font-black mb-2">۳ قدم تا پیشنهاد امروز</h1>
             <ol className="text-sm text-muted-foreground space-y-2 max-w-sm mx-auto text-right mb-6">
               <li className="flex gap-2 items-start">
-                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۱</span>
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0" aria-hidden="true">۱</span>
                 <span>چند لباس به کمد اضافه کنید (حداقل ۲ تا)</span>
               </li>
               <li className="flex gap-2 items-start">
-                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۲</span>
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0" aria-hidden="true">۲</span>
                 <span>شرایط را انتخاب کنید و لباس‌ها را ببینید</span>
               </li>
               <li className="flex gap-2 items-start">
-                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۳</span>
+                <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0" aria-hidden="true">۳</span>
                 <span>تولید ست و در صورت تمایل پرو روی مانکن</span>
               </li>
             </ol>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
               <Button onClick={handleOpenAdd} variant="gold" size="lg" className="font-extrabold shadow-lg">
-                <Plus className="w-5 h-5" />
+                <Plus className="w-5 h-5" aria-hidden="true" />
                 افزودن اولین لباس
               </Button>
               <Button onClick={() => setIsBulkModalOpen(true)} variant="soft" size="lg" className="font-bold">
@@ -339,9 +349,9 @@ const Index = () => {
 
         {/* ===== BUILDER ===== */}
         {mainTab === 'builder' && clothes.length >= 2 && (
-          <section id="outfit-builder" className="animate-fade-up relative scroll-mt-28">
+          <section id="outfit-builder" className="animate-fade-up relative scroll-mt-28" aria-labelledby="builder-title">
             <div className="text-center mb-3 max-w-xl mx-auto">
-              <h1 className="text-xl md:text-2xl font-display font-black tracking-tight">
+              <h1 id="builder-title" className="text-xl md:text-2xl font-display font-black tracking-tight">
                 <span className="text-gradient-gold">ست‌ساز</span>
               </h1>
               <p className="text-xs md:text-sm text-muted-foreground mt-1">
@@ -378,9 +388,9 @@ const Index = () => {
 
         {/* ===== OUTFITS ===== */}
         {mainTab === 'outfits' && suggestions.length > 0 && (
-          <section className="animate-fade-up space-y-4">
+          <section className="animate-fade-up space-y-4" aria-labelledby="outfits-title">
             <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h2 className="text-lg md:text-xl font-display font-black">ست‌های شما</h2>
+              <h2 id="outfits-title" className="text-lg md:text-xl font-display font-black">ست‌های شما</h2>
               <span className="text-xs font-bold text-muted-foreground">
                 {displayedSuggestions.length.toLocaleString('fa-IR')} از{' '}
                 {suggestions.length.toLocaleString('fa-IR')}
@@ -388,34 +398,38 @@ const Index = () => {
             </div>
 
             {/* Filters — compact trendy chip / segmented UI */}
-            <div className="space-y-2.5" dir="rtl">
+            <div className="space-y-2.5" dir="rtl" role="group" aria-label="فیلتر ست‌ها">
               {/* Status toggles */}
               <div className="flex items-center gap-2 flex-wrap">
                 <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/70 border border-border/30">
                   <button
                     type="button"
                     onClick={() => setShowFavoritesOnly((v) => !v)}
+                    aria-pressed={showFavoritesOnly}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
                       showFavoritesOnly
                         ? 'bg-white text-rose shadow-sm dark:bg-rose dark:text-white'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    <span aria-hidden>♥</span>
+                    <span aria-hidden="true">♥</span>
                     علاقه
                   </button>
                   <button
                     type="button"
                     onClick={() => setOutfitFilterLiked((v) => !v)}
+                    aria-pressed={outfitFilterLiked}
                     className={cn(
                       'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
                       outfitFilterLiked
                         ? 'bg-white text-emerald-700 shadow-sm dark:bg-emerald-600 dark:text-white'
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    <span aria-hidden>👍</span>
+                    <span aria-hidden="true">👍</span>
                     لایک‌شده
                   </button>
                 </div>
@@ -434,7 +448,7 @@ const Index = () => {
                       setOutfitFilterEnv('all');
                       setOutfitFilterWeather('all');
                     }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-extrabold text-muted-foreground hover:text-rose hover:bg-rose/10 transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-extrabold text-muted-foreground hover:text-rose hover:bg-rose/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                   >
                     ✕ پاک کردن
                   </button>
@@ -488,6 +502,8 @@ const Index = () => {
                   <div
                     key={group.key}
                     className="flex items-center gap-2 min-w-0"
+                    role="group"
+                    aria-label={group.label}
                   >
                     <span className="text-[10px] font-black text-muted-foreground w-12 shrink-0">
                       {group.label}
@@ -500,9 +516,11 @@ const Index = () => {
                             <button
                               key={v}
                               type="button"
+                              aria-pressed={active}
                               onClick={() => (group.set as (x: string) => void)(v)}
                               className={cn(
                                 'px-3 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all min-h-[30px]',
+                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
                                 active
                                   ? group.activeClass
                                   : 'text-muted-foreground hover:text-foreground'
@@ -520,7 +538,7 @@ const Index = () => {
             </div>
 
             {displayedSuggestions.length === 0 ? (
-              <div className="text-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 space-y-3">
+              <div className="text-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 space-y-3" role="status">
                 <p className="text-sm font-extrabold text-foreground">ستی با این فیلتر نیست</p>
                 <p className="text-xs text-muted-foreground font-medium max-w-sm mx-auto leading-relaxed">
                   فیلتر را ساده‌تر کنید یا یک ست جدید با شرایط دلخواه تولید کنید.
@@ -535,14 +553,14 @@ const Index = () => {
                       setOutfitFilterEnv('all');
                       setOutfitFilterWeather('all');
                     }}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[40px]"
+                    className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                   >
                     پاک کردن فیلترها
                   </button>
                   <button
                     type="button"
                     onClick={() => setMainTab('builder')}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[40px]"
+                    className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                   >
                     تولید ست جدید
                   </button>
@@ -566,21 +584,23 @@ const Index = () => {
 
         {/* ========== Login CTA for anonymous users ========== */}
         {!userId && clothes.length > 0 && (
-          <section className="animate-fade-up stagger-4">
+          <section className="animate-fade-up stagger-4" aria-labelledby="login-cta-title">
             <div className="relative overflow-hidden rounded-[2rem] p-6 md:p-8 lg:p-10 text-center">
               {/* Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-gold/15 via-white/60 to-rose/12" />
+              <div className="absolute inset-0 bg-gradient-to-br from-gold/15 via-white/60 to-rose/12" aria-hidden="true" />
               <div
                 className="absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-40 animate-blob pointer-events-none"
                 style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
+                aria-hidden="true"
               />
               <div
                 className="absolute -bottom-20 -left-16 w-64 h-64 rounded-full opacity-30 animate-blob animation-delay-2000 pointer-events-none"
                 style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
+                aria-hidden="true"
               />
 
               <div className="relative flex flex-col md:flex-row items-center justify-center gap-5 md:gap-8">
-                <div className="relative shrink-0 animate-float">
+                <div className="relative shrink-0 animate-float" aria-hidden="true">
                   <div className="absolute -inset-2 rounded-3xl bg-gradient-gold/20 blur-xl" />
                   <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-[2rem] bg-gradient-gold shadow-button-gold flex items-center justify-center text-3xl md:text-4xl">
                     🔒
@@ -588,7 +608,7 @@ const Index = () => {
                 </div>
 
                 <div className="max-w-xl">
-                  <h3 className="text-xl md:text-2xl font-display font-black mb-2 md:mb-3 tracking-tight">
+                  <h3 id="login-cta-title" className="text-xl md:text-2xl font-display font-black mb-2 md:mb-3 tracking-tight">
                     ذخیره‌سازی ابری و امن لباس‌ها و ست‌های شما
                   </h3>
                   <p className="text-sm md:text-base text-muted-foreground mb-5 md:mb-6 leading-relaxed">
@@ -601,8 +621,8 @@ const Index = () => {
                     size="xl"
                     className="group relative overflow-hidden shadow-lg"
                   >
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-                    <LogIn className="w-5 h-5 relative" />
+                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" aria-hidden="true" />
+                    <LogIn className="w-5 h-5 relative" aria-hidden="true" />
                     <span className="relative font-extrabold">ورود یا ثبت‌نام فوری</span>
                   </Button>
                 </div>
@@ -612,7 +632,7 @@ const Index = () => {
         )}
 
         {/* ========== Footer spacer (extra room for mobile FAB) ========== */}
-        <div className="h-24 md:h-12" />
+        <div className="h-24 md:h-12" aria-hidden="true" />
       </main>
 
       {/* Mobile FAB + Scroll to top + Generating banner */}
