@@ -7,41 +7,48 @@ import {
 } from 'lucide-react';
 import { ClothingCategory } from '@/types/wardrobe';
 
-const iconProps = {
+const svgBase = {
   viewBox: '0 0 24 24',
-  fill: 'none' as const,
+  fill: 'none',
   stroke: 'currentColor',
   strokeWidth: 1.85,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
-  'aria-hidden': true as const,
+  width: 24,
+  height: 24,
+  'aria-hidden': true,
 };
 
-/** شلوار / پایین‌تنه */
-const PantsIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} width="24" height="24" {...iconProps}>
-    <path d="M8 3h8v3.5H8z" />
-    <path d="M8 6.5 6.2 21h4.6l1.2-9.5 1.2 9.5h4.6L16 6.5" />
-  </svg>
-);
+/** شلوار / پایین‌تنه — no JSX (this file is .ts) */
+const PantsIcon: React.FC<{ className?: string }> = ({ className }) =>
+  React.createElement(
+    'svg',
+    { className, ...svgBase },
+    React.createElement('path', { d: 'M8 3h8v3.5H8z' }),
+    React.createElement('path', { d: 'M8 6.5 6.2 21h4.6l1.2-9.5 1.2 9.5h4.6L16 6.5' })
+  );
 
 /** لباس یکسره */
-const DressIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} width="24" height="24" {...iconProps}>
-    <path d="M9 3.5h6" />
-    <path d="M9 3.5c0 2.2-1.2 3.8-2.8 5.2L3.5 20.5h17l-2.7-11.8C16.2 7.3 15 5.7 15 3.5" />
-    <path d="M9 11h6" />
-  </svg>
-);
+const DressIcon: React.FC<{ className?: string }> = ({ className }) =>
+  React.createElement(
+    'svg',
+    { className, ...svgBase },
+    React.createElement('path', { d: 'M9 3.5h6' }),
+    React.createElement('path', {
+      d: 'M9 3.5c0 2.2-1.2 3.8-2.8 5.2L3.5 20.5h17l-2.7-11.8C16.2 7.3 15 5.7 15 3.5',
+    }),
+    React.createElement('path', { d: 'M9 11h6' })
+  );
 
 /** ژاکت و کت */
-const JacketIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} width="24" height="24" {...iconProps}>
-    <path d="M8.5 4.5 4 9v11.5h5V13h2v7.5h5V9l-4.5-4.5" />
-    <path d="M8.5 4.5C10 6 11 6.5 12 6.5s2-.5 3.5-2" />
-    <path d="M12 6.5v5" />
-  </svg>
-);
+const JacketIcon: React.FC<{ className?: string }> = ({ className }) =>
+  React.createElement(
+    'svg',
+    { className, ...svgBase },
+    React.createElement('path', { d: 'M8.5 4.5 4 9v11.5h5V13h2v7.5h5V9l-4.5-4.5' }),
+    React.createElement('path', { d: 'M8.5 4.5C10 6 11 6.5 12 6.5s2-.5 3.5-2' }),
+    React.createElement('path', { d: 'M12 6.5v5' })
+  );
 
 export interface CategoryDefinition {
   key: ClothingCategory | 'all';
