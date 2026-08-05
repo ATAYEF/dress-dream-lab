@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Shirt, Plus } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
@@ -15,6 +15,7 @@ import { ClothingCard } from '@/components/ClothingCard';
 import { EmptyState } from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MyWardrobeSectionProps {
   clothes: ClothingItem[];
@@ -41,6 +42,7 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
   onRemove,
   onBulkRemove,
 }) => {
+  const isMobile = useIsMobile();
   const [activeCategory, setActiveCategory] = useState<ClothingCategory | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [colorFilter, setColorFilter] = useState('');
@@ -49,6 +51,17 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
+  const [densityInitialized, setDensityInitialized] = useState(false);
+
+  // Default to compact grid on mobile for better density
+  useEffect(() => {
+    if (!densityInitialized && isMobile) {
+      setDensity('compact');
+      setDensityInitialized(true);
+    } else if (!densityInitialized && isMobile === false) {
+      setDensityInitialized(true);
+    }
+  }, [isMobile, densityInitialized]);
 
   const availableColors = useMemo(() => {
     const colors = clothes
@@ -144,42 +157,41 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
 
   return (
     <section id="my-wardrobe" className="animate-fade-up scroll-mt-20 md:scroll-mt-24" dir="rtl">
-      <div className="flex items-end justify-between mb-4 md:mb-5 flex-wrap gap-3">
-        <div className="flex items-end gap-3">
-          <div className="w-1.5 h-10 md:h-12 rounded-full bg-gradient-to-b from-indigo-400 to-purple-600" />
+      <div className="flex items-end justify-between mb-3 md:mb-5 flex-wrap gap-2 md:gap-3">
+        <div className="flex items-end gap-2.5 md:gap-3">
+          <div className="w-1.5 h-9 md:h-12 rounded-full bg-gradient-to-b from-indigo-400 to-purple-600" />
           <div>
-            <h2 className="text-2xl md:text-[28px] font-display font-black tracking-tight mb-1">
+            <h2 className="text-xl md:text-[28px] font-display font-black tracking-tight mb-0.5 md:mb-1">
               کمد من
             </h2>
-            <p className="text-xs md:text-sm text-muted-foreground">
+            <p className="text-[11px] md:text-sm text-muted-foreground">
               مدیریت کامل لباس‌ها — جستجو، دسته‌بندی و ویرایش سریع
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-gradient-card hairline-border shadow-soft text-xs font-extrabold">
-            <Shirt className="w-4 h-4 text-gold" />
+        <div className="flex items-center gap-1.5 md:gap-2">
+          <span className="inline-flex items-center gap-1.5 px-2.5 md:px-3 py-1.5 rounded-xl md:rounded-2xl bg-gradient-card hairline-border shadow-soft text-[11px] md:text-xs font-extrabold">
+            <Shirt className="w-3.5 h-3.5 md:w-4 md:h-4 text-gold" />
             {filteredClothes.length.toLocaleString('fa-IR')}
             <span className="text-muted-foreground font-bold">از</span>
             {clothes.length.toLocaleString('fa-IR')}
           </span>
-          <Button onClick={onAdd} variant="gold" size="sm" className="font-extrabold shrink-0">
+          <Button onClick={onAdd} variant="gold" size="sm" className="font-extrabold shrink-0 h-8 md:h-9">
             <Plus className="w-4 h-4" />
             <span className="hidden sm:inline">افزودن</span>
           </Button>
           {onBulkAdd && (
-            <Button onClick={onBulkAdd} variant="soft" size="sm" className="font-extrabold shrink-0">
+            <Button onClick={onBulkAdd} variant="soft" size="sm" className="font-extrabold shrink-0 h-8 md:h-9 hidden sm:inline-flex">
               گروهی
             </Button>
           )}
         </div>
       </div>
 
-      {clothes.length > 0 && <WardrobeOverview clothes={clothes} className="mb-3" />}
+      {clothes.length > 0 && <WardrobeOverview clothes={clothes} className="mb-2.5 md:mb-3" />}
 
       {clothes.length > 0 && (
-        <div className="space-y-2.5 mb-4">
-          {/* ۱) نوع لباس → ۲) رنگ → ۳) جستجو */}
+        <div className="space-y-2 md:space-y-2.5 mb-3 md:mb-4">
           <CategoryTabs
             activeCategory={activeCategory}
             onCategoryChange={setActiveCategory}
@@ -228,21 +240,21 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
 
       {isLoading ? (
         <div className={cn(gridClass)}>
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: isMobile ? 6 : 8 }).map((_, i) => (
             <div
               key={i}
-              className="aspect-[4/5] rounded-2xl bg-muted/60 animate-pulse"
+              className="aspect-[4/5] rounded-xl md:rounded-2xl bg-muted/60 animate-pulse"
             />
           ))}
         </div>
       ) : clothes.length === 0 ? (
         <EmptyState onAddClick={onAdd} />
       ) : filteredClothes.length === 0 ? (
-        <div className="text-center py-14 px-4 rounded-[2rem] bg-gradient-card hairline-border shadow-soft">
-          <div className="text-5xl mb-3">🔍</div>
+        <div className="text-center py-10 md:py-14 px-4 rounded-2xl md:rounded-[2rem] bg-gradient-card hairline-border shadow-soft">
+          <div className="text-4xl md:text-5xl mb-3">🔍</div>
           <p className="font-extrabold mb-1">لباسی با این فیلتر پیدا نشد</p>
           <p className="text-sm text-muted-foreground mb-4">جستجو یا دسته را تغییر دهید</p>
-          <Button variant="soft" onClick={clearFilters} className="font-bold">
+          <Button variant="soft" onClick={clearFilters} className="font-bold min-h-[44px]">
             پاک کردن فیلترها
           </Button>
         </div>
