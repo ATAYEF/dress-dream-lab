@@ -387,131 +387,136 @@ const Index = () => {
               </span>
             </div>
 
-            {/* Filters: favorites, liked, context */}
-            <div className="space-y-2 rounded-2xl border border-border/40 bg-muted/20 p-2.5 sm:p-3" dir="rtl">
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setShowFavoritesOnly((v) => !v)}
-                  className={cn(
-                    'text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-colors min-h-[36px]',
-                    showFavoritesOnly
-                      ? 'bg-rose text-white shadow-sm'
-                      : 'bg-background border border-border/50 text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  ❤️ مورد علاقه
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setOutfitFilterLiked((v) => !v)}
-                  className={cn(
-                    'text-[11px] font-extrabold px-3 py-1.5 rounded-xl transition-colors min-h-[36px]',
-                    outfitFilterLiked
-                      ? 'bg-emerald-600 text-white shadow-sm'
-                      : 'bg-background border border-border/50 text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  👍 لایک‌شده‌ها
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-muted-foreground w-full sm:w-auto sm:ml-1">مناسبت</span>
-                {(
-                  [
-                    ['all', 'همه'],
-                    ['casual', 'روزمره'],
-                    ['formal', 'رسمی'],
-                    ['party', 'مهمانی'],
-                  ] as const
-                ).map(([v, label]) => (
+            {/* Filters — compact trendy chip / segmented UI */}
+            <div className="space-y-2.5" dir="rtl">
+              {/* Status toggles */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/70 border border-border/30">
                   <button
-                    key={v}
                     type="button"
-                    onClick={() => setOutfitFilterStyle(v)}
+                    onClick={() => setShowFavoritesOnly((v) => !v)}
                     className={cn(
-                      'text-[11px] font-extrabold px-2.5 py-1.5 rounded-xl transition-colors min-h-[34px]',
-                      outfitFilterStyle === v
-                        ? 'bg-gradient-gold text-white shadow-sm'
-                        : 'bg-background border border-border/50 text-muted-foreground'
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
+                      showFavoritesOnly
+                        ? 'bg-white text-rose shadow-sm dark:bg-rose dark:text-white'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {label}
+                    <span aria-hidden>♥</span>
+                    علاقه
                   </button>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-muted-foreground w-full sm:w-auto sm:ml-1">مکان</span>
-                {(
-                  [
-                    ['all', 'همه'],
-                    ['office', 'محل کار'],
-                    ['gathering', 'دورهمی'],
-                  ] as const
-                ).map(([v, label]) => (
                   <button
-                    key={v}
                     type="button"
-                    onClick={() => setOutfitFilterEnv(v)}
+                    onClick={() => setOutfitFilterLiked((v) => !v)}
                     className={cn(
-                      'text-[11px] font-extrabold px-2.5 py-1.5 rounded-xl transition-colors min-h-[34px]',
-                      outfitFilterEnv === v
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-background border border-border/50 text-muted-foreground'
+                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
+                      outfitFilterLiked
+                        ? 'bg-white text-emerald-700 shadow-sm dark:bg-emerald-600 dark:text-white'
+                        : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {label}
+                    <span aria-hidden>👍</span>
+                    لایک‌شده
                   </button>
-                ))}
+                </div>
+
+                {(showFavoritesOnly ||
+                  outfitFilterLiked ||
+                  outfitFilterStyle !== 'all' ||
+                  outfitFilterEnv !== 'all' ||
+                  outfitFilterWeather !== 'all') && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFavoritesOnly(false);
+                      setOutfitFilterLiked(false);
+                      setOutfitFilterStyle('all');
+                      setOutfitFilterEnv('all');
+                      setOutfitFilterWeather('all');
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-extrabold text-muted-foreground hover:text-rose hover:bg-rose/10 transition-colors"
+                  >
+                    ✕ پاک کردن
+                  </button>
+                )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-black text-muted-foreground w-full sm:w-auto sm:ml-1">هوا</span>
+              {/* Context segmented controls */}
+              <div className="flex flex-col gap-2">
                 {(
                   [
-                    ['all', 'همه'],
-                    ['sunny', 'آفتابی'],
-                    ['rainy', 'بارانی'],
-                    ['cold', 'سرد'],
+                    {
+                      key: 'style',
+                      label: 'مناسبت',
+                      value: outfitFilterStyle,
+                      set: setOutfitFilterStyle,
+                      options: [
+                        ['all', 'همه'],
+                        ['casual', 'روزمره'],
+                        ['formal', 'رسمی'],
+                        ['party', 'مهمانی'],
+                      ] as const,
+                      activeClass: 'bg-foreground text-background shadow-sm',
+                    },
+                    {
+                      key: 'env',
+                      label: 'مکان',
+                      value: outfitFilterEnv,
+                      set: setOutfitFilterEnv,
+                      options: [
+                        ['all', 'همه'],
+                        ['office', 'محل کار'],
+                        ['gathering', 'دورهمی'],
+                      ] as const,
+                      activeClass: 'bg-foreground text-background shadow-sm',
+                    },
+                    {
+                      key: 'weather',
+                      label: 'هوا',
+                      value: outfitFilterWeather,
+                      set: setOutfitFilterWeather,
+                      options: [
+                        ['all', 'همه'],
+                        ['sunny', 'آفتابی'],
+                        ['rainy', 'بارانی'],
+                        ['cold', 'سرد'],
+                      ] as const,
+                      activeClass: 'bg-foreground text-background shadow-sm',
+                    },
                   ] as const
-                ).map(([v, label]) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setOutfitFilterWeather(v)}
-                    className={cn(
-                      'text-[11px] font-extrabold px-2.5 py-1.5 rounded-xl transition-colors min-h-[34px]',
-                      outfitFilterWeather === v
-                        ? 'bg-sky-600 text-white shadow-sm'
-                        : 'bg-background border border-border/50 text-muted-foreground'
-                    )}
+                ).map((group) => (
+                  <div
+                    key={group.key}
+                    className="flex items-center gap-2 min-w-0"
                   >
-                    {label}
-                  </button>
+                    <span className="text-[10px] font-black text-muted-foreground w-12 shrink-0">
+                      {group.label}
+                    </span>
+                    <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
+                      <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-muted/70 border border-border/30">
+                        {group.options.map(([v, label]) => {
+                          const active = group.value === v;
+                          return (
+                            <button
+                              key={v}
+                              type="button"
+                              onClick={() => (group.set as (x: string) => void)(v)}
+                              className={cn(
+                                'px-3 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all min-h-[30px]',
+                                active
+                                  ? group.activeClass
+                                  : 'text-muted-foreground hover:text-foreground'
+                              )}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-
-              {(showFavoritesOnly ||
-                outfitFilterLiked ||
-                outfitFilterStyle !== 'all' ||
-                outfitFilterEnv !== 'all' ||
-                outfitFilterWeather !== 'all') && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowFavoritesOnly(false);
-                    setOutfitFilterLiked(false);
-                    setOutfitFilterStyle('all');
-                    setOutfitFilterEnv('all');
-                    setOutfitFilterWeather('all');
-                  }}
-                  className="text-[11px] font-extrabold text-rose hover:underline"
-                >
-                  پاک کردن فیلترها
-                </button>
-              )}
             </div>
 
             {displayedSuggestions.length === 0 ? (
