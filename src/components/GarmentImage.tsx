@@ -14,7 +14,7 @@ interface GarmentImageProps {
 }
 
 /**
- * Shows clothing image with client-side background removal for cleaner outfit preview.
+ * Clothing image with client-side background removal for mannequin preview.
  */
 export const GarmentImage: React.FC<GarmentImageProps> = ({
   src,
@@ -22,7 +22,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
   className,
   style,
   skip = false,
-  loading = 'lazy',
+  loading = 'eager',
   draggable = false,
 }) => {
   const [displaySrc, setDisplaySrc] = useState(src);
@@ -39,22 +39,27 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
     setReady(false);
     setDisplaySrc(src);
 
-    removeClothingBackground(src)
-      .then((url) => {
-        if (!cancelled) {
-          setDisplaySrc(url);
-          setReady(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setDisplaySrc(src);
-          setReady(true);
-        }
-      });
+    // Defer so first paint is not blocked
+    const run = () => {
+      removeClothingBackground(src)
+        .then((url) => {
+          if (!cancelled) {
+            setDisplaySrc(url);
+            setReady(true);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setDisplaySrc(src);
+            setReady(true);
+          }
+        });
+    };
 
+    const id = window.setTimeout(run, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(id);
     };
   }, [src, skip]);
 
@@ -68,7 +73,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
       className={cn(
         className,
         'transition-opacity duration-300',
-        ready ? 'opacity-100' : 'opacity-80'
+        ready ? 'opacity-100' : 'opacity-70'
       )}
     />
   );
