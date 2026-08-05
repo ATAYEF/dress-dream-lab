@@ -638,7 +638,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         <p className="mt-4 text-center text-[11px] text-muted-foreground font-medium">
           برای انتخاب لباس تپ کنید · حداقل ۲ لباس برای ساخت ست
         </p>
-        </div>
       </div>
     </div>
   );
