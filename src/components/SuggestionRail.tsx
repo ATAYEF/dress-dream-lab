@@ -8,7 +8,6 @@ export interface RailItem {
   imageUrl: string;
   reason?: string;
   score?: number;
-  /** Can be added to the outfit (comes from the user's wardrobe) */
   addable?: boolean;
 }
 
@@ -18,16 +17,11 @@ interface SuggestionRailProps {
   icon: LucideIcon;
   items: RailItem[];
   onSelect?: (id: string) => void;
-  /** IDs currently in the outfit — show gold ring + check */
   selectedIds?: string[];
   showViewAll?: boolean;
   className?: string;
 }
 
-/**
- * Compact horizontal carousel matching mock — selected items get gold border + check.
- * Supports mouse drag-to-scroll and expand-all grid via «مشاهده همه».
- */
 export const SuggestionRail: React.FC<SuggestionRailProps> = ({
   title,
   subtitle,
@@ -43,40 +37,53 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
   const isDragging = useRef(false);
   const startX = useRef(0);
   const scrollLeftStart = useRef(0);
+  const targetScroll = useRef(0);
   const didDrag = useRef(false);
+  const raf = useRef<number | null>(null);
 
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    const el = scrollRef.current;
-    if (!el || expanded) return;
-    isDragging.current = true;
-    didDrag.current = false;
-    startX.current = e.pageX - el.offsetLeft;
-    scrollLeftStart.current = el.scrollLeft;
-    el.style.cursor = 'grabbing';
-    el.style.userSelect = 'none';
-  }, [expanded]);
+  const onMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      const el = scrollRef.current;
+      if (!el || expanded) return;
+      isDragging.current = true;
+      didDrag.current = false;
+      startX.current = e.pageX;
+      scrollLeftStart.current = el.scrollLeft;
+      targetScroll.current = el.scrollLeft;
+      el.style.cursor = 'grabbing';
+      el.style.userSelect = 'none';
+      el.style.scrollBehavior = 'auto';
+    },
+    [expanded]
+  );
 
   const onMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isDragging.current || !scrollRef.current) return;
     e.preventDefault();
-    const el = scrollRef.current;
-    const x = e.pageX - el.offsetLeft;
-    const walk = (x - startX.current) * 1.2;
-    if (Math.abs(walk) > 4) didDrag.current = true;
-    el.scrollLeft = scrollLeftStart.current - walk;
+    const dx = e.pageX - startX.current;
+    if (Math.abs(dx) > 3) didDrag.current = true;
+    targetScroll.current = scrollLeftStart.current - dx * 1.2;
+    if (raf.current == null) {
+      raf.current = requestAnimationFrame(() => {
+        if (scrollRef.current) scrollRef.current.scrollLeft = targetScroll.current;
+        raf.current = null;
+      });
+    }
   }, []);
 
-  const onMouseUp = useCallback(() => {
+  const endDrag = useCallback(() => {
+    if (!isDragging.current) return;
     isDragging.current = false;
     if (scrollRef.current) {
       scrollRef.current.style.cursor = 'grab';
       scrollRef.current.style.userSelect = '';
+      scrollRef.current.style.scrollBehavior = 'smooth';
+    }
+    if (raf.current != null) {
+      cancelAnimationFrame(raf.current);
+      raf.current = null;
     }
   }, []);
-
-  const onMouseLeave = useCallback(() => {
-    if (isDragging.current) onMouseUp();
-  }, [onMouseUp]);
 
   if (items.length === 0) return null;
 
@@ -88,7 +95,6 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
         key={item.id}
         type="button"
         onClick={() => {
-          // Ignore click if user was dragging
           if (didDrag.current) {
             didDrag.current = false;
             return;
@@ -109,7 +115,7 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
             : 'cursor-default opacity-95'
         )}
       >
-        <div className={cn('relative overflow-hidden bg-muted/40 rounded-[0.85rem]', wide ? 'aspect-square' : 'aspect-square')}>
+        <div className="relative aspect-square overflow-hidden bg-muted/40 rounded-[0.85rem]">
           <img
             src={item.imageUrl}
             alt={item.name}
@@ -174,20 +180,18 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
       </div>
 
       {expanded ? (
-        /* Expanded grid — pushes content below (auto layout) */
         <div className="grid grid-cols-3 gap-2.5 animate-in fade-in duration-200">
           {items.map((item) => renderItem(item, true))}
         </div>
       ) : (
-        /* Horizontal rail with mouse drag-to-scroll */
         <div
           ref={scrollRef}
           onMouseDown={onMouseDown}
           onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseLeave}
+          onMouseUp={endDrag}
+          onMouseLeave={endDrag}
           className="flex gap-2.5 overflow-x-auto custom-scroll-smooth pb-1.5 -mx-0.5 px-0.5 snap-x snap-mandatory cursor-grab active:cursor-grabbing"
-          style={{ scrollbarWidth: 'thin' }}
+          style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
         >
           {items.map((item) => renderItem(item, false))}
         </div>
