@@ -235,15 +235,12 @@ export function buildContextOutfit(
     tryPick((i) => i.category === 'dresses');
   }
 
-  // Classic path
-  if (need('tops')) tryPick((i) => i.category === 'tops');
-  if (need('bottoms') && need('dresses')) {
-    // if no dress, need bottoms
-    if (![...picked].some((p) => p.category === 'dresses')) {
-      tryPick((i) => i.category === 'bottoms');
-    }
-  } else if (need('bottoms')) {
-    tryPick((i) => i.category === 'bottoms');
+  const hasDress = picked.some((p) => p.category === 'dresses');
+
+  // Classic path — never combine tops/bottoms with a dress
+  if (!hasDress) {
+    if (need('tops')) tryPick((i) => i.category === 'tops');
+    if (need('bottoms')) tryPick((i) => i.category === 'bottoms');
   }
 
   if (need('shoes')) tryPick((i) => i.category === 'shoes');

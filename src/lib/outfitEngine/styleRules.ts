@@ -3,6 +3,17 @@ import { ClothingProfile } from './types';
 
 /** Hard reject combinations */
 export function isHardConflict(a: ClothingProfile, b: ClothingProfile): boolean {
+  // Dress is a full look — never pair with separate top or bottom
+  const isDress = (p: ClothingProfile) => p.category === 'dresses';
+  const isTop = (p: ClothingProfile) => p.category === 'tops';
+  const isBottom = (p: ClothingProfile) => p.category === 'bottoms';
+  if (
+    (isDress(a) && (isTop(b) || isBottom(b))) ||
+    (isDress(b) && (isTop(a) || isBottom(a)))
+  ) {
+    return true;
+  }
+
   // Winter coat + shorts
   const coldHeavy = (p: ClothingProfile) =>
     p.kind === 'jacket' && (p.season.includes('winter') || p.fabric === 'wool');
@@ -12,7 +23,6 @@ export function isHardConflict(a: ClothingProfile, b: ClothingProfile): boolean 
   ) {
     return true;
   }
-  // Formal jacket + ripped jeans heuristic via kind jeans + formal jacket in formal mismatch handled by score
   return false;
 }
 

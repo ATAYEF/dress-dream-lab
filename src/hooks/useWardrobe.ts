@@ -843,10 +843,21 @@ export const useWardrobe = () => {
       );
 
       const best = ranked[0];
-      const itemsForSuggestion =
+      const stripInvalidCombo = (items: ClothingItem[]) => {
+        const hasDress = items.some((i) => i.category === 'dresses');
+        const hasTop = items.some((i) => i.category === 'tops');
+        const hasBottom = items.some((i) => i.category === 'bottoms');
+        if (hasDress && (hasTop || hasBottom)) {
+          // Prefer one-piece look when a dress is present
+          return items.filter((i) => i.category !== 'tops' && i.category !== 'bottoms');
+        }
+        return items;
+      };
+      const itemsForSuggestion = stripInvalidCombo(
         selectedItems.length >= 2
           ? selectedItems
-          : best?.items || buildContextOutfit(clothes, context, selectedItems);
+          : best?.items || buildContextOutfit(clothes, context, selectedItems)
+      );
 
       if (itemsForSuggestion.length < 2) {
         toast({

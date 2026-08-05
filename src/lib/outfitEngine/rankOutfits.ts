@@ -38,6 +38,45 @@ function conflictsWithSet(
   return false;
 }
 
+/**
+ * Valid structures only:
+ * - dress (+ optional outerwear, shoes, accessories)
+ * - tops + bottoms (+ optional outerwear, shoes, accessories)
+ * Never: dress + tops, or dress + bottoms.
+ */
+function isValidOutfitStructure(items: ClothingItem[]): boolean {
+  const cats = new Set(items.map((i) => i.category));
+  const hasDress = cats.has('dresses');
+  const hasTop = cats.has('tops');
+  const hasBottom = cats.has('bottoms');
+  if (hasDress && (hasTop || hasBottom)) return false;
+  if (!hasDress && hasTop && !hasBottom) return true; // incomplete but allowed as partial
+  if (!hasDress && hasBottom && !hasTop) return true;
+  return true;
+}
+
+/** Drop conflicting pieces: prefer dress-only OR separates, keep shoes/accessories/outerwear */
+function sanitizeOutfit(items: ClothingItem[]): ClothingItem[] {
+  const dresses = items.filter((i) => i.category === 'dresses');
+  const tops = items.filter((i) => i.category === 'tops');
+  const bottoms = items.filter((i) => i.category === 'bottoms');
+  const rest = items.filter(
+    (i) => !['dresses', 'tops', 'bottoms'].includes(i.category)
+  );
+
+  if (dresses.length && (tops.length || bottoms.length)) {
+    // Prefer the dress path if a dress was included (one-piece look)
+    return [...dresses.slice(0, 1), ...rest];
+  }
+  // At most one top and one bottom
+  return [
+    ...tops.slice(0, 1),
+    ...bottoms.slice(0, 1),
+    ...dresses.slice(0, 1),
+    ...rest,
+  ];
+}
+
 /** Build several candidate outfits using category slots + top-scoring items */
 function generateCandidates(
   wardrobe: ClothingItem[],
@@ -67,8 +106,20 @@ function generateCandidates(
   }
 
   for (const structure of structures) {
-    const set = [...anchors];
-    const used = new Set(usedGlobal);
+    // Start from anchors but strip category conflicts (e.g. dress + top)
+    let set = sanitizeOutfit([...anchors]);
+    // If structure is separates-based, drop any leftover dress from anchors
+    if (structure.includes('tops') || structure.includes('bottoms')) {
+      if (structure.includes('dresses')) {
+        /* dress structure handled below */
+      } else {
+        set = set.filter((i) => i.category !== 'dresses');
+      }
+    }
+    if (structure.includes('dresses') && !structure.includes('tops')) {
+      set = set.filter((i) => i.category !== 'tops' && i.category !== 'bottoms');
+    }
+    const used = new Set(set.map((i) => i.id));
     for (const cat of structure) {
       if (set.some((i) => i.category === cat)) continue;
       // try top 3 in category for diversity
@@ -87,12 +138,13 @@ function generateCandidates(
         used.add(picked.id);
       }
     }
-    if (set.length >= 2) {
+    set = sanitizeOutfit(set);
+    if (set.length >= 2 && isValidOutfitStructure(set)) {
       candidates.push(set);
     }
   }
 
-  // Diversity: second pass with second-best tops/bottoms
+  // Diversity: second pass with second-best tops/bottoms (never mix with dress)
   const tops = wardrobe
     .filter((i) => i.category === 'tops')
     .sort((a, b) => (scores.get(b.id) || 0) - (scores.get(a.id) || 0));
@@ -102,19 +154,24 @@ function generateCandidates(
   for (let i = 0; i < Math.min(3, tops.length); i++) {
     for (let j = 0; j < Math.min(3, bottoms.length); j++) {
       if (tops[i].id === bottoms[j].id) continue;
-      const set = [...anchors];
+      // Separates only — strip any dress from anchors
+      let set = sanitizeOutfit(
+        anchors.filter((a) => a.category !== 'dresses')
+      );
       const ids = new Set(set.map((s) => s.id));
       if (!ids.has(tops[i].id)) set.push(tops[i]);
       if (!ids.has(bottoms[j].id)) set.push(bottoms[j]);
       const shoe = pickBest(wardrobe, profiles, scores, 'shoes', new Set(set.map((s) => s.id)));
       if (shoe) set.push(shoe);
-      if (set.length >= 2) candidates.push(set);
+      set = sanitizeOutfit(set);
+      if (set.length >= 2 && isValidOutfitStructure(set)) candidates.push(set);
     }
   }
 
-  // Dedupe by sorted id key
+  // Dedupe by sorted id key + final validity
   const seen = new Set<string>();
   return candidates.filter((c) => {
+    if (!isValidOutfitStructure(c)) return false;
     const key = c
       .map((i) => i.id)
       .sort()
@@ -264,11 +321,19 @@ export function runOutfitEngine(
   );
 
   if (candidates.length === 0 && wardrobe.length >= 2) {
-    // fallback: top 2 by score
-    const top = [...wardrobe]
-      .sort((a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0))
-      .slice(0, 3);
-    if (top.length >= 2) candidates.push(top);
+    // fallback: best valid structure by score
+    const byScore = [...wardrobe].sort(
+      (a, b) => (scoreMap.get(b.id) || 0) - (scoreMap.get(a.id) || 0)
+    );
+    const dress = byScore.find((i) => i.category === 'dresses');
+    const topI = byScore.find((i) => i.category === 'tops');
+    const bottomI = byScore.find((i) => i.category === 'bottoms');
+    const shoe = byScore.find((i) => i.category === 'shoes');
+    if (dress) {
+      candidates.push(sanitizeOutfit([dress, shoe].filter(Boolean) as ClothingItem[]));
+    } else if (topI && bottomI) {
+      candidates.push(sanitizeOutfit([topI, bottomI, shoe].filter(Boolean) as ClothingItem[]));
+    }
   }
 
   const ranked = candidates
