@@ -22,15 +22,38 @@ export const DEFAULT_OUTFIT_CONTEXT: OutfitContext = {
   weather: 'sunny',
 };
 
+/**
+ * Keep style + place coherent:
+ * - مهمانی → فقط دورهمی/مراسم
+ * - رسمی → ترجیحاً محل کار
+ */
+export function coerceOutfitContext(ctx: OutfitContext): OutfitContext {
+  if (ctx.style === 'party' && ctx.environment === 'office') {
+    return { ...ctx, environment: 'gathering' };
+  }
+  if (ctx.style === 'formal' && ctx.environment === 'gathering') {
+    // allow gathering for formal events, but default office is preferred when switching TO formal
+    return ctx;
+  }
+  return ctx;
+}
+
+export function withStyle(ctx: OutfitContext, style: OutfitStyle): OutfitContext {
+  const next = { ...ctx, style };
+  if (style === 'party') return { ...next, environment: 'gathering' };
+  if (style === 'formal') return { ...next, environment: 'office' };
+  return next;
+}
+
 export const STYLE_OPTIONS: {
   value: OutfitStyle;
   label: string;
   emoji: string;
   hint: string;
 }[] = [
-  { value: 'casual', label: 'روزمره', emoji: '☀️', hint: 'راحت و کاربردی' },
-  { value: 'formal', label: 'رسمی', emoji: '👔', hint: 'اداری و رسمی' },
-  { value: 'party', label: 'مهمانی', emoji: '✨', hint: 'جذاب و خاص' },
+  { value: 'casual', label: 'روزمره', emoji: '☀️', hint: 'استایل راحت روزانه' },
+  { value: 'formal', label: 'رسمی', emoji: '👔', hint: 'محیط کار و قرار رسمی' },
+  { value: 'party', label: 'مهمانی', emoji: '✨', hint: 'جشن، شب و دورهمی خاص' },
 ];
 
 export const ENVIRONMENT_OPTIONS: {
@@ -39,8 +62,8 @@ export const ENVIRONMENT_OPTIONS: {
   emoji: string;
   hint: string;
 }[] = [
-  { value: 'office', label: 'اداری', emoji: '🏢', hint: 'محیط کار' },
-  { value: 'gathering', label: 'دورهمی', emoji: '🎉', hint: 'دوستانه و اجتماعی' },
+  { value: 'office', label: 'محل کار', emoji: '🏢', hint: 'اداره و جلسات کاری' },
+  { value: 'gathering', label: 'دورهمی / مراسم', emoji: '🎉', hint: 'مهمانی، قرار دوستانه، مراسم' },
 ];
 
 export const WEATHER_OPTIONS: {

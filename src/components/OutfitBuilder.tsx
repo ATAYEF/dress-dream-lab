@@ -246,34 +246,34 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           )}
         </div>
 
-        {/* Occasion context — collapsed by default to reduce noise */}
+        {/* شرایط + اقدام اصلی — سلسله‌مراتب واضح */}
         <div className="mb-4 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
             <button
               type="button"
               onClick={() => setShowContext((v) => !v)}
-              className="flex-1 min-w-[140px] flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs font-extrabold bg-white/55 border border-border/40 hover:bg-white/80 transition-colors"
+              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-extrabold bg-white/60 border border-border/40 hover:bg-white/85 transition-colors text-right"
             >
-              <span>شرایط ست (اختیاری)</span>
-              <span className="text-muted-foreground font-bold">{showContext ? 'بستن' : 'باز کردن'}</span>
+              <span className="truncate">
+                شرایط:{' '}
+                <span className="text-foreground">{contextLabels(outfitContext)}</span>
+              </span>
+              <span className="text-muted-foreground font-bold shrink-0">
+                {showContext ? 'بستن' : 'تغییر'}
+              </span>
             </button>
             <Button
               type="button"
-              variant="soft"
-              size="sm"
-              onClick={handleAutoFill}
-              disabled={clothes.length < 2 || isGenerating}
-              className="font-bold shrink-0"
+              variant="gold"
+              size="default"
+              onClick={handleGenerate}
+              disabled={!canGenerate || isGenerating}
+              className="font-extrabold shrink-0 min-h-[44px] sm:min-w-[140px] shadow-button-gold"
             >
-              <Sparkles className="w-3.5 h-3.5 text-gold" />
-              پر کردن خودکار
+              <Sparkles className="w-4 h-4" />
+              {isGenerating ? 'در حال تولید…' : 'تولید ست'}
             </Button>
           </div>
-          {!showContext && (
-            <p className="text-[11px] text-muted-foreground font-medium px-1">
-              پیشنهاد برای: <span className="font-extrabold text-foreground">{contextLabels(outfitContext)}</span>
-            </p>
-          )}
           {showContext && (
             <OutfitContextPicker value={outfitContext} onChange={setOutfitContext} />
           )}
