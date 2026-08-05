@@ -22,6 +22,7 @@ import { MyWardrobeSection } from '@/components/MyWardrobeSection';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
+import { FilterChip, FilterChipGroup, SegmentedControl } from '@/components/shared';
 import { ClothingItem } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,7 +35,6 @@ const Index = () => {
     profile,
     clothes,
     suggestions,
-    favoriteSuggestions,
     isLoading,
     isGenerating,
     userId,
@@ -62,13 +62,26 @@ const Index = () => {
 
   const [mainTab, setMainTab] = useState<'start' | 'builder' | 'wardrobe' | 'outfits'>('start');
 
-  // First-time users stay on guided start; once they have clothes, open builder
   useEffect(() => {
     if (clothes.length >= 2 && mainTab === 'start') {
       setMainTab('builder');
     }
   }, [clothes.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const hasActiveFilters =
+    showFavoritesOnly ||
+    outfitFilterLiked ||
+    outfitFilterStyle !== 'all' ||
+    outfitFilterEnv !== 'all' ||
+    outfitFilterWeather !== 'all';
+
+  const clearOutfitFilters = () => {
+    setShowFavoritesOnly(false);
+    setOutfitFilterLiked(false);
+    setOutfitFilterStyle('all');
+    setOutfitFilterEnv('all');
+    setOutfitFilterWeather('all');
+  };
 
   const displayedSuggestions = suggestions.filter((s) => {
     if (showFavoritesOnly && !s.isFavorite) return false;
@@ -81,10 +94,7 @@ const Index = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({
-      title: 'خروج موفق',
-      description: 'با موفقیت خارج شدید',
-    });
+    toast({ title: 'خروج موفق', description: 'با موفقیت خارج شدید' });
   };
 
   const handleOpenAdd = () => {
@@ -105,7 +115,6 @@ const Index = () => {
 
   const handleConfirmDelete = async () => {
     if (!deletingItem || isDeleting) return;
-
     setIsDeleting(true);
     const wasRemoved = await removeClothing(deletingItem.id);
     if (wasRemoved) setDeletingItem(null);
@@ -131,7 +140,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative" dir="rtl">
-      {/* Background decorative blobs */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden -z-10" aria-hidden="true">
         <div
           className="absolute -top-40 -right-40 w-[500px] h-[500px] rounded-full opacity-30 animate-blob"
@@ -143,11 +151,9 @@ const Index = () => {
         />
       </div>
 
-      {/* ========== Header ========== */}
       <header className="sticky top-0 z-50 safe-top">
         <div className="glass-strong">
           <div className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2.5 md:py-4 flex items-center justify-between gap-2 md:gap-4">
-            {/* Logo */}
             <div className="flex items-center gap-2.5 md:gap-3 cursor-pointer group" role="banner">
               <div className="relative" aria-hidden="true">
                 <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-40 blur-md group-hover:opacity-70 transition-opacity duration-500 animate-glow-pulse" />
@@ -156,50 +162,24 @@ const Index = () => {
                 </div>
               </div>
               <div className="flex flex-col leading-none">
-                <span className="text-xl md:text-2xl font-display font-black tracking-tight">
-                  استایلر
-                </span>
-                <span className="text-[9px] md:text-[10px] text-muted-foreground font-bold -mt-0.5">
-                  ✨ کمد هوشمند رویایی
-                </span>
+                <span className="text-xl md:text-2xl font-display font-black tracking-tight">استایلر</span>
+                <span className="text-[9px] md:text-[10px] text-muted-foreground font-bold -mt-0.5">✨ کمد هوشمند رویایی</span>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-2 md:gap-2.5">
               <ThemeToggle />
-
-              <Button
-                onClick={handleOpenAdd}
-                variant="gold"
-                size="default"
-                className="group relative overflow-hidden shrink-0"
-                aria-label="افزودن لباس جدید"
-              >
+              <Button onClick={handleOpenAdd} variant="gold" size="default" className="group relative overflow-hidden shrink-0" aria-label="افزودن لباس جدید">
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" aria-hidden="true" />
                 <Plus className="w-4.5 h-4.5 relative" strokeWidth={2.75} aria-hidden="true" />
                 <span className="hidden sm:inline relative font-extrabold">افزودن لباس</span>
               </Button>
-
               {userId ? (
-                <Button
-                  onClick={handleLogout}
-                  variant="soft"
-                  size="icon"
-                  className="shrink-0"
-                  aria-label="خروج از حساب"
-                  title="خروج"
-                >
+                <Button onClick={handleLogout} variant="soft" size="icon" className="shrink-0" aria-label="خروج از حساب" title="خروج">
                   <LogOut className="w-5 h-5" aria-hidden="true" />
                 </Button>
               ) : (
-                <Button
-                  onClick={() => navigate('/auth')}
-                  variant="soft"
-                  size="default"
-                  className="shrink-0"
-                  aria-label="ورود یا ثبت‌نام"
-                >
+                <Button onClick={() => navigate('/auth')} variant="soft" size="default" className="shrink-0" aria-label="ورود یا ثبت‌نام">
                   <LogIn className="w-4 h-4" aria-hidden="true" />
                   <span className="hidden sm:inline font-bold">ورود</span>
                 </Button>
@@ -209,10 +189,7 @@ const Index = () => {
         </div>
       </header>
 
-      {/* ========== Main Content ========== */}
       <main id="main-content" className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad pb-28 md:pb-12" tabIndex={-1}>
-
-        {/* Compact welcome strip */}
         <section className="animate-fade-up" aria-label="خلاصه کمد">
           <div className="flex items-center gap-3 p-3 md:p-4 rounded-2xl bg-gradient-card hairline-border shadow-soft">
             <button
@@ -261,11 +238,7 @@ const Index = () => {
           />
         </section>
 
-        {/* Primary navigation — only one focus at a time */}
-        <nav
-          className="sticky top-[3.6rem] md:top-[4.2rem] z-30 -mx-1 px-1 py-1.5 rounded-2xl bg-background/90 backdrop-blur-md border border-border/40 shadow-sm"
-          aria-label="بخش‌های اصلی"
-        >
+        <nav className="sticky top-[3.6rem] md:top-[4.2rem] z-30 -mx-1 px-1 py-1.5 rounded-2xl bg-background/90 backdrop-blur-md border border-border/40 shadow-sm" aria-label="بخش‌های اصلی">
           <div className="grid grid-cols-3 gap-1" role="tablist">
             {(
               [
@@ -274,8 +247,7 @@ const Index = () => {
                 { id: 'outfits' as const, label: 'ست‌های شما', icon: Heart },
               ] as const
             ).map((tab) => {
-              const active =
-                mainTab === tab.id || (mainTab === 'start' && tab.id === 'builder');
+              const active = mainTab === tab.id || (mainTab === 'start' && tab.id === 'builder');
               const Icon = tab.icon;
               const disabled = tab.id === 'outfits' && suggestions.length === 0;
               return (
@@ -290,9 +262,7 @@ const Index = () => {
                   className={cn(
                     'flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 py-2.5 px-2 rounded-xl text-[11px] sm:text-sm font-extrabold transition-all min-h-[44px]',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2',
-                    active
-                      ? 'bg-gradient-gold text-white shadow-md'
-                      : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                    active ? 'bg-gradient-gold text-white shadow-md' : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
                     disabled && 'opacity-40 cursor-not-allowed'
                   )}
                 >
@@ -309,7 +279,6 @@ const Index = () => {
           </div>
         </nav>
 
-        {/* ===== START / empty guidance ===== */}
         {(mainTab === 'start' || (mainTab === 'builder' && clothes.length < 2)) && (
           <section className="animate-fade-up rounded-3xl border border-gold/25 bg-gradient-card p-6 md:p-10 text-center shadow-soft" aria-labelledby="onboarding-title">
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold" aria-hidden="true">
@@ -347,16 +316,13 @@ const Index = () => {
           </section>
         )}
 
-        {/* ===== BUILDER ===== */}
         {mainTab === 'builder' && clothes.length >= 2 && (
           <section id="outfit-builder" className="animate-fade-up relative scroll-mt-28" aria-labelledby="builder-title">
             <div className="text-center mb-3 max-w-xl mx-auto">
               <h1 id="builder-title" className="text-xl md:text-2xl font-display font-black tracking-tight">
                 <span className="text-gradient-gold">ست‌ساز</span>
               </h1>
-              <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                لباس انتخاب کنید، روی مانکن ببینید، ست بسازید
-              </p>
+              <p className="text-xs md:text-sm text-muted-foreground mt-1">لباس انتخاب کنید، روی مانکن ببینید، ست بسازید</p>
             </div>
             <div className="relative rounded-[1.75rem] shadow-elevated ring-1 ring-gold/15 overflow-hidden">
               <OutfitBuilder
@@ -372,7 +338,6 @@ const Index = () => {
           </section>
         )}
 
-        {/* ===== WARDROBE ===== */}
         {mainTab === 'wardrobe' && (
           <MyWardrobeSection
             clothes={clothes}
@@ -386,68 +351,40 @@ const Index = () => {
           />
         )}
 
-        {/* ===== OUTFITS ===== */}
         {mainTab === 'outfits' && suggestions.length > 0 && (
           <section className="animate-fade-up space-y-4" aria-labelledby="outfits-title">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <h2 id="outfits-title" className="text-lg md:text-xl font-display font-black">ست‌های شما</h2>
               <span className="text-xs font-bold text-muted-foreground">
-                {displayedSuggestions.length.toLocaleString('fa-IR')} از{' '}
-                {suggestions.length.toLocaleString('fa-IR')}
+                {displayedSuggestions.length.toLocaleString('fa-IR')} از {suggestions.length.toLocaleString('fa-IR')}
               </span>
             </div>
 
-            {/* Filters — compact trendy chip / segmented UI */}
             <div className="space-y-2.5" dir="rtl" role="group" aria-label="فیلتر ست‌ها">
-              {/* Status toggles */}
               <div className="flex items-center gap-2 flex-wrap">
-                <div className="inline-flex items-center gap-1 p-1 rounded-full bg-muted/70 border border-border/30">
-                  <button
-                    type="button"
-                    onClick={() => setShowFavoritesOnly((v) => !v)}
-                    aria-pressed={showFavoritesOnly}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
-                      showFavoritesOnly
-                        ? 'bg-white text-rose shadow-sm dark:bg-rose dark:text-white'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                <FilterChipGroup>
+                  <FilterChip
+                    pressed={showFavoritesOnly}
+                    onPressedChange={setShowFavoritesOnly}
+                    icon={<span>♥</span>}
+                    activeClassName="bg-white text-rose shadow-sm dark:bg-rose dark:text-white"
                   >
-                    <span aria-hidden="true">♥</span>
                     علاقه
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setOutfitFilterLiked((v) => !v)}
-                    aria-pressed={outfitFilterLiked}
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-extrabold transition-all min-h-[32px]',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
-                      outfitFilterLiked
-                        ? 'bg-white text-emerald-700 shadow-sm dark:bg-emerald-600 dark:text-white'
-                        : 'text-muted-foreground hover:text-foreground'
-                    )}
+                  </FilterChip>
+                  <FilterChip
+                    pressed={outfitFilterLiked}
+                    onPressedChange={setOutfitFilterLiked}
+                    icon={<span>👍</span>}
+                    activeClassName="bg-white text-emerald-700 shadow-sm dark:bg-emerald-600 dark:text-white"
                   >
-                    <span aria-hidden="true">👍</span>
                     لایک‌شده
-                  </button>
-                </div>
+                  </FilterChip>
+                </FilterChipGroup>
 
-                {(showFavoritesOnly ||
-                  outfitFilterLiked ||
-                  outfitFilterStyle !== 'all' ||
-                  outfitFilterEnv !== 'all' ||
-                  outfitFilterWeather !== 'all') && (
+                {hasActiveFilters && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowFavoritesOnly(false);
-                      setOutfitFilterLiked(false);
-                      setOutfitFilterStyle('all');
-                      setOutfitFilterEnv('all');
-                      setOutfitFilterWeather('all');
-                    }}
+                    onClick={clearOutfitFilters}
                     className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-extrabold text-muted-foreground hover:text-rose hover:bg-rose/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
                   >
                     ✕ پاک کردن
@@ -455,85 +392,39 @@ const Index = () => {
                 )}
               </div>
 
-              {/* Context segmented controls */}
               <div className="flex flex-col gap-2">
-                {(
-                  [
-                    {
-                      key: 'style',
-                      label: 'مناسبت',
-                      value: outfitFilterStyle,
-                      set: setOutfitFilterStyle,
-                      options: [
-                        ['all', 'همه'],
-                        ['casual', 'روزمره'],
-                        ['formal', 'رسمی'],
-                        ['party', 'مهمانی'],
-                      ] as const,
-                      activeClass: 'bg-foreground text-background shadow-sm',
-                    },
-                    {
-                      key: 'env',
-                      label: 'مکان',
-                      value: outfitFilterEnv,
-                      set: setOutfitFilterEnv,
-                      options: [
-                        ['all', 'همه'],
-                        ['office', 'محل کار'],
-                        ['gathering', 'دورهمی'],
-                      ] as const,
-                      activeClass: 'bg-foreground text-background shadow-sm',
-                    },
-                    {
-                      key: 'weather',
-                      label: 'هوا',
-                      value: outfitFilterWeather,
-                      set: setOutfitFilterWeather,
-                      options: [
-                        ['all', 'همه'],
-                        ['sunny', 'آفتابی'],
-                        ['rainy', 'بارانی'],
-                        ['cold', 'سرد'],
-                      ] as const,
-                      activeClass: 'bg-foreground text-background shadow-sm',
-                    },
-                  ] as const
-                ).map((group) => (
-                  <div
-                    key={group.key}
-                    className="flex items-center gap-2 min-w-0"
-                    role="group"
-                    aria-label={group.label}
-                  >
-                    <span className="text-[10px] font-black text-muted-foreground w-12 shrink-0">
-                      {group.label}
-                    </span>
-                    <div className="flex-1 min-w-0 overflow-x-auto scrollbar-none">
-                      <div className="inline-flex items-center gap-0.5 p-1 rounded-full bg-muted/70 border border-border/30">
-                        {group.options.map(([v, label]) => {
-                          const active = group.value === v;
-                          return (
-                            <button
-                              key={v}
-                              type="button"
-                              aria-pressed={active}
-                              onClick={() => (group.set as (x: string) => void)(v)}
-                              className={cn(
-                                'px-3 py-1.5 rounded-full text-[11px] font-extrabold whitespace-nowrap transition-all min-h-[30px]',
-                                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
-                                active
-                                  ? group.activeClass
-                                  : 'text-muted-foreground hover:text-foreground'
-                              )}
-                            >
-                              {label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                <SegmentedControl
+                  label="مناسبت"
+                  value={outfitFilterStyle}
+                  onChange={setOutfitFilterStyle}
+                  options={[
+                    { value: 'all', label: 'همه' },
+                    { value: 'casual', label: 'روزمره' },
+                    { value: 'formal', label: 'رسمی' },
+                    { value: 'party', label: 'مهمانی' },
+                  ]}
+                />
+                <SegmentedControl
+                  label="مکان"
+                  value={outfitFilterEnv}
+                  onChange={setOutfitFilterEnv}
+                  options={[
+                    { value: 'all', label: 'همه' },
+                    { value: 'office', label: 'محل کار' },
+                    { value: 'gathering', label: 'دورهمی' },
+                  ]}
+                />
+                <SegmentedControl
+                  label="هوا"
+                  value={outfitFilterWeather}
+                  onChange={setOutfitFilterWeather}
+                  options={[
+                    { value: 'all', label: 'همه' },
+                    { value: 'sunny', label: 'آفتابی' },
+                    { value: 'rainy', label: 'بارانی' },
+                    { value: 'cold', label: 'سرد' },
+                  ]}
+                />
               </div>
             </div>
 
@@ -544,84 +435,45 @@ const Index = () => {
                   فیلتر را ساده‌تر کنید یا یک ست جدید با شرایط دلخواه تولید کنید.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowFavoritesOnly(false);
-                      setOutfitFilterLiked(false);
-                      setOutfitFilterStyle('all');
-                      setOutfitFilterEnv('all');
-                      setOutfitFilterWeather('all');
-                    }}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-                  >
+                  <button type="button" onClick={clearOutfitFilters} className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                     پاک کردن فیلترها
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setMainTab('builder')}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-                  >
+                  <button type="button" onClick={() => setMainTab('builder')} className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[40px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold">
                     تولید ست جدید
                   </button>
                 </div>
               </div>
             ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {displayedSuggestions.map((suggestion) => (
-                <OutfitSuggestionCard
-                  key={suggestion.id}
-                  suggestion={suggestion}
-                  onToggleFavorite={toggleFavorite}
-                  onFeedback={(liked) => feedbackOutfit(suggestion, liked)}
-                  onDelete={deleteSuggestion}
-                />
-              ))}
-            </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {displayedSuggestions.map((suggestion) => (
+                  <OutfitSuggestionCard
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    onToggleFavorite={toggleFavorite}
+                    onFeedback={(liked) => feedbackOutfit(suggestion, liked)}
+                    onDelete={deleteSuggestion}
+                  />
+                ))}
+              </div>
             )}
           </section>
         )}
 
-        {/* ========== Login CTA for anonymous users ========== */}
         {!userId && clothes.length > 0 && (
           <section className="animate-fade-up stagger-4" aria-labelledby="login-cta-title">
             <div className="relative overflow-hidden rounded-[2rem] p-6 md:p-8 lg:p-10 text-center">
-              {/* Background */}
               <div className="absolute inset-0 bg-gradient-to-br from-gold/15 via-white/60 to-rose/12" aria-hidden="true" />
-              <div
-                className="absolute -top-20 -right-16 w-64 h-64 rounded-full opacity-40 animate-blob pointer-events-none"
-                style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
-                aria-hidden="true"
-              />
-              <div
-                className="absolute -bottom-20 -left-16 w-64 h-64 rounded-full opacity-30 animate-blob animation-delay-2000 pointer-events-none"
-                style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
-                aria-hidden="true"
-              />
-
               <div className="relative flex flex-col md:flex-row items-center justify-center gap-5 md:gap-8">
                 <div className="relative shrink-0 animate-float" aria-hidden="true">
                   <div className="absolute -inset-2 rounded-3xl bg-gradient-gold/20 blur-xl" />
-                  <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-[2rem] bg-gradient-gold shadow-button-gold flex items-center justify-center text-3xl md:text-4xl">
-                    🔒
-                  </div>
+                  <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-[2rem] bg-gradient-gold shadow-button-gold flex items-center justify-center text-3xl md:text-4xl">🔒</div>
                 </div>
-
                 <div className="max-w-xl">
-                  <h3 id="login-cta-title" className="text-xl md:text-2xl font-display font-black mb-2 md:mb-3 tracking-tight">
-                    ذخیره‌سازی ابری و امن لباس‌ها و ست‌های شما
-                  </h3>
+                  <h3 id="login-cta-title" className="text-xl md:text-2xl font-display font-black mb-2 md:mb-3 tracking-tight">ذخیره‌سازی ابری و امن لباس‌ها و ست‌های شما</h3>
                   <p className="text-sm md:text-base text-muted-foreground mb-5 md:mb-6 leading-relaxed">
                     با ورود، کمد و ست‌های شما در ابر می‌ماند و از هر دستگاهی در دسترس است.
-                    دغدغه‌ای از دست دادن لباس‌ها و ست‌های مورد علاقه‌تون نداشته باشید! 🌤️
                   </p>
-                  <Button
-                    onClick={() => navigate('/auth')}
-                    variant="gold"
-                    size="xl"
-                    className="group relative overflow-hidden shadow-lg"
-                  >
-                    <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" aria-hidden="true" />
+                  <Button onClick={() => navigate('/auth')} variant="gold" size="xl" className="group relative overflow-hidden shadow-lg">
                     <LogIn className="w-5 h-5 relative" aria-hidden="true" />
                     <span className="relative font-extrabold">ورود یا ثبت‌نام فوری</span>
                   </Button>
@@ -631,11 +483,9 @@ const Index = () => {
           </section>
         )}
 
-        {/* ========== Footer spacer (extra room for mobile FAB) ========== */}
         <div className="h-24 md:h-12" aria-hidden="true" />
       </main>
 
-      {/* Mobile FAB + Scroll to top + Generating banner */}
       {clothes.length < 2 ? (
         <MobileFab mode="add" onClick={handleOpenAdd} />
       ) : mainTab === 'start' ? (
@@ -646,31 +496,11 @@ const Index = () => {
       <ScrollToTop />
       <GeneratingBanner visible={isGenerating} />
 
-      <ClothingDetailsModal
-        item={viewingItem}
-        onClose={() => setViewingItem(null)}
-        onEdit={handleOpenEdit}
-        onDelete={handleRequestDelete}
-      />
+      <ClothingDetailsModal item={viewingItem} onClose={() => setViewingItem(null)} onEdit={handleOpenEdit} onDelete={handleRequestDelete} />
+      <AddClothingModal isOpen={isModalOpen} onClose={handleCloseClothingModal} onAdd={addClothing} editingItem={editingItem} onEdit={updateClothing} />
+      <BulkAddClothingModal isOpen={isBulkModalOpen} onClose={() => setIsBulkModalOpen(false)} onAdd={addClothing} />
 
-      <AddClothingModal
-        isOpen={isModalOpen}
-        onClose={handleCloseClothingModal}
-        onAdd={addClothing}
-        editingItem={editingItem}
-        onEdit={updateClothing}
-      />
-
-      <BulkAddClothingModal
-        isOpen={isBulkModalOpen}
-        onClose={() => setIsBulkModalOpen(false)}
-        onAdd={addClothing}
-      />
-
-      <AlertDialog
-        open={Boolean(deletingItem)}
-        onOpenChange={(open) => !open && !isDeleting && setDeletingItem(null)}
-      >
+      <AlertDialog open={Boolean(deletingItem)} onOpenChange={(open) => !open && !isDeleting && setDeletingItem(null)}>
         <AlertDialogContent dir="rtl" className="sm:rounded-3xl">
           <AlertDialogHeader className="text-right sm:text-right">
             <AlertDialogTitle>حذف «{deletingItem?.name}»؟</AlertDialogTitle>
