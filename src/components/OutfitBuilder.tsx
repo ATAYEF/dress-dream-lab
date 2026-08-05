@@ -149,11 +149,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
       return;
     }
 
-    // Reflect auto-picked set on mannequin before clearing
-    setOutfitItems(finalItems);
+    // Suggestion is saved as a card — do NOT dump auto-picked set onto the mannequin.
+    // Mannequin only shows what the user explicitly selected in category body-slots.
     onGenerateSuggestion(finalItems, outfitContext);
-    // Keep items briefly visible on mannequin; clear after short delay
-    window.setTimeout(() => setOutfitItems([]), 400);
   };
 
   const handleAutoFill = () => {

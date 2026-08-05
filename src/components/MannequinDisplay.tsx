@@ -282,15 +282,50 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     transition: isDragging ? 'none' : 'transform 0.2s ease-out',
   };
 
-  // ===== Item layout positions =====
+  // ===== Body-slot layout (category zones — not "stuck on" mannequin face) =====
   const top = items.find((i) => i.category === 'tops');
   const bottom = items.find((i) => i.category === 'bottoms');
   const dress = items.find((i) => i.category === 'dresses');
   const outerwear = items.find((i) => i.category === 'outerwear');
+  const shoesItem = items.find((i) => i.category === 'shoes');
+  const accessoryItems = items.filter((i) => i.category === 'accessories');
+
+  /** Precise body zones for a standing figure in aspect-[3/5] frame */
+  const SLOT = {
+    // shoulders → mid-torso
+    tops: { top: '16%', left: '24%', width: '52%', height: '28%' },
+    // coat / jacket over torso, slightly wider
+    outerwear: { top: '14%', left: '18%', width: '64%', height: '36%' },
+    // waist → ankles
+    bottoms: { top: '42%', left: '27%', width: '46%', height: '40%' },
+    // full one-piece
+    dresses: { top: '16%', left: '24%', width: '52%', height: '58%' },
+    // feet
+    shoes: { top: '84%', left: '28%', width: '44%', height: '12%' },
+    // neck / scarf
+    accessoryHead: { top: '9%', left: '35%', width: '30%', height: '9%' },
+    // belt at waist
+    accessoryBelt: { top: '41%', left: '30%', width: '40%', height: '5%' },
+    // bag at right hip
+    accessoryBag: { top: '48%', left: '68%', width: '28%', height: '16%' },
+  } as const;
+
+  const slotStyle = (
+    slot: { top: string; left: string; width: string; height: string },
+    z: number,
+    delay = '0.05s'
+  ): React.CSSProperties => ({
+    ...slot,
+    zIndex: z,
+    position: 'absolute',
+    animationDelay: delay,
+    animationFillMode: 'backwards',
+    filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.22))',
+  });
 
   return (
     <div className={cn('w-full max-w-[320px] mx-auto', className)}>
-      {/* Mannequin Canvas */}
+      {/* Body canvas */}
       <div
         ref={containerRef}
         className="relative w-full aspect-[3/5] overflow-hidden rounded-3xl bg-gradient-card hairline-border shadow-card"
@@ -303,7 +338,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Background decorative blobs */}
         <div
           className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-40 animate-blob"
           style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
@@ -314,201 +348,148 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         />
 
         <div style={zoomableStyle} className="w-full h-full relative select-none">
-          {/* Base mannequin */}
+          {/* Faint silhouette guide only — garments sit in category slots, not glued on mannequin */}
           <img
             src={mannequinImage}
-            alt="مانکن"
-            className="absolute inset-0 w-full h-full object-contain drop-shadow-xl"
+            alt=""
+            aria-hidden
+            className={cn(
+              'absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-500',
+              hasSelectedItems ? 'opacity-[0.12]' : 'opacity-90 drop-shadow-xl'
+            )}
             draggable={false}
           />
 
-          {/* Instant CSS composite — garments laid on the silhouette (no AI needed) */}
+          {/* Zone labels when items present */}
+          {hasSelectedItems && (
+            <>
+              <span className="absolute top-[14%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
+                بالاتنه
+              </span>
+              <span className="absolute top-[48%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
+                پایین‌تنه
+              </span>
+              <span className="absolute top-[86%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
+                کفش
+              </span>
+            </>
+          )}
+
+          {/* Dress (full body) — only when no separate top/bottom */}
           {dress && !top && !bottom && (
-            <div
-              key={dress.id}
-              className="absolute z-10 animate-fade-up"
-              style={{
-                top: '15%',
-                left: '25%',
-                width: '50%',
-                height: '58%',
-                animationDelay: '0.05s',
-                animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 22px rgba(0,0,0,0.25))',
-              }}
-            >
+            <div key={dress.id} className="animate-fade-up" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
               <img
                 src={dress.imageUrl}
                 alt={dress.name}
-                className="w-full h-full object-contain transition-all duration-500"
+                className="w-full h-full object-contain object-center"
                 draggable={false}
               />
             </div>
           )}
 
+          {/* Tops — chest / torso */}
           {top && (
-            <div
-              key={top.id}
-              className="absolute z-10 animate-fade-up"
-              style={{
-                top: '15%',
-                left: '22%',
-                width: '56%',
-                height: '30%',
-                animationDelay: '0.05s',
-                animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 6px 16px rgba(0,0,0,0.2))',
-              }}
-            >
+            <div key={top.id} className="animate-fade-up" style={slotStyle(SLOT.tops, 12, '0.05s')}>
               <img
                 src={top.imageUrl}
                 alt={top.name}
-                className="w-full h-full object-contain transition-all duration-500"
+                className="w-full h-full object-contain object-center"
                 draggable={false}
               />
             </div>
           )}
 
+          {/* Outerwear — over torso, wider */}
           {outerwear && (
             <div
               key={outerwear.id}
-              className="absolute z-30 animate-fade-up"
-              style={{
-                top: '14%',
-                left: '17%',
-                width: '66%',
-                height: '38%',
-                animationDelay: '0.15s',
-                animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.22))',
-              }}
+              className="animate-fade-up"
+              style={slotStyle(SLOT.outerwear, 18, '0.12s')}
             >
               <img
                 src={outerwear.imageUrl}
                 alt={outerwear.name}
-                className="w-full h-full object-contain transition-all duration-500"
+                className="w-full h-full object-contain object-center"
                 draggable={false}
               />
             </div>
           )}
 
+          {/* Bottoms — hips to ankles */}
           {bottom && (
-            <div
-              key={bottom.id}
-              className="absolute z-20 animate-fade-up"
-              style={{
-                top: '42%',
-                left: '28%',
-                width: '44%',
-                height: '46%',
-                animationDelay: '0.1s',
-                animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 8px 18px rgba(0,0,0,0.2))',
-              }}
-            >
+            <div key={bottom.id} className="animate-fade-up" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
               <img
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-contain transition-all duration-500"
+                className="w-full h-full object-contain object-center"
                 draggable={false}
               />
             </div>
           )}
 
-
-          {/* Active shoes - either user's own, or suggested */}
+          {/* Shoes — feet zone */}
           {activeShoe && (
-            <>
+            <div
+              className="animate-fade-up"
+              style={slotStyle(SLOT.shoes, 16, '0.15s')}
+            >
+              <img
+                src={activeShoe.imageUrl}
+                alt={activeShoe.name}
+                loading="lazy"
+                className="w-full h-full object-contain object-center"
+                draggable={false}
+              />
+            </div>
+          )}
+
+          {/* User accessories — distribute by type heuristic */}
+          {accessoryItems.map((acc, index) => {
+            const name = `${acc.name} ${(acc.tags || []).join(' ')}`.toLowerCase();
+            const isBelt = /کمربند|belt/.test(name);
+            const isBag = /کیف|bag|clutch|کوله/.test(name);
+            const slot = isBelt
+              ? SLOT.accessoryBelt
+              : isBag
+                ? SLOT.accessoryBag
+                : SLOT.accessoryHead;
+            const z = isBelt ? 20 : isBag ? 22 : 15;
+            return (
               <div
-                className="absolute z-10 animate-fade-up"
-                style={{
-                  top: '87%',
-                  left: '26%',
-                  width: '48%',
-                  height: '11%',
-                  animationDelay: '0.2s',
-                  animationFillMode: 'backwards',
-                  filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.3))',
-                }}
+                key={acc.id}
+                className="animate-fade-up overflow-hidden"
+                style={slotStyle(slot, z, `${0.18 + index * 0.06}s`)}
               >
                 <img
-                  src={activeShoe.imageUrl}
-                  alt={activeShoe.name}
-                  loading="lazy"
-                  className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+                  src={acc.imageUrl}
+                  alt={acc.name}
+                  className={cn(
+                    'w-full h-full object-contain object-center',
+                    !isBelt && !isBag && 'rounded-full object-cover'
+                  )}
                   draggable={false}
                 />
               </div>
-      {hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
-                <div className="absolute bottom-[13%] left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 rounded-full bg-gradient-gold px-2.5 py-1 text-[10px] text-primary-foreground shadow-lg shadow-gold/30 animate-fade-in whitespace-nowrap font-black">
-                  <Sparkles className="w-3 h-3" />
-                  {activeShoe.name}
-                </div>
-              )}
-            </>
-          )}
+            );
+          })}
 
-          {/* User's own accessory (when user actually added one) */}
-          {userAccessory && (
-            <div
-              key={userAccessory.id}
-              className="absolute overflow-hidden z-20 animate-fade-up"
-              style={{
-                top: '10%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '30%',
-                height: '10%',
-                animationDelay: '0.3s',
-                animationFillMode: 'backwards',
-                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.25))',
-              }}
-            >
-              <img
-                src={userAccessory.imageUrl}
-                alt={userAccessory.name}
-                className="w-full h-full object-cover rounded-full transition-transform duration-500 hover:scale-110"
-                draggable={false}
-              />
-            </div>
-          )}
-
-          {/* AI suggested accessories (belt + bag) */}
+          {/* AI suggested accessories only if user has none */}
           {hasSelectedItems &&
-            !userAccessory &&
+            accessoryItems.length === 0 &&
             activeAccessories.map((accessory, index) => {
               const a = accessory as SuggestedAccessory;
+              const slot = a.type === 'belt' ? SLOT.accessoryBelt : SLOT.accessoryBag;
               return (
                 <div
                   key={a.id}
-                  className="absolute z-40 animate-fade-up"
-                  style={
-                    a.type === 'belt'
-                      ? {
-                          top: '44%',
-                          left: '30%',
-                          width: '40%',
-                          height: '6%',
-                          animationDelay: `${0.3 + index * 0.08}s`,
-                          animationFillMode: 'backwards',
-                          filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.3))',
-                        }
-                      : {
-                          top: '46%',
-                          left: '68%',
-                          width: '26%',
-                          height: '18%',
-                          animationDelay: `${0.3 + index * 0.08}s`,
-                          animationFillMode: 'backwards',
-                          filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.3))',
-                        }
-                  }
+                  className="animate-fade-up"
+                  style={slotStyle(slot, 22, `${0.25 + index * 0.08}s`)}
                 >
                   <img
                     src={a.imageUrl}
                     alt={a.name}
                     loading="lazy"
-                    className="w-full h-full object-contain transition-all duration-500 hover:brightness-110"
+                    className="w-full h-full object-contain object-center opacity-90"
                     draggable={false}
                   />
                 </div>
