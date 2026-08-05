@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useStagedProgress, OUTFIT_SUGGESTION_STAGES } from '@/hooks/useStagedProgress';
-import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt, Search, X, Pencil, Eye, ChevronDown } from 'lucide-react';
+import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt, Search, X, Pencil, Eye, ChevronDown, MapPin, CloudSun } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay } from './MannequinDisplay';
 import { Button } from './ui/button';
@@ -17,6 +17,9 @@ import {
   OutfitContext,
   buildContextOutfit,
   contextLabels,
+  STYLE_OPTIONS,
+  ENVIRONMENT_OPTIONS,
+  WEATHER_OPTIONS,
 } from '@/lib/outfitContext';
 
 interface OutfitBuilderProps {
@@ -217,35 +220,59 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         </div>
 
         {/* فرم شرایط + تولید ست — یک بلوک پیوسته */}
-        <div className="mb-4 rounded-3xl border border-border/40 bg-white/80 dark:bg-card/90 shadow-soft overflow-hidden">
-          {/* نوار خلاصه — همان سبک chipهای «انتخاب‌های شما» */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 sm:p-3.5 bg-muted/30 border-b border-border/30">
+        <div className="mb-8 md:mb-10 rounded-3xl border border-border/40 bg-white dark:bg-card shadow-soft overflow-hidden">
+          {/* نوار خلاصه — دقیقاً همان chipهای «انتخاب‌های شما» */}
+          <div
+            className={cn(
+              'flex flex-col sm:flex-row sm:items-center gap-2.5 p-3.5 sm:p-4',
+              showContext && 'border-b border-border/30'
+            )}
+          >
             <button
               type="button"
               onClick={() => setShowContext((v) => !v)}
               className="flex-1 min-w-0 flex items-center justify-between gap-2 text-right touch-manipulation"
               aria-expanded={showContext}
             >
-              <div className="min-w-0 flex flex-wrap items-center gap-1.5">
-                <span className="text-[11px] font-black text-muted-foreground shrink-0">شرایط:</span>
-                {contextLabels(outfitContext)
-                  .split(' · ')
-                  .filter(Boolean)
-                  .map((part, i) => (
-                    <React.Fragment key={`${part}-${i}`}>
-                      {i > 0 && <span className="text-muted-foreground/40 text-xs">|</span>}
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-muted/70 text-[11px] font-extrabold text-foreground">
-                        {part}
-                      </span>
-                    </React.Fragment>
-                  ))}
+              <div className="min-w-0 flex flex-wrap items-center gap-2">
+                <span className="text-sm font-black text-foreground shrink-0">شرایط</span>
+                {(
+                  [
+                    {
+                      key: 'style',
+                      label: STYLE_OPTIONS.find((o) => o.value === outfitContext.style)?.label ?? 'روزمره',
+                      Icon: Shirt,
+                    },
+                    {
+                      key: 'env',
+                      label:
+                        ENVIRONMENT_OPTIONS.find((o) => o.value === outfitContext.environment)?.label ??
+                        'مکان',
+                      Icon: MapPin,
+                    },
+                    {
+                      key: 'weather',
+                      label:
+                        WEATHER_OPTIONS.find((o) => o.value === outfitContext.weather)?.label ?? 'هوا',
+                      Icon: CloudSun,
+                    },
+                  ] as const
+                ).map((chip, i) => (
+                  <React.Fragment key={chip.key}>
+                    {i > 0 && <span className="text-muted-foreground/40 text-xs">|</span>}
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-xs font-extrabold text-foreground">
+                      <chip.Icon className="w-3.5 h-3.5 shrink-0" />
+                      {chip.label}
+                    </span>
+                  </React.Fragment>
+                ))}
               </div>
               <span
                 className={cn(
-                  'shrink-0 text-[11px] font-extrabold px-2.5 py-1 rounded-full transition-colors',
+                  'shrink-0 text-[11px] font-extrabold px-3 py-1.5 rounded-full transition-colors',
                   showContext
-                    ? 'bg-foreground text-background'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                    ? 'bg-muted/60 text-foreground'
+                    : 'bg-muted/60 text-muted-foreground hover:text-foreground'
                 )}
               >
                 {showContext ? 'بستن' : 'تغییر'}
@@ -265,7 +292,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           </div>
 
           {showContext && (
-            <div className="p-3 sm:p-4 border-t-0">
+            <div className="p-3.5 sm:p-5 bg-white dark:bg-card">
               <OutfitContextPicker
                 value={outfitContext}
                 onChange={setOutfitContext}
