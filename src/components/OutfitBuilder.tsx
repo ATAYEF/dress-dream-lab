@@ -10,20 +10,17 @@ import {
   X,
   Pencil,
   Eye,
-  ChevronDown,
   MapPin,
   CloudSun,
   RotateCcw,
   CircleDot,
   Sun,
-  Footprints,
 } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { CATEGORY_CONFIG } from '@/lib/categoryConfig';
 import { AiRecommendationsPanel } from './AiRecommendationsPanel';
 import { OutfitContextPicker } from './OutfitContextPicker';
 import {
@@ -47,7 +44,7 @@ interface OutfitBuilderProps {
 
 const LAYERABLE_CATEGORIES: ClothingCategory[] = ['tops', 'outerwear', 'accessories'];
 
-/** Category tabs matching mock (icon + Persian label) */
+/** Category tabs matching mock — unique keys, icon + label */
 const PICKER_TABS: {
   key: ClothingCategory | 'all';
   label: string;
@@ -57,34 +54,8 @@ const PICKER_TABS: {
   { key: 'tops', label: 'پیرهن', icon: Shirt },
   { key: 'outerwear', label: 'مانتو', icon: Sun },
   { key: 'bottoms', label: 'شلوار', icon: CircleDot },
-  { key: 'outerwear', label: 'کت و ژاکت', icon: Sun },
   { key: 'dresses', label: 'لباس', icon: Shirt },
 ];
-
-/** Common pattern keywords for طرح filter */
-const PATTERN_OPTIONS = [
-  { value: 'all', label: 'همه' },
-  { value: 'ساده', label: 'ساده' },
-  { value: 'راه', label: 'راه‌راه' },
-  { value: 'چهارخونه', label: 'چهارخونه' },
-  { value: 'گل', label: 'گل‌دار' },
-  { value: 'چاپ', label: 'چاپ‌دار' },
-] as const;
-
-/** Common occasion keywords for مناسبت filter */
-const OCCASION_OPTIONS = [
-  { value: 'all', label: 'همه' },
-  { value: 'روزمره', label: 'روزمره' },
-  { value: 'رسمی', label: 'رسمی' },
-  { value: 'مهمانی', label: 'مهمانی' },
-  { value: 'ورزشی', label: 'ورزشی' },
-  { value: 'اداری', label: 'اداری' },
-] as const;
-
-function itemMatchesKeyword(item: ClothingItem, keyword: string): boolean {
-  const hay = `${item.name} ${(item.tags || []).join(' ')} ${(item.color || '')}`.toLowerCase();
-  return hay.includes(keyword.toLowerCase());
-}
 
 export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   clothes,
@@ -101,50 +72,15 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [outfitContext, setOutfitContext] = useState<OutfitContext>(DEFAULT_OUTFIT_CONTEXT);
   const [galleryQuery, setGalleryQuery] = useState('');
   const [galleryCategory, setGalleryCategory] = useState<ClothingCategory | 'all'>('all');
-  const [filterColor, setFilterColor] = useState<string>('all');
-  const [filterPattern, setFilterPattern] = useState<string>('all');
-  const [filterOccasion, setFilterOccasion] = useState<string>('all');
-  const [openFilter, setOpenFilter] = useState<'color' | 'pattern' | 'occasion' | null>(null);
   const isMobile = useIsMobile();
   const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
   const [showContext, setShowContext] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(true);
-
-  /** Unique colors present in wardrobe (for رنگ dropdown) */
-  const availableColors = useMemo(() => {
-    const set = new Set<string>();
-    clothes.forEach((c) => {
-      if (c.color && c.color.trim()) set.add(c.color.trim());
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b, 'fa'));
-  }, [clothes]);
 
   const galleryClothes = useMemo(() => {
     let list = clothes;
-
-    // Category
     if (galleryCategory !== 'all') {
       list = list.filter((c) => c.category === galleryCategory);
     }
-
-    // Color
-    if (filterColor !== 'all') {
-      list = list.filter(
-        (c) => c.color && c.color.trim().toLowerCase() === filterColor.toLowerCase()
-      );
-    }
-
-    // Pattern (طرح) — match against name + tags
-    if (filterPattern !== 'all') {
-      list = list.filter((c) => itemMatchesKeyword(c, filterPattern));
-    }
-
-    // Occasion (مناسبت) — match against name + tags
-    if (filterOccasion !== 'all') {
-      list = list.filter((c) => itemMatchesKeyword(c, filterOccasion));
-    }
-
-    // Search
     const q = galleryQuery.trim().toLowerCase();
     if (q) {
       list = list.filter(
@@ -154,23 +90,8 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           (c.tags && c.tags.some((tag) => tag.toLowerCase().includes(q)))
       );
     }
-
     return list;
-  }, [clothes, galleryQuery, galleryCategory, filterColor, filterPattern, filterOccasion]);
-
-  const hasActiveFilters =
-    filterColor !== 'all' || filterPattern !== 'all' || filterOccasion !== 'all' || galleryCategory !== 'all';
-
-  const clearFilters = () => {
-    setFilterColor('all');
-    setFilterPattern('all');
-    setFilterOccasion('all');
-    setGalleryCategory('all');
-    setGalleryQuery('');
-    setOpenFilter(null);
-  };
-
-  const primarySelected = outfitItems[0] ?? null;
+  }, [clothes, galleryQuery, galleryCategory]);
 
   const handleDragStart = (e: React.DragEvent, item: ClothingItem) => {
     setDraggedItem(item);
@@ -223,6 +144,12 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
   const clearOutfit = () => setOutfitItems([]);
 
+  /** X button: reset category + search so panel stays open and state is cleared */
+  const handleClosePicker = () => {
+    setGalleryCategory('all');
+    setGalleryQuery('');
+  };
+
   const handleGenerate = () => {
     const anchors = outfitItems.length >= 1 ? outfitItems : [];
     const finalItems =
@@ -236,17 +163,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   };
 
   const canGenerate = outfitItems.length >= 2 || clothes.length >= 2;
-
-  const colorLabel =
-    filterColor === 'all' ? 'رنگ' : filterColor;
-  const patternLabel =
-    filterPattern === 'all'
-      ? 'طرح'
-      : PATTERN_OPTIONS.find((o) => o.value === filterPattern)?.label ?? filterPattern;
-  const occasionLabel =
-    filterOccasion === 'all'
-      ? 'مناسبت'
-      : OCCASION_OPTIONS.find((o) => o.value === filterOccasion)?.label ?? filterOccasion;
 
   return (
     <div className="relative overflow-hidden rounded-[1.75rem] bg-background">
@@ -327,72 +243,36 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         {/* 3-column studio */}
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(260px,300px)] gap-5 lg:gap-6 items-start">
 
-          {/* LEFT: Clothing picker */}
+          {/* LEFT: Clothing picker — always visible */}
           <aside className="order-2 xl:order-1 flex flex-col gap-4 xl:sticky xl:top-20 self-start">
-            {primarySelected && !pickerOpen ? (
-              <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft p-5 relative">
-                <div className="flex items-center justify-between mb-4">
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="w-8 h-8 rounded-full bg-muted/70 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors"
-                    aria-label="بستن"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-black">لباس انتخاب شد</span>
-                    <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
-                      <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col items-center gap-3">
-                  <div className="w-28 h-36 rounded-[1.15rem] overflow-hidden bg-muted/40 border border-border/50">
-                    <img src={primarySelected.imageUrl} alt={primarySelected.name} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-sm font-extrabold text-center">{primarySelected.name}</p>
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(true)}
-                    className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-primary transition-colors"
-                  >
-                    مشاهده و تغییر لباس
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden flex flex-col max-h-[min(780px,85vh)]">
+              {/* Header */}
+              <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-border/50">
+                <button
+                  type="button"
+                  onClick={handleClosePicker}
+                  className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+                  aria-label="بازنشانی فیلترها"
+                  title="بازنشانی فیلترها"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <h3 className="text-base font-black tracking-tight">انتخاب لباس</h3>
               </div>
-            ) : (
-              <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden flex flex-col max-h-[min(780px,85vh)]">
-                {/* Header */}
-                <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-border/50">
-                  <button
-                    type="button"
-                    onClick={() => setPickerOpen(false)}
-                    className="w-8 h-8 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors shrink-0"
-                    aria-label="بستن پنل"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <h3 className="text-base font-black tracking-tight">انتخاب لباس</h3>
-                </div>
 
-                {/* Category tabs with icons (match mock right image) */}
-                <div className="px-3 pt-3 pb-2 flex gap-1.5 overflow-x-auto custom-scroll-smooth">
-                  {PICKER_TABS.map((tab, idx) => {
-                    // For duplicate outerwear keys, both highlight when outerwear is active
+              {/* Category tabs — more vertical space, larger icons */}
+              <div className="px-3 pt-4 pb-4">
+                <div className="flex gap-2 overflow-x-auto custom-scroll-smooth pb-1">
+                  {PICKER_TABS.map((tab) => {
                     const isActive = galleryCategory === tab.key;
                     const Icon = tab.icon;
                     return (
                       <button
-                        key={`${tab.key}-${tab.label}-${idx}`}
+                        key={tab.key}
                         type="button"
-                        onClick={() => {
-                          setGalleryCategory(tab.key);
-                          setOpenFilter(null);
-                        }}
+                        onClick={() => setGalleryCategory(tab.key)}
                         className={cn(
-                          'shrink-0 flex flex-col items-center gap-1 px-2.5 py-2 rounded-2xl min-w-[52px] transition-all',
+                          'shrink-0 flex flex-col items-center gap-2 px-3 py-3 rounded-2xl min-w-[64px] transition-all',
                           isActive
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-muted/50'
@@ -400,301 +280,164 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       >
                         <span
                           className={cn(
-                            'w-9 h-9 rounded-xl flex items-center justify-center transition-colors',
-                            isActive ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-muted/60'
+                            'w-11 h-11 rounded-2xl flex items-center justify-center transition-colors',
+                            isActive
+                              ? 'bg-primary text-primary-foreground shadow-sm'
+                              : 'bg-muted/70'
                           )}
                         >
-                          <Icon className="w-4 h-4" />
+                          <Icon className="w-5 h-5" />
                         </span>
-                        <span className="text-[10px] font-extrabold leading-tight whitespace-nowrap">{tab.label}</span>
+                        <span className="text-[11px] font-extrabold leading-tight whitespace-nowrap">
+                          {tab.label}
+                        </span>
                       </button>
                     );
                   })}
                 </div>
+              </div>
 
-                {/* Filter dropdowns: رنگ / طرح / مناسبت — now functional */}
-                <div className="px-3 pb-2 relative">
-                  <div className="flex gap-2 overflow-x-auto custom-scroll-smooth">
-                    {/* رنگ */}
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setOpenFilter(openFilter === 'color' ? null : 'color')}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-colors',
-                          filterColor !== 'all'
-                            ? 'bg-primary/10 border-primary/40 text-primary'
-                            : 'bg-muted/40 border-border/50 text-muted-foreground'
-                        )}
-                      >
-                        {colorLabel}
-                        <ChevronDown className={cn('w-3 h-3 opacity-60 transition-transform', openFilter === 'color' && 'rotate-180')} />
-                      </button>
-                      {openFilter === 'color' && (
-                        <div className="absolute top-full right-0 mt-1.5 z-30 min-w-[140px] max-h-48 overflow-y-auto rounded-xl bg-card border border-border/70 shadow-elevated py-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFilterColor('all');
-                              setOpenFilter(null);
-                            }}
-                            className={cn(
-                              'w-full text-right px-3 py-2 text-xs font-bold hover:bg-muted/60',
-                              filterColor === 'all' && 'text-primary bg-primary/5'
-                            )}
-                          >
-                            همه رنگ‌ها
-                          </button>
-                          {availableColors.length === 0 ? (
-                            <p className="px-3 py-2 text-[11px] text-muted-foreground">رنگی ثبت نشده</p>
-                          ) : (
-                            availableColors.map((c) => (
-                              <button
-                                key={c}
-                                type="button"
-                                onClick={() => {
-                                  setFilterColor(c);
-                                  setOpenFilter(null);
-                                }}
-                                className={cn(
-                                  'w-full text-right px-3 py-2 text-xs font-bold hover:bg-muted/60 flex items-center justify-between gap-2',
-                                  filterColor === c && 'text-primary bg-primary/5'
-                                )}
-                              >
-                                <span className="truncate">{c}</span>
-                                {filterColor === c && <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} />}
-                              </button>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* طرح */}
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setOpenFilter(openFilter === 'pattern' ? null : 'pattern')}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-colors',
-                          filterPattern !== 'all'
-                            ? 'bg-primary/10 border-primary/40 text-primary'
-                            : 'bg-muted/40 border-border/50 text-muted-foreground'
-                        )}
-                      >
-                        {patternLabel}
-                        <ChevronDown className={cn('w-3 h-3 opacity-60 transition-transform', openFilter === 'pattern' && 'rotate-180')} />
-                      </button>
-                      {openFilter === 'pattern' && (
-                        <div className="absolute top-full right-0 mt-1.5 z-30 min-w-[130px] rounded-xl bg-card border border-border/70 shadow-elevated py-1.5">
-                          {PATTERN_OPTIONS.map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              onClick={() => {
-                                setFilterPattern(o.value);
-                                setOpenFilter(null);
-                              }}
-                              className={cn(
-                                'w-full text-right px-3 py-2 text-xs font-bold hover:bg-muted/60 flex items-center justify-between gap-2',
-                                filterPattern === o.value && 'text-primary bg-primary/5'
-                              )}
-                            >
-                              {o.label}
-                              {filterPattern === o.value && <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* مناسبت */}
-                    <div className="relative shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setOpenFilter(openFilter === 'occasion' ? null : 'occasion')}
-                        className={cn(
-                          'inline-flex items-center gap-1 px-3 py-1.5 rounded-full border text-[11px] font-bold transition-colors',
-                          filterOccasion !== 'all'
-                            ? 'bg-primary/10 border-primary/40 text-primary'
-                            : 'bg-muted/40 border-border/50 text-muted-foreground'
-                        )}
-                      >
-                        {occasionLabel}
-                        <ChevronDown className={cn('w-3 h-3 opacity-60 transition-transform', openFilter === 'occasion' && 'rotate-180')} />
-                      </button>
-                      {openFilter === 'occasion' && (
-                        <div className="absolute top-full right-0 mt-1.5 z-30 min-w-[130px] rounded-xl bg-card border border-border/70 shadow-elevated py-1.5">
-                          {OCCASION_OPTIONS.map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              onClick={() => {
-                                setFilterOccasion(o.value);
-                                setOpenFilter(null);
-                              }}
-                              className={cn(
-                                'w-full text-right px-3 py-2 text-xs font-bold hover:bg-muted/60 flex items-center justify-between gap-2',
-                                filterOccasion === o.value && 'text-primary bg-primary/5'
-                              )}
-                            >
-                              {o.label}
-                              {filterOccasion === o.value && <Check className="w-3.5 h-3.5 shrink-0" strokeWidth={3} />}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Click-outside overlay when a filter is open */}
-                  {openFilter && (
-                    <div className="fixed inset-0 z-20" onClick={() => setOpenFilter(null)} aria-hidden="true" />
+              {/* Search only */}
+              <div className="px-3 pb-3">
+                <div className="relative">
+                  <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                  <input
+                    type="search"
+                    value={galleryQuery}
+                    onChange={(e) => setGalleryQuery(e.target.value)}
+                    placeholder="جستجو..."
+                    className="w-full rounded-full pr-9 pl-8 py-2.5 text-xs bg-muted/40 border border-transparent outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-primary/20 font-medium"
+                  />
+                  {galleryQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setGalleryQuery('')}
+                      className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
+                      aria-label="پاک کردن جستجو"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   )}
                 </div>
+              </div>
 
-                {/* Search */}
-                <div className="px-3 pb-3">
-                  <div className="relative">
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-                    <input
-                      type="search"
-                      value={galleryQuery}
-                      onChange={(e) => setGalleryQuery(e.target.value)}
-                      placeholder="جستجو..."
-                      className="w-full rounded-full pr-9 pl-8 py-2.5 text-xs bg-muted/40 border border-transparent outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-primary/20 font-medium"
-                    />
-                    {galleryQuery && (
+              {/* Count when filtered */}
+              {(galleryCategory !== 'all' || galleryQuery) && (
+                <div className="px-3 pb-2 flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
+                    {galleryClothes.length.toLocaleString('fa-IR')} مورد
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClosePicker}
+                    className="text-[10px] font-extrabold text-primary hover:underline"
+                  >
+                    نمایش همه
+                  </button>
+                </div>
+              )}
+
+              {/* Grid */}
+              <div className="flex-1 overflow-y-auto custom-scroll-smooth px-3 pb-4">
+                {galleryClothes.length === 0 ? (
+                  <div className="text-center py-12 space-y-2">
+                    <p className="text-xs text-muted-foreground font-medium">لباسی یافت نشد</p>
+                    {(galleryCategory !== 'all' || galleryQuery) && (
                       <button
                         type="button"
-                        onClick={() => setGalleryQuery('')}
-                        className="absolute left-2.5 top-1/2 -translate-y-1/2 p-1 text-muted-foreground"
-                        aria-label="پاک کردن"
+                        onClick={handleClosePicker}
+                        className="text-[11px] font-extrabold text-primary"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        نمایش همه
                       </button>
                     )}
                   </div>
-                </div>
-
-                {/* Active filter summary + clear */}
-                {hasActiveFilters && (
-                  <div className="px-3 pb-2 flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
-                      {galleryClothes.length.toLocaleString('fa-IR')} مورد
-                    </span>
-                    <button
-                      type="button"
-                      onClick={clearFilters}
-                      className="text-[10px] font-extrabold text-primary hover:underline"
-                    >
-                      پاک کردن فیلترها
-                    </button>
-                  </div>
-                )}
-
-                {/* Grid */}
-                <div className="flex-1 overflow-y-auto custom-scroll-smooth px-3 pb-4">
-                  {galleryClothes.length === 0 ? (
-                    <div className="text-center py-12 space-y-2">
-                      <p className="text-xs text-muted-foreground font-medium">لباسی با این فیلتر یافت نشد</p>
-                      {hasActiveFilters && (
+                ) : (
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {galleryClothes.map((item) => {
+                      const isSelected = outfitItems.some((i) => i.id === item.id);
+                      return (
                         <button
+                          key={item.id}
                           type="button"
-                          onClick={clearFilters}
-                          className="text-[11px] font-extrabold text-primary"
+                          onClick={() => handleItemTap(item)}
+                          draggable={!isMobile}
+                          onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
+                          onDragEnd={!isMobile ? handleDragEnd : undefined}
+                          className={cn(
+                            'group relative text-right rounded-[1.1rem] p-1.5 transition-all duration-300',
+                            isSelected
+                              ? 'ring-2 ring-primary bg-primary/5 shadow-soft'
+                              : 'hover:bg-muted/40'
+                          )}
                         >
-                          پاک کردن فیلترها
-                        </button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 gap-2.5">
-                      {galleryClothes.map((item) => {
-                        const isSelected = outfitItems.some((i) => i.id === item.id);
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => handleItemTap(item)}
-                            draggable={!isMobile}
-                            onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
-                            onDragEnd={!isMobile ? handleDragEnd : undefined}
-                            className={cn(
-                              'group relative text-right rounded-[1.1rem] p-1.5 transition-all duration-300',
-                              isSelected
-                                ? 'ring-2 ring-primary bg-primary/5 shadow-soft'
-                                : 'hover:bg-muted/40'
+                          <div className="aspect-[3/4] relative rounded-[0.9rem] overflow-hidden bg-muted/30">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                              draggable={false}
+                            />
+                            {isSelected && (
+                              <span className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                                <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                              </span>
                             )}
-                          >
-                            <div className="aspect-[3/4] relative rounded-[0.9rem] overflow-hidden bg-muted/30">
-                              <img
-                                src={item.imageUrl}
-                                alt={item.name}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                loading="lazy"
-                                draggable={false}
-                              />
-                              {isSelected && (
-                                <span className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
-                                  <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                            <div
+                              className={cn(
+                                'absolute top-1.5 right-1.5 flex flex-col gap-1 transition-opacity',
+                                isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {onViewItem && (
+                                <span
+                                  role="button"
+                                  className="w-7 h-7 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
+                                  onClick={() => onViewItem(item)}
+                                >
+                                  <Eye className="w-3 h-3" />
                                 </span>
                               )}
-                              <div
-                                className={cn(
-                                  'absolute top-1.5 right-1.5 flex flex-col gap-1 transition-opacity',
-                                  isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                                )}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {onViewItem && (
-                                  <span
-                                    role="button"
-                                    className="w-7 h-7 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
-                                    onClick={() => onViewItem(item)}
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                  </span>
-                                )}
-                                {onEditItem && (
-                                  <span
-                                    role="button"
-                                    className="w-7 h-7 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
-                                    onClick={() => onEditItem(item)}
-                                  >
-                                    <Pencil className="w-3 h-3" />
-                                  </span>
-                                )}
-                              </div>
+                              {onEditItem && (
+                                <span
+                                  role="button"
+                                  className="w-7 h-7 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
+                                  onClick={() => onEditItem(item)}
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                </span>
+                              )}
                             </div>
-                            <p className="px-1 pt-1.5 text-[10px] font-extrabold truncate leading-tight">{item.name}</p>
-                            {item.color && (
-                              <p className="px-1 text-[9px] text-muted-foreground font-medium truncate">{item.color}</p>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {outfitItems.length > 0 && (
-                  <div className="border-t border-border/50 px-3 py-3 flex items-center justify-between gap-2">
-                    <button
-                      type="button"
-                      onClick={clearOutfit}
-                      className="text-[11px] font-bold text-muted-foreground hover:text-destructive inline-flex items-center gap-1"
-                    >
-                      <Trash2 className="w-3 h-3" />
-                      پاک کردن
-                    </button>
-                    <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
-                      {outfitItems.length.toLocaleString('fa-IR')} انتخاب
-                    </span>
+                          </div>
+                          <p className="px-1 pt-1.5 text-[10px] font-extrabold truncate leading-tight">{item.name}</p>
+                          {item.color && (
+                            <p className="px-1 text-[9px] text-muted-foreground font-medium truncate">{item.color}</p>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
-            )}
+
+              {outfitItems.length > 0 && (
+                <div className="border-t border-border/50 px-3 py-3 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={clearOutfit}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-destructive inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    پاک کردن
+                  </button>
+                  <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                    {outfitItems.length.toLocaleString('fa-IR')} انتخاب
+                  </span>
+                </div>
+              )}
+            </div>
           </aside>
 
           {/* CENTER: Mannequin */}
