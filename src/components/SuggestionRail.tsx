@@ -1,6 +1,7 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { Plus, Check, LucideIcon, ChevronLeft, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSmoothDragScroll } from '@/hooks/useSmoothDragScroll';
 
 export interface RailItem {
   id: string;
@@ -33,57 +34,7 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
   className,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
-  const startX = useRef(0);
-  const scrollLeftStart = useRef(0);
-  const targetScroll = useRef(0);
-  const didDrag = useRef(false);
-  const raf = useRef<number | null>(null);
-
-  const onMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      const el = scrollRef.current;
-      if (!el || expanded) return;
-      isDragging.current = true;
-      didDrag.current = false;
-      startX.current = e.pageX;
-      scrollLeftStart.current = el.scrollLeft;
-      targetScroll.current = el.scrollLeft;
-      el.style.cursor = 'grabbing';
-      el.style.userSelect = 'none';
-      el.style.scrollBehavior = 'auto';
-    },
-    [expanded]
-  );
-
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current || !scrollRef.current) return;
-    e.preventDefault();
-    const dx = e.pageX - startX.current;
-    if (Math.abs(dx) > 3) didDrag.current = true;
-    targetScroll.current = scrollLeftStart.current - dx * 1.2;
-    if (raf.current == null) {
-      raf.current = requestAnimationFrame(() => {
-        if (scrollRef.current) scrollRef.current.scrollLeft = targetScroll.current;
-        raf.current = null;
-      });
-    }
-  }, []);
-
-  const endDrag = useCallback(() => {
-    if (!isDragging.current) return;
-    isDragging.current = false;
-    if (scrollRef.current) {
-      scrollRef.current.style.cursor = 'grab';
-      scrollRef.current.style.userSelect = '';
-      scrollRef.current.style.scrollBehavior = 'smooth';
-    }
-    if (raf.current != null) {
-      cancelAnimationFrame(raf.current);
-      raf.current = null;
-    }
-  }, []);
+  const drag = useSmoothDragScroll();
 
   if (items.length === 0) return null;
 
@@ -95,8 +46,8 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
         key={item.id}
         type="button"
         onClick={() => {
-          if (didDrag.current) {
-            didDrag.current = false;
+          if (drag.moved.current) {
+            drag.moved.current = false;
             return;
           }
           if (item.addable) onSelect?.(item.id);
@@ -185,12 +136,9 @@ export const SuggestionRail: React.FC<SuggestionRailProps> = ({
         </div>
       ) : (
         <div
-          ref={scrollRef}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={endDrag}
-          onMouseLeave={endDrag}
-          className="flex gap-2.5 overflow-x-auto custom-scroll-smooth pb-1.5 -mx-0.5 px-0.5 snap-x snap-mandatory cursor-grab active:cursor-grabbing"
+          ref={drag.ref}
+          onMouseDown={drag.onMouseDown}
+          className="flex gap-2.5 overflow-x-auto custom-scroll-smooth pb-1.5 -mx-0.5 px-0.5 snap-x snap-mandatory cursor-grab active:cursor-grabbing select-none"
           style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
         >
           {items.map((item) => renderItem(item, false))}

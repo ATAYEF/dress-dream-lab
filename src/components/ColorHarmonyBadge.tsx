@@ -9,6 +9,7 @@ import {
 } from '@/lib/colorHarmony';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
+import { useSmoothDragScroll } from '@/hooks/useSmoothDragScroll';
 
 interface ColorHarmonyBadgeProps {
   items: ClothingItem[];
@@ -17,7 +18,6 @@ interface ColorHarmonyBadgeProps {
   className?: string;
 }
 
-/** Convert number to Persian digits */
 function toFa(n: number | string): string {
   return String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
 }
@@ -28,6 +28,8 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
   onSuggestClick,
   className,
 }) => {
+  const drag = useSmoothDragScroll();
+
   if (items.length === 0) return null;
 
   const result: ColorMatchResult = scoreOutfitColors(items);
@@ -77,13 +79,12 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-lg font-black text-gold shrink-0" style={{ fontFeatureSettings: '"ss01"' }}>
+        <div className="text-lg font-black text-gold shrink-0">
           {toFa(result.score)}
           <span className="text-[10px] font-bold text-muted-foreground mr-0.5">/{toFa(100)}</span>
         </div>
       </div>
 
-      {/* Score bar */}
       <div className="h-1.5 w-full rounded-full bg-black/5 dark:bg-white/10 overflow-hidden">
         <div
           className={cn('h-full rounded-full transition-all duration-700 ease-out', barColor[label.tone])}
@@ -91,7 +92,6 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
         />
       </div>
 
-      {/* Swatches */}
       {result.colors.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
           {result.colors.map((c) => (
@@ -111,26 +111,37 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
 
       <p className="text-[11px] leading-relaxed text-muted-foreground">{result.explanation}</p>
 
-      {/* Suggested next pieces */}
       {suggestions.length > 0 && onSuggestClick && items.length < 5 && (
         <div className="pt-1 border-t border-black/5 dark:border-white/10 space-y-2">
           <div className="flex items-center gap-1 text-[11px] font-extrabold text-foreground/80">
             <Sparkles className="w-3 h-3 text-gold" />
             پیشنهاد تکمیل ست
           </div>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+          <div
+            ref={drag.ref}
+            onMouseDown={drag.onMouseDown}
+            className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5 cursor-grab active:cursor-grabbing select-none"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {suggestions.map(({ item, score, reason, fromCatalog }) => (
               <button
                 key={item.id}
                 type="button"
-                onClick={() => onSuggestClick(item)}
+                onClick={() => {
+                  if (drag.moved.current) {
+                    drag.moved.current = false;
+                    return;
+                  }
+                  onSuggestClick(item);
+                }}
                 className="group shrink-0 flex flex-col items-center gap-1 w-[72px] p-1.5 rounded-xl bg-white/60 dark:bg-white/5 border border-white/70 hover:border-gold/40 hover:shadow-md transition-all duration-300"
                 title={`${item.name} · ${reason} (${toFa(score)})`}
               >
-                <div className="relative">
+                <div className="relative pointer-events-none">
                   <img
                     src={item.imageUrl}
                     alt={item.name}
+                    draggable={false}
                     className="w-12 h-12 rounded-lg object-cover ring-1 ring-black/5 group-hover:scale-105 transition-transform"
                   />
                   {fromCatalog && (
@@ -139,10 +150,10 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
                     </span>
                   )}
                 </div>
-                <span className="text-[9px] font-bold text-center line-clamp-1 w-full">
+                <span className="text-[9px] font-bold text-center line-clamp-1 w-full pointer-events-none">
                   {item.name}
                 </span>
-                <span className="text-[9px] font-extrabold text-gold">{toFa(score)}٪</span>
+                <span className="text-[9px] font-extrabold text-gold pointer-events-none">{toFa(score)}٪</span>
               </button>
             ))}
           </div>
