@@ -245,7 +245,11 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             </Button>
           </div>
           {showContext && (
-            <OutfitContextPicker value={outfitContext} onChange={setOutfitContext} />
+            <OutfitContextPicker
+              value={outfitContext}
+              onChange={setOutfitContext}
+              onClear={() => setOutfitContext(DEFAULT_OUTFIT_CONTEXT)}
+            />
           )}
         </div>
 
