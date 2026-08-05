@@ -1,14 +1,70 @@
 import React from 'react';
 import {
   Shirt,
-  CircleDot,
-  Sparkles,
-  Sun,
   Footprints,
   Watch,
-  Crown,
+  LayoutGrid,
 } from 'lucide-react';
 import { ClothingCategory } from '@/types/wardrobe';
+
+/** Minimal category glyphs that read clearly at small sizes */
+const PantsIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    {/* waistband */}
+    <path d="M7 4h10v3H7z" />
+    {/* legs */}
+    <path d="M7 7l-1.5 13h5.5l1-8 1 8h5.5L17 7" />
+  </svg>
+);
+
+const DressIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    {/* neckline */}
+    <path d="M9 4h6" />
+    {/* bodice */}
+    <path d="M9 4c0 2.5-1 4-2.5 5.5L4 20h16l-2.5-10.5C16 8 15 6.5 15 4" />
+    {/* waist accent */}
+    <path d="M8.5 11h7" />
+  </svg>
+);
+
+const JacketIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    className={className}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.75"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden
+  >
+    {/* body + open front */}
+    <path d="M8 5l-4 4v11h5v-7h2v7h5V9l-4-4" />
+    {/* collar */}
+    <path d="M8 5c1.5 1.5 2.5 2 4 2s2.5-.5 4-2" />
+    {/* lapel line */}
+    <path d="M12 7v5" />
+  </svg>
+);
 
 export interface CategoryDefinition {
   key: ClothingCategory | 'all';
@@ -37,7 +93,7 @@ export const CATEGORY_CONFIG: Record<ClothingCategory | 'all', CategoryDefinitio
   all: {
     key: 'all',
     label: 'همه',
-    icon: Crown,
+    icon: LayoutGrid,
     colorToken: 'all',
     hexFrom: '#f5c451',
     hexTo: '#c9912a',
@@ -53,7 +109,7 @@ export const CATEGORY_CONFIG: Record<ClothingCategory | 'all', CategoryDefinitio
   bottoms: {
     key: 'bottoms',
     label: 'پایین‌تنه',
-    icon: CircleDot,
+    icon: PantsIcon,
     colorToken: 'rose',
     hexFrom: ROSE.hexFrom,
     hexTo: ROSE.hexTo,
@@ -61,7 +117,7 @@ export const CATEGORY_CONFIG: Record<ClothingCategory | 'all', CategoryDefinitio
   dresses: {
     key: 'dresses',
     label: 'لباس یکسره',
-    icon: Sparkles,
+    icon: DressIcon,
     colorToken: 'gold-light',
     hexFrom: GOLD_LIGHT.hexFrom,
     hexTo: GOLD_LIGHT.hexTo,
@@ -69,7 +125,7 @@ export const CATEGORY_CONFIG: Record<ClothingCategory | 'all', CategoryDefinitio
   outerwear: {
     key: 'outerwear',
     label: 'ژاکت و کت',
-    icon: Sun,
+    icon: JacketIcon,
     colorToken: 'espresso',
     hexFrom: ESPRESSO.hexFrom,
     hexTo: ESPRESSO.hexTo,
