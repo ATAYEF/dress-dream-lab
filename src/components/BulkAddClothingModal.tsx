@@ -406,7 +406,7 @@ export const BulkAddClothingModal: React.FC<BulkAddClothingModalProps> = ({
                         onChange={(e) => updateItem(item.id, { name: e.target.value, status: item.status === 'error' ? 'ready' : item.status })}
                         placeholder="نام لباس"
                         className="w-full text-sm font-bold rounded-xl px-2.5 py-1.5 bg-background/80 border border-border/50 outline-none focus:ring-2 focus:ring-gold/30"
-                        disabled={item.status === 'saving' || item.status === 'saved'}
+                        // status here is only 'ready' | 'error'
                       />
                       <div className="flex gap-2">
                         <select
@@ -417,7 +417,7 @@ export const BulkAddClothingModal: React.FC<BulkAddClothingModalProps> = ({
                             })
                           }
                           className="flex-1 text-xs font-bold rounded-xl px-2 py-1.5 bg-background/80 border border-border/50"
-                          disabled={item.status === 'saving' || item.status === 'saved'}
+
                         >
                           {CATEGORY_CLOTHING_ORDER.map((k) => (
                             <option key={k} value={k}>
@@ -431,7 +431,7 @@ export const BulkAddClothingModal: React.FC<BulkAddClothingModalProps> = ({
                           onChange={(e) => updateItem(item.id, { color: e.target.value })}
                           placeholder="رنگ"
                           className="w-24 text-xs font-bold rounded-xl px-2 py-1.5 bg-background/80 border border-border/50 outline-none"
-                          disabled={item.status === 'saving' || item.status === 'saved'}
+
                         />
                       </div>
                     </>
