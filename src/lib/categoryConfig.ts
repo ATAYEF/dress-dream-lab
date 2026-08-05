@@ -11,7 +11,7 @@ const svgBase = {
   viewBox: '0 0 24 24',
   fill: 'none',
   stroke: 'currentColor',
-  strokeWidth: 1.85,
+  strokeWidth: 1.75,
   strokeLinecap: 'round' as const,
   strokeLinejoin: 'round' as const,
   width: 24,
@@ -19,35 +19,49 @@ const svgBase = {
   'aria-hidden': true,
 };
 
-/** شلوار / پایین‌تنه — no JSX (this file is .ts) */
+/** شلوار / پایین‌تنه */
 const PantsIcon: React.FC<{ className?: string }> = ({ className }) =>
   React.createElement(
     'svg',
     { className, ...svgBase },
-    React.createElement('path', { d: 'M8 3h8v3.5H8z' }),
-    React.createElement('path', { d: 'M8 6.5 6.2 21h4.6l1.2-9.5 1.2 9.5h4.6L16 6.5' })
+    // waistband
+    React.createElement('path', { d: 'M7 3.5h10v2.5H7z' }),
+    // left leg
+    React.createElement('path', { d: 'M7 6v14.5h4.2V12.5' }),
+    // right leg
+    React.createElement('path', { d: 'M17 6v14.5h-4.2V12.5' }),
+    // crotch
+    React.createElement('path', { d: 'M11.2 12.5h1.6' })
   );
 
-/** لباس یکسره */
+/** لباس یکسره — silhouette روشن پیراهن زنانه */
 const DressIcon: React.FC<{ className?: string }> = ({ className }) =>
   React.createElement(
     'svg',
     { className, ...svgBase },
-    React.createElement('path', { d: 'M9 3.5h6' }),
-    React.createElement('path', {
-      d: 'M9 3.5c0 2.2-1.2 3.8-2.8 5.2L3.5 20.5h17l-2.7-11.8C16.2 7.3 15 5.7 15 3.5',
-    }),
-    React.createElement('path', { d: 'M9 11h6' })
+    // straps / neckline
+    React.createElement('path', { d: 'M9 3.5 10.5 7h3L15 3.5' }),
+    // bodice
+    React.createElement('path', { d: 'M8 7h8v4.5' }),
+    React.createElement('path', { d: 'M8 7v4.5' }),
+    // A-line skirt
+    React.createElement('path', { d: 'M8 11.5 4.5 21h15L16 11.5' })
   );
 
-/** ژاکت و کت */
+/** ژاکت و کت — کت با آستین و یقه */
 const JacketIcon: React.FC<{ className?: string }> = ({ className }) =>
   React.createElement(
     'svg',
     { className, ...svgBase },
-    React.createElement('path', { d: 'M8.5 4.5 4 9v11.5h5V13h2v7.5h5V9l-4.5-4.5' }),
-    React.createElement('path', { d: 'M8.5 4.5C10 6 11 6.5 12 6.5s2-.5 3.5-2' }),
-    React.createElement('path', { d: 'M12 6.5v5' })
+    // left body + sleeve
+    React.createElement('path', { d: 'M12 6.5 8 4 4.5 8v12.5h4V13h3' }),
+    // right body + sleeve
+    React.createElement('path', { d: 'M12 6.5 16 4l3.5 4v12.5h-4V13h-3' }),
+    // collar peak
+    React.createElement('path', { d: 'M9.5 5.2 12 7.5l2.5-2.3' }),
+    // buttons
+    React.createElement('circle', { cx: 12, cy: 11, r: 0.7, fill: 'currentColor', stroke: 'none' }),
+    React.createElement('circle', { cx: 12, cy: 14.5, r: 0.7, fill: 'currentColor', stroke: 'none' })
   );
 
 export interface CategoryDefinition {
