@@ -314,7 +314,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 onDragLeave={!isMobile ? handleDragLeave : undefined}
                 onDrop={!isMobile ? handleDrop : undefined}
                 className={cn(
-                  'relative mx-auto w-full aspect-[3/5] max-h-[420px] bg-gradient-to-b from-muted/30 to-background transition-all',
+                  'relative mx-auto w-full aspect-[3/5] max-h-[420px] overflow-hidden bg-gradient-to-b from-muted/30 to-background transition-all',
                   isDragOver && 'ring-2 ring-gold ring-inset'
                 )}
               >
@@ -333,9 +333,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 )}
               </div>
 
-              {/* انتخاب‌های شما — اسلات‌های دسته‌ای */}
-              <div className="p-3 border-t border-border/30">
-                <p className="text-xs font-black text-center mb-2.5">انتخاب‌های شما</p>
+              {/* انتخاب‌های شما — پایین‌تر از کنترل زوم مانکن */}
+              <div className="p-3 pt-5 mt-1 border-t border-border/30">
+                <p className="text-xs font-black text-center mb-3">انتخاب‌های شما</p>
                 <div className="grid grid-cols-4 gap-2">
                   {(
                     [

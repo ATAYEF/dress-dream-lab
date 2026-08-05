@@ -266,7 +266,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
 
   // ===== UI pieces =====
   const zoomControls = (
-    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full px-2 py-1 shadow-lg z-50 hairline-border">
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full px-2 py-1 shadow-lg z-50 hairline-border">
       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut} disabled={zoom <= 0.5}>
         <ZoomOut className="w-4 h-4" />
       </Button>
@@ -364,7 +364,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       {/* Body canvas */}
       <div
         ref={containerRef}
-        className="relative w-full aspect-[3/5] overflow-hidden rounded-3xl bg-gradient-card hairline-border shadow-card"
+        className="relative w-full aspect-[3/5] overflow-hidden rounded-3xl bg-gradient-card hairline-border shadow-card pb-1"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
