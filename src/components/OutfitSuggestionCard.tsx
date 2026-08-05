@@ -82,23 +82,25 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
 
   return (
     <div
+      data-feedback={feedback ?? 'none'}
       className={cn(
         'group relative rounded-2xl overflow-hidden shadow-card hairline-border bg-gradient-card',
         'transition-shadow duration-300 hover:shadow-elevated',
-        feedback === 'liked' && 'ring-2 ring-emerald-400/60',
-        feedback === 'disliked' && 'ring-2 ring-rose-400/50',
+        'data-[feedback=liked]:ring-2 data-[feedback=liked]:ring-emerald-400/60',
+        'data-[feedback=disliked]:ring-2 data-[feedback=disliked]:ring-rose-400/50',
         className
       )}
       style={style}
       dir="rtl"
     >
-      {/* Status strip — full opacity always */}
+      {/* Status strip — states via data-feedback + Tailwind */}
       <div
+        data-feedback={feedback ?? 'none'}
         className={cn(
           'flex items-center justify-between gap-2 px-3 py-2 text-[11px] font-extrabold border-b border-border/40',
-          feedback === 'liked' && 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
-          feedback === 'disliked' && 'bg-rose-500/15 text-rose-800 dark:text-rose-300',
-          !feedback && 'bg-muted/40 text-muted-foreground'
+          'bg-muted/40 text-muted-foreground',
+          'data-[feedback=liked]:bg-emerald-500/15 data-[feedback=liked]:text-emerald-800 dark:data-[feedback=liked]:text-emerald-300',
+          'data-[feedback=disliked]:bg-rose-500/15 data-[feedback=disliked]:text-rose-800 dark:data-[feedback=disliked]:text-rose-300'
         )}
       >
         <span className="inline-flex items-center gap-1.5">
@@ -218,12 +220,14 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
           <>
             <button
               type="button"
+              aria-pressed={feedback === 'liked'}
+              data-state={feedback === 'liked' ? 'on' : 'off'}
               onClick={() => handleFeedback(true)}
               className={cn(
                 'flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] rounded-xl text-[11px] font-extrabold transition-colors',
-                feedback === 'liked'
-                  ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400/40'
-                  : 'bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/25'
+                'bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/25',
+                'data-[state=on]:bg-emerald-600 data-[state=on]:text-white data-[state=on]:shadow-md data-[state=on]:ring-2 data-[state=on]:ring-emerald-400/40',
+                'data-[state=on]:hover:bg-emerald-600'
               )}
             >
               <ThumbsUp className="w-3.5 h-3.5" />
@@ -231,12 +235,14 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
             </button>
             <button
               type="button"
+              aria-pressed={feedback === 'disliked'}
+              data-state={feedback === 'disliked' ? 'on' : 'off'}
               onClick={() => handleFeedback(false)}
               className={cn(
                 'flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] rounded-xl text-[11px] font-extrabold transition-colors',
-                feedback === 'disliked'
-                  ? 'bg-rose-600 text-white shadow-md ring-2 ring-rose-400/40'
-                  : 'bg-rose-500/15 text-rose-800 hover:bg-rose-500/25'
+                'bg-rose-500/15 text-rose-800 hover:bg-rose-500/25',
+                'data-[state=on]:bg-rose-600 data-[state=on]:text-white data-[state=on]:shadow-md data-[state=on]:ring-2 data-[state=on]:ring-rose-400/40',
+                'data-[state=on]:hover:bg-rose-600'
               )}
             >
               <ThumbsDown className="w-3.5 h-3.5" />
@@ -246,17 +252,18 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
         )}
         <button
           type="button"
+          aria-pressed={Boolean(suggestion.isFavorite)}
+          data-state={suggestion.isFavorite ? 'on' : 'off'}
           onClick={handleFavoriteClick}
           className={cn(
-            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors',
-            suggestion.isFavorite
-              ? 'bg-rose text-white'
-              : 'bg-background border border-border/50 text-muted-foreground hover:text-rose',
+            'w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors group/fav',
+            'bg-background border border-border/50 text-muted-foreground hover:text-rose',
+            'data-[state=on]:bg-rose data-[state=on]:text-white data-[state=on]:border-transparent',
             isAnimating && 'animate-heart-pop'
           )}
           title="علاقه‌مندی"
         >
-          <Heart className={cn('w-4 h-4', suggestion.isFavorite && 'fill-current')} />
+          <Heart className="w-4 h-4 group-data-[state=on]/fav:fill-current" />
         </button>
         <button
           type="button"
