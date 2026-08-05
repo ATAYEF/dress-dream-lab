@@ -513,6 +513,15 @@
   padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
 }
 
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
 /* Smooth page scroll */
 html {
   scroll-behavior: smooth;
@@ -531,7 +540,8 @@ html {
 
 /* ========== Mobile UX ========== */
 @media (max-width: 767px) {
-  html, body {
+  html,
+  body {
     -webkit-text-size-adjust: 100%;
     overscroll-behavior-y: none;
   }
@@ -541,12 +551,11 @@ html {
     touch-action: manipulation;
   }
 
-  /* Comfortable bottom padding so FAB / sticky actions don't cover content */
+  /* Space for fixed bottom nav + FAB */
   .mobile-content-pad {
-    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(6.25rem + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Sticky mobile action bar for generate CTA */
   .mobile-sticky-actions {
     position: sticky;
     bottom: 0;
@@ -554,13 +563,35 @@ html {
     padding: 0.75rem 0 calc(0.75rem + env(safe-area-inset-bottom, 0px));
     background: linear-gradient(to top, hsl(var(--background)) 55%, transparent);
   }
+
+  /* Slightly denser default type scale on small screens */
+  .mobile-dense p,
+  .mobile-dense span {
+    letter-spacing: -0.01em;
+  }
 }
 
-.safe-top {
-  padding-top: env(safe-area-inset-top, 0px);
+/* Fixed bottom nav shell */
+.mobile-bottom-nav {
+  /* ensures content never sits under the bar */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-.touch-target {
-  min-height: 44px;
-  min-width: 44px;
+/* Prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob,
+  .animate-float,
+  .animate-glow-pulse,
+  .animate-shimmer,
+  .animate-scan {
+    animation: none !important;
+  }
+
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-scale-in,
+  .animate-slide-up {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
 }
