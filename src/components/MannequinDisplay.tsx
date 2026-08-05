@@ -296,24 +296,23 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const shoesItem = items.find((i) => i.category === 'shoes');
   const accessoryItems = items.filter((i) => i.category === 'accessories');
 
-  /** Precise body zones for a standing figure in aspect-[3/5] frame */
+  /** Body-aligned slots for female mannequin (aspect-[3/5]) */
   const SLOT = {
-    // shoulders → mid-torso
-    tops: { top: '16%', left: '24%', width: '52%', height: '28%' },
-    // coat / jacket over torso, slightly wider
-    outerwear: { top: '14%', left: '18%', width: '64%', height: '36%' },
-    // waist → ankles
-    bottoms: { top: '42%', left: '27%', width: '46%', height: '40%' },
-    // full one-piece
-    dresses: { top: '16%', left: '24%', width: '52%', height: '58%' },
+    // chest / shoulders
+    tops: { top: '18%', left: '22%', width: '56%', height: '26%' },
+    // jacket layer
+    outerwear: { top: '15%', left: '16%', width: '68%', height: '38%' },
+    // hips → lower leg
+    bottoms: { top: '40%', left: '26%', width: '48%', height: '42%' },
+    // shoulders → mid-calf (one-piece sits on body)
+    dresses: { top: '17%', left: '20%', width: '60%', height: '62%' },
     // feet
-    shoes: { top: '84%', left: '28%', width: '44%', height: '12%' },
-    // neck / scarf
-    accessoryHead: { top: '9%', left: '35%', width: '30%', height: '9%' },
-    // belt at waist
-    accessoryBelt: { top: '41%', left: '30%', width: '40%', height: '5%' },
-    // bag at right hip
-    accessoryBag: { top: '48%', left: '68%', width: '28%', height: '16%' },
+    shoes: { top: '86%', left: '30%', width: '40%', height: '11%' },
+    accessoryHead: { top: '10%', left: '34%', width: '32%', height: '8%' },
+    // natural waist line
+    accessoryBelt: { top: '39%', left: '28%', width: '44%', height: '6%' },
+    // right hand / hip outside silhouette
+    accessoryBag: { top: '46%', left: '64%', width: '30%', height: '18%' },
   } as const;
 
   const slotStyle = (
@@ -326,7 +325,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     position: 'absolute',
     animationDelay: delay,
     animationFillMode: 'backwards',
-    filter: 'drop-shadow(0 6px 14px rgba(0,0,0,0.22))',
+    filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
   });
 
   return (
@@ -361,25 +360,11 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             aria-hidden
             className={cn(
               'absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-500',
-              hasSelectedItems ? 'opacity-[0.12]' : 'opacity-90 drop-shadow-xl'
+              hasSelectedItems ? 'opacity-40' : 'opacity-90 drop-shadow-xl'
             )}
             draggable={false}
           />
 
-          {/* Zone labels when items present */}
-          {hasSelectedItems && (
-            <>
-              <span className="absolute top-[14%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
-                بالاتنه
-              </span>
-              <span className="absolute top-[48%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
-                پایین‌تنه
-              </span>
-              <span className="absolute top-[86%] right-2 z-[5] text-[9px] font-black text-muted-foreground/70 bg-background/70 px-1.5 py-0.5 rounded-md">
-                کفش
-              </span>
-            </>
-          )}
 
           {/* Dress (full body) — only when no separate top/bottom */}
           {dress && !top && !bottom && (
@@ -387,7 +372,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
-                className="w-full h-full object-contain object-center"
+                className="w-full h-full object-contain object-[center_20%]"
                 draggable={false}
               />
             </div>
@@ -399,7 +384,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
-                className="w-full h-full object-contain object-center"
+                className="w-full h-full object-contain object-[center_15%]"
                 draggable={false}
               />
             </div>
@@ -427,7 +412,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-contain object-center"
+                className="w-full h-full object-contain object-[center_30%]"
                 draggable={false}
               />
             </div>
@@ -522,13 +507,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </div>
 
         {/* Instant composite indicator (before any AI generation) */}
-        {!compact && hasSelectedItems && !aiImage && !aiLoading && (
-          <div className="absolute top-2 right-2 z-40 flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-foreground/80 shadow-md hairline-border animate-fade-in">
-            <Sparkles className="w-3 h-3 text-gold" />
-            پیش‌نمایش فوری (بدون هوش مصنوعی)
-          </div>
-        )}
-
+        
 
         {/* AI generated try-on result */}
         {aiImage && (
