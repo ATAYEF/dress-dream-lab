@@ -3,7 +3,7 @@ import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 import { useStagedProgress, TRYON_RENDER_STAGES } from '@/hooks/useStagedProgress';
 import { StagedProgress } from '@/components/StagedProgress';
-import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
@@ -101,6 +101,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     null;
 
   const [selectedAccessoryIds, setSelectedAccessoryIds] = useState<string[]>([]);
+  const [extrasOpen, setExtrasOpen] = useState(false);
   const userAccessory = items.find((i) => i.category === 'accessories');
   const activeAccessories: (SuggestedAccessory | ClothingItem)[] = userAccessory
     ? [userAccessory as ClothingItem]
@@ -590,8 +591,24 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       </div>
       )}
 
+
+      {/* Collapsible extras — reduces scroll to keep mannequin visible */}
+      {!compact && hasSelectedItems && (
+        <button
+          type="button"
+          onClick={() => setExtrasOpen((v) => !v)}
+          className="mt-3 w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl hairline-border bg-gradient-card/80 text-xs font-extrabold shadow-soft"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-gold" />
+            کفش و اکسسوری پیشنهادی
+          </span>
+          <ChevronDown className={cn('w-4 h-4 transition-transform', extrasOpen && 'rotate-180')} />
+        </button>
+      )}
+
       {/* ===== Shoe picker ===== */}
-      {!compact && hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
+      {!compact && extrasOpen && hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
         <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
@@ -645,7 +662,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       )}
 
       {/* ===== Accessory picker ===== */}
-      {!compact && hasSelectedItems && !userAccessory && (
+      {!compact && extrasOpen && hasSelectedItems && !userAccessory && (
         <div className="mt-2.5 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
