@@ -38,6 +38,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
   const [feedback, setFeedback] = useState<'liked' | 'disliked' | null>(
     suggestion.isFavorite ? 'liked' : null
   );
+  const [textExpanded, setTextExpanded] = useState(false);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -75,24 +76,28 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
     return CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category);
   });
 
+  const text = suggestion.suggestionText?.trim() || '';
+  // ~2 lines of Persian UI text ≈ 90–110 chars; use length as proxy when line-clamp is on
+  const textLong = text.length > 95;
+
   return (
     <div
       className={cn(
         'group relative rounded-2xl overflow-hidden shadow-card hairline-border bg-gradient-card',
         'transition-shadow duration-300 hover:shadow-elevated',
         feedback === 'liked' && 'ring-2 ring-emerald-400/60',
-        feedback === 'disliked' && 'ring-2 ring-rose-300/50 opacity-90',
+        feedback === 'disliked' && 'ring-2 ring-rose-400/50',
         className
       )}
       style={style}
       dir="rtl"
     >
-      {/* Status strip */}
+      {/* Status strip — full opacity always */}
       <div
         className={cn(
           'flex items-center justify-between gap-2 px-3 py-2 text-[11px] font-extrabold border-b border-border/40',
-          feedback === 'liked' && 'bg-emerald-500/10 text-emerald-800 dark:text-emerald-300',
-          feedback === 'disliked' && 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+          feedback === 'liked' && 'bg-emerald-500/15 text-emerald-800 dark:text-emerald-300',
+          feedback === 'disliked' && 'bg-rose-500/15 text-rose-800 dark:text-rose-300',
           !feedback && 'bg-muted/40 text-muted-foreground'
         )}
       >
@@ -114,22 +119,21 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
           {feedback === 'liked' && (
             <>
               <ThumbsUp className="w-3.5 h-3.5" />
-              پسندیدید
+              خوشم اومد
             </>
           )}
           {feedback === 'disliked' && (
             <>
               <ThumbsDown className="w-3.5 h-3.5" />
-              نپسندیدید
+              حال نکردم
             </>
           )}
           {!feedback && <span className="font-medium">هنوز نظر نداده‌اید</span>}
         </span>
       </div>
 
-      {/* Main: details on the right (RTL), preview on the left */}
+      {/* Main: details (RTL right) + preview with zoom */}
       <div className="flex flex-row items-stretch gap-0 min-h-0">
-        {/* Items list — visible beside mannequin (right side in RTL) */}
         <aside className="w-[42%] sm:w-[38%] max-w-[160px] shrink-0 border-l border-border/40 bg-background/50 p-2 sm:p-2.5 overflow-y-auto max-h-[360px]">
           <p className="text-[10px] font-black text-muted-foreground mb-2 px-0.5">جزئیات ست</p>
           <ul className="space-y-1.5">
@@ -162,7 +166,6 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
           </ul>
         </aside>
 
-        {/* Body preview — tight, minimal padding */}
         <div className="relative flex-1 min-w-0 bg-gradient-hero/40 p-1 sm:p-1.5">
           {suggestion.generatedImageUrl ? (
             <img
@@ -186,16 +189,30 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
         </div>
       </div>
 
-      {/* Explanation */}
-      {suggestion.suggestionText && (
+      {/* Explanation — max 2 lines + بیشتر */}
+      {text && (
         <div className="px-3 py-2 border-t border-border/40">
-          <p className="text-[11px] sm:text-xs leading-relaxed text-foreground/85 font-medium line-clamp-3">
-            {suggestion.suggestionText}
+          <p
+            className={cn(
+              'text-[11px] sm:text-xs leading-relaxed text-foreground/85 font-medium',
+              !textExpanded && 'line-clamp-2'
+            )}
+          >
+            {text}
           </p>
+          {textLong && (
+            <button
+              type="button"
+              onClick={() => setTextExpanded((v) => !v)}
+              className="mt-1 text-[11px] font-extrabold text-gold hover:underline"
+            >
+              {textExpanded ? 'کمتر' : 'بیشتر'}
+            </button>
+          )}
         </div>
       )}
 
-      {/* Actions */}
+      {/* Actions — dislike stays full color when selected */}
       <div className="flex items-center gap-1.5 px-2.5 py-2 border-t border-border/40 bg-muted/20">
         {onFeedback && (
           <>
@@ -205,12 +222,12 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
               className={cn(
                 'flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] rounded-xl text-[11px] font-extrabold transition-colors',
                 feedback === 'liked'
-                  ? 'bg-emerald-500 text-white shadow-sm'
-                  : 'bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/20'
+                  ? 'bg-emerald-600 text-white shadow-md ring-2 ring-emerald-400/40'
+                  : 'bg-emerald-500/15 text-emerald-800 hover:bg-emerald-500/25'
               )}
             >
               <ThumbsUp className="w-3.5 h-3.5" />
-              پسندیدم
+              خوشم اومد
             </button>
             <button
               type="button"
@@ -218,12 +235,12 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
               className={cn(
                 'flex-1 inline-flex items-center justify-center gap-1 min-h-[40px] rounded-xl text-[11px] font-extrabold transition-colors',
                 feedback === 'disliked'
-                  ? 'bg-rose-500 text-white shadow-sm'
-                  : 'bg-muted text-muted-foreground hover:bg-destructive/10 hover:text-destructive'
+                  ? 'bg-rose-600 text-white shadow-md ring-2 ring-rose-400/40'
+                  : 'bg-rose-500/15 text-rose-800 hover:bg-rose-500/25'
               )}
             >
               <ThumbsDown className="w-3.5 h-3.5" />
-              نپسندیدم
+              حال نکردم
             </button>
           </>
         )}

@@ -551,7 +551,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           </div>
         )}
 
-        {!compact && zoomControls}
+        {zoomControls}
       </div>
 
       {/* ===== AI generate — no model picker; server auto-selects ===== */}
