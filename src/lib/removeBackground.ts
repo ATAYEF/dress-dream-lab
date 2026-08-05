@@ -144,10 +144,11 @@ async function removeWithEdgeFunction(src: string): Promise<string | null> {
 async function removeWithImgly(src: string): Promise<string | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod: any = await import(
-      /* @vite-ignore */
-      'https://esm.sh/@imgly/background-removal@1.5.5'
-    );
+    const dynamicImport = new Function('u', 'return import(/* @vite-ignore */ u)') as (
+      u: string
+    ) => Promise<any>;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await dynamicImport('https://esm.sh/@imgly/background-removal@1.5.5');
     const removeBackground = mod.removeBackground || mod.default?.removeBackground || mod.default;
     if (typeof removeBackground !== 'function') return null;
     const input = await srcToBlob(src);
