@@ -216,19 +216,38 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           )}
         </div>
 
-        {/* شرایط + اقدام اصلی — سلسله‌مراتب واضح */}
-        <div className="mb-4 space-y-2">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+        {/* فرم شرایط + تولید ست — یک بلوک پیوسته */}
+        <div className="mb-4 rounded-3xl border border-border/40 bg-white/80 dark:bg-card/90 shadow-soft overflow-hidden">
+          {/* نوار خلاصه — همان سبک chipهای «انتخاب‌های شما» */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 p-3 sm:p-3.5 bg-muted/30 border-b border-border/30">
             <button
               type="button"
               onClick={() => setShowContext((v) => !v)}
-              className="flex-1 min-w-0 flex items-center justify-between gap-2 px-3 py-2.5 rounded-xl text-xs font-extrabold bg-white/60 border border-border/40 hover:bg-white/85 transition-colors text-right"
+              className="flex-1 min-w-0 flex items-center justify-between gap-2 text-right touch-manipulation"
+              aria-expanded={showContext}
             >
-              <span className="truncate">
-                شرایط:{' '}
-                <span className="text-foreground">{contextLabels(outfitContext)}</span>
-              </span>
-              <span className="text-muted-foreground font-bold shrink-0">
+              <div className="min-w-0 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-black text-muted-foreground shrink-0">شرایط:</span>
+                {contextLabels(outfitContext)
+                  .split(' · ')
+                  .filter(Boolean)
+                  .map((part, i) => (
+                    <React.Fragment key={`${part}-${i}`}>
+                      {i > 0 && <span className="text-muted-foreground/40 text-xs">|</span>}
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-muted/70 text-[11px] font-extrabold text-foreground">
+                        {part}
+                      </span>
+                    </React.Fragment>
+                  ))}
+              </div>
+              <span
+                className={cn(
+                  'shrink-0 text-[11px] font-extrabold px-2.5 py-1 rounded-full transition-colors',
+                  showContext
+                    ? 'bg-foreground text-background'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                )}
+              >
                 {showContext ? 'بستن' : 'تغییر'}
               </span>
             </button>
@@ -244,12 +263,16 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               {isGenerating ? 'در حال تولید…' : 'تولید ست'}
             </Button>
           </div>
+
           {showContext && (
-            <OutfitContextPicker
-              value={outfitContext}
-              onChange={setOutfitContext}
-              onClear={() => setOutfitContext(DEFAULT_OUTFIT_CONTEXT)}
-            />
+            <div className="p-3 sm:p-4 border-t-0">
+              <OutfitContextPicker
+                value={outfitContext}
+                onChange={setOutfitContext}
+                onClear={() => setOutfitContext(DEFAULT_OUTFIT_CONTEXT)}
+                embedded
+              />
+            </div>
           )}
         </div>
 

@@ -32,6 +32,8 @@ interface OutfitContextPickerProps {
   onChange: (next: OutfitContext) => void;
   className?: string;
   onClear?: () => void;
+  /** When true, no outer card — parent form provides the shell */
+  embedded?: boolean;
 }
 
 type TabId = 'activity' | 'place' | 'weather';
@@ -172,6 +174,7 @@ export const OutfitContextPicker: React.FC<OutfitContextPickerProps> = ({
   onChange,
   className,
   onClear,
+  embedded = false,
 }) => {
   const [tab, setTab] = useState<TabId>('activity');
   const [extraId, setExtraId] = useState<string | null>(null);
@@ -207,7 +210,8 @@ export const OutfitContextPicker: React.FC<OutfitContextPickerProps> = ({
   return (
     <div
       className={cn(
-        'rounded-3xl bg-white dark:bg-card border border-border/40 shadow-soft p-4 sm:p-5 space-y-4',
+        'space-y-4',
+        !embedded && 'rounded-3xl bg-white dark:bg-card border border-border/40 shadow-soft p-4 sm:p-5',
         className
       )}
       dir="rtl"
@@ -325,7 +329,7 @@ export const OutfitContextPicker: React.FC<OutfitContextPickerProps> = ({
       </div>
 
       {/* Selection summary */}
-      <div className="pt-3 border-t border-border/40">
+      <div className={cn('pt-3', embedded ? 'border-t border-dashed border-border/50' : 'border-t border-border/40')}>
         <div className="flex items-center justify-between gap-2 mb-2">
           <div>
             <p className="text-sm font-black text-foreground">انتخاب‌های شما</p>
