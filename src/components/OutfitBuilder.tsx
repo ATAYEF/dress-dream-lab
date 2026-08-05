@@ -13,9 +13,11 @@ import {
   MapPin,
   CloudSun,
   RotateCcw,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
-import { MannequinDisplay } from './MannequinDisplay';
+import { MannequinDisplay, type MannequinDisplayHandle } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -114,6 +116,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
   const [showContext, setShowContext] = useState(false);
   const catScroll = useSmoothDragScroll();
+  const mannequinRef = useRef<MannequinDisplayHandle>(null);
 
   /** Tabs from real category config (DB) */
   const pickerTabs = useMemo(
@@ -502,7 +505,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             </div>
           </aside>
 
-          {/* CENTER: Mannequin */}
+          {/* CENTER: Mannequin — taller frame so shoes are visible */}
           <section className="order-1 xl:order-2 min-w-0">
             <div
               onDragOver={!isMobile ? handleDragOver : undefined}
@@ -513,7 +516,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 isDragOver && 'ring-2 ring-primary'
               )}
             >
-              <div className="relative mx-auto w-full aspect-[3/4] sm:aspect-[3/3.6] max-h-[620px] bg-gradient-to-b from-muted/30 via-background to-muted/20">
+              <div className="relative mx-auto w-full aspect-[3/5] sm:aspect-[3/5.1] max-h-[720px] min-h-[460px] bg-gradient-to-b from-muted/30 via-background to-muted/20">
                 {outfitItems.length === 0 ? (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
@@ -531,21 +534,45 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   </div>
                 ) : (
                   <MannequinDisplay
+                    ref={mannequinRef}
                     items={outfitItems}
                     profileImageUrl={profileImageUrl}
-                    className="w-full h-full"
+                    className="w-full h-full max-w-none"
+                    hideZoomChrome
                   />
                 )}
 
+                {/* Zoom + reset toolbar */}
                 {outfitItems.length > 0 && (
-                  <button
-                    type="button"
-                    className="absolute bottom-4 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-background/90 backdrop-blur border border-border/70 shadow-soft flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                    title="چرخش"
-                    aria-label="چرخش مانکن"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-full bg-background/95 backdrop-blur-md border border-border/70 shadow-lg px-1.5 py-1">
+                    <button
+                      type="button"
+                      onClick={() => mannequinRef.current?.zoomOut()}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
+                      title="کوچک‌نمایی"
+                      aria-label="کوچک‌نمایی"
+                    >
+                      <ZoomOut className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => mannequinRef.current?.resetView()}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
+                      title="بازنشانی اندازه"
+                      aria-label="بازنشانی اندازه"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => mannequinRef.current?.zoomIn()}
+                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
+                      title="بزرگ‌نمایی"
+                      aria-label="بزرگ‌نمایی"
+                    >
+                      <ZoomIn className="w-4 h-4" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
