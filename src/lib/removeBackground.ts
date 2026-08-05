@@ -206,11 +206,13 @@ export async function removeClothingBackground(src: string): Promise<string> {
 
   const job = (async () => {
     try {
-      const ai = await removeWithImgly(src);
-      if (ai) { cache.set(src, ai); return ai; }
-
+      // Prefer online remove.bg via edge (when REMOVE_BG_API_KEY is set on Supabase)
       const edge = await removeWithEdgeFunction(src);
       if (edge) { cache.set(src, edge); return edge; }
+
+      // AI model from CDN (img.ly)
+      const ai = await removeWithImgly(src);
+      if (ai) { cache.set(src, ai); return ai; }
 
       const local = await heuristicRemove(src);
       cache.set(src, local);
