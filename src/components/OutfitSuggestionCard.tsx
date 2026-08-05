@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { Sparkles, Heart, Share2, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { OutfitSuggestion, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay } from './MannequinDisplay';
@@ -39,6 +39,8 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
     suggestion.isFavorite ? 'liked' : null
   );
   const [textExpanded, setTextExpanded] = useState(false);
+  const [textOverflows, setTextOverflows] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -77,8 +79,25 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
   });
 
   const text = suggestion.suggestionText?.trim() || '';
-  // ~2 lines of Persian UI text ≈ 90–110 chars; use length as proxy when line-clamp is on
-  const textLong = text.length > 95;
+
+  // Only show بیشتر/کمتر when text is actually truncated (2-line clamp)
+  useLayoutEffect(() => {
+    setTextExpanded(false);
+  }, [text]);
+
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (!el || !text) {
+      setTextOverflows(false);
+      return;
+    }
+    if (textExpanded) {
+      // keep overflows true so "کمتر" stays available
+      return;
+    }
+    // With line-clamp-2 applied, compare full scroll height vs visible
+    setTextOverflows(el.scrollHeight > el.clientHeight + 1);
+  }, [text, textExpanded]);
 
   return (
     <div
@@ -196,6 +215,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
       {text && (
         <div className="px-3 py-2 border-t border-border/40">
           <p
+            ref={textRef}
             className={cn(
               'text-[11px] sm:text-xs leading-relaxed text-foreground/85 font-medium',
               !textExpanded && 'line-clamp-2'
@@ -203,7 +223,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
           >
             {text}
           </p>
-          {textLong && (
+          {textOverflows && (
             <button
               type="button"
               onClick={() => setTextExpanded((v) => !v)}
