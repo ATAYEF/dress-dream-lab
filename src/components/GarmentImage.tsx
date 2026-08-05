@@ -6,6 +6,7 @@ interface GarmentImageProps {
   src: string;
   alt: string;
   className?: string;
+  style?: React.CSSProperties;
   /** Skip processing (e.g. already transparent assets) */
   skip?: boolean;
   loading?: 'lazy' | 'eager';
@@ -19,6 +20,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
   src,
   alt,
   className,
+  style,
   skip = false,
   loading = 'lazy',
   draggable = false,
@@ -62,6 +64,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
       alt={alt}
       loading={loading}
       draggable={draggable}
+      style={style}
       className={cn(
         className,
         'transition-opacity duration-300',

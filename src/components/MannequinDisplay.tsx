@@ -296,36 +296,67 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const shoesItem = items.find((i) => i.category === 'shoes');
   const accessoryItems = items.filter((i) => i.category === 'accessories');
 
-  /** Body-aligned slots for female mannequin (aspect-[3/5]) */
+  /**
+   * Body-aligned slots for female mannequin (aspect-[3/5]).
+   * objectPosition is tuned for typical product photos (subject centered, top-weighted).
+   */
   const SLOT = {
-    // chest / shoulders
-    tops: { top: '18%', left: '22%', width: '56%', height: '26%' },
-    // jacket layer
-    outerwear: { top: '15%', left: '16%', width: '68%', height: '38%' },
-    // hips → lower leg
-    bottoms: { top: '40%', left: '26%', width: '48%', height: '42%' },
-    // shoulders → mid-calf (one-piece sits on body)
-    dresses: { top: '17%', left: '20%', width: '60%', height: '62%' },
-    // feet
-    shoes: { top: '86%', left: '30%', width: '40%', height: '11%' },
-    accessoryHead: { top: '10%', left: '34%', width: '32%', height: '8%' },
-    // natural waist line
-    accessoryBelt: { top: '39%', left: '28%', width: '44%', height: '6%' },
-    // right hand / hip outside silhouette
-    accessoryBag: { top: '46%', left: '64%', width: '30%', height: '18%' },
+    tops: {
+      top: '17%', left: '21%', width: '58%', height: '28%',
+      objectPosition: '50% 12%',
+    },
+    outerwear: {
+      top: '14%', left: '15%', width: '70%', height: '40%',
+      objectPosition: '50% 18%',
+    },
+    bottoms: {
+      top: '39%', left: '25%', width: '50%', height: '44%',
+      objectPosition: '50% 8%',
+    },
+    dresses: {
+      top: '15%', left: '18%', width: '64%', height: '66%',
+      objectPosition: '50% 10%',
+    },
+    shoes: {
+      top: '85%', left: '28%', width: '44%', height: '13%',
+      objectPosition: '50% 55%',
+    },
+    accessoryHead: {
+      top: '9%', left: '34%', width: '32%', height: '9%',
+      objectPosition: '50% 40%',
+    },
+    accessoryBelt: {
+      top: '38%', left: '27%', width: '46%', height: '7%',
+      objectPosition: '50% 50%',
+    },
+    accessoryBag: {
+      top: '44%', left: '62%', width: '32%', height: '20%',
+      objectPosition: '50% 45%',
+    },
   } as const;
 
-  const slotStyle = (
-    slot: { top: string; left: string; width: string; height: string },
-    z: number,
-    delay = '0.05s'
-  ): React.CSSProperties => ({
-    ...slot,
-    zIndex: z,
-    position: 'absolute',
-    animationDelay: delay,
-    animationFillMode: 'backwards',
-    filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
+  type SlotBox = {
+    top: string;
+    left: string;
+    width: string;
+    height: string;
+    objectPosition?: string;
+  };
+
+  const slotStyle = (slot: SlotBox, z: number, delay = '0.05s'): React.CSSProperties => {
+    const { objectPosition: _op, ...box } = slot;
+    return {
+      ...box,
+      zIndex: z,
+      position: 'absolute',
+      animationDelay: delay,
+      animationFillMode: 'backwards',
+      filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
+    };
+  };
+
+  const garmentImgStyle = (slot: SlotBox): React.CSSProperties => ({
+    objectPosition: slot.objectPosition ?? '50% 50%',
   });
 
   return (
@@ -372,7 +403,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
-                className="w-full h-full object-contain object-[center_20%]"
+                className="w-full h-full object-contain"
+                style={garmentImgStyle(SLOT.dresses)}
                 draggable={false}
               />
             </div>
@@ -384,7 +416,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
-                className="w-full h-full object-contain object-[center_15%]"
+                className="w-full h-full object-contain"
+                style={garmentImgStyle(SLOT.tops)}
                 draggable={false}
               />
             </div>
@@ -400,7 +433,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={outerwear.imageUrl}
                 alt={outerwear.name}
-                className="w-full h-full object-contain object-center"
+                className="w-full h-full object-contain"
+                style={garmentImgStyle(SLOT.outerwear)}
                 draggable={false}
               />
             </div>
@@ -412,7 +446,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-contain object-[center_30%]"
+                className="w-full h-full object-contain"
+                style={garmentImgStyle(SLOT.bottoms)}
                 draggable={false}
               />
             </div>
@@ -428,7 +463,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 src={activeShoe.imageUrl}
                 alt={activeShoe.name}
                 loading="lazy"
-                className="w-full h-full object-contain object-center"
+                className="w-full h-full object-contain"
+                style={garmentImgStyle(SLOT.shoes)}
                 draggable={false}
               />
             </div>
@@ -455,9 +491,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                   src={acc.imageUrl}
                   alt={acc.name}
                   className={cn(
-                    'w-full h-full object-contain object-center',
+                    'w-full h-full object-contain',
                     !isBelt && !isBag && 'rounded-full object-cover'
                   )}
+                  style={garmentImgStyle(slot)}
                   draggable={false}
                 />
               </div>
@@ -480,7 +517,8 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                     src={a.imageUrl}
                     alt={a.name}
                     loading="lazy"
-                    className="w-full h-full object-contain object-center opacity-90"
+                    className="w-full h-full object-contain opacity-90"
+                    style={garmentImgStyle(slot)}
                     draggable={false}
                   />
                 </div>
