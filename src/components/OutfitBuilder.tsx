@@ -8,9 +8,7 @@ import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 import { CATEGORY_CONFIG, CATEGORY_CLOTHING_ORDER } from '@/lib/categoryConfig';
-import { ColorHarmonyBadge } from './ColorHarmonyBadge';
-import { AccessorySuggestions } from './AccessorySuggestions';
-import { ShoeSuggestions } from './ShoeSuggestions';
+import { AiRecommendationsPanel } from './AiRecommendationsPanel';
 import { OutfitContextPicker } from './OutfitContextPicker';
 import {
   DEFAULT_OUTFIT_CONTEXT,
@@ -167,75 +165,80 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const canGenerate = outfitItems.length >= 2 || clothes.length >= 2;
 
   return (
-    <div className="relative overflow-hidden rounded-[2rem]">
-      {/* Background layers — richer for hero presence */}
+    <div className="relative overflow-hidden rounded-[1.75rem] bg-background">
+      {/* Soft warm-white canvas — minimal, luxury */}
       <div className="absolute inset-0 bg-gradient-hero" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--gold)/0.12),_transparent_55%)]" />
-      <div
-        className="absolute -top-32 -right-20 w-80 h-80 rounded-full opacity-40 animate-blob pointer-events-none"
-        style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
-      />
-      <div
-        className="absolute -bottom-24 -left-16 w-72 h-72 rounded-full opacity-30 animate-blob animation-delay-2000 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, hsl(var(--rose)) 0%, transparent 70%)' }}
-      />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_hsl(var(--gold)/0.06),_transparent_60%)]" />
 
-      <div className="relative p-3 sm:p-5 md:p-7 lg:p-8">
-        {/* Toolbar: steps + mannequin gender */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 md:mb-6">
-          <div className="flex flex-wrap items-center gap-2">
-            {[
-              { n: '۱', t: 'انتخاب لباس' },
-              { n: '۲', t: 'دیدن روی مانکن' },
-              { n: '۳', t: 'تولید ست' },
-            ].map((step, i) => (
-              <div
-                key={step.n}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[11px] md:text-xs font-bold',
-                  i === 0 && outfitItems.length === 0 && 'bg-gold/15 text-gold border border-gold/30',
-                  i === 1 && outfitItems.length > 0 && outfitItems.length < 2 && 'bg-gold/15 text-gold border border-gold/30',
-                  i === 2 && canGenerate && 'bg-gold/15 text-gold border border-gold/30',
-                  !(
-                    (i === 0 && outfitItems.length === 0) ||
-                    (i === 1 && outfitItems.length > 0 && outfitItems.length < 2) ||
-                    (i === 2 && canGenerate)
-                  ) && 'bg-white/50 text-muted-foreground border border-white/60'
-                )}
-              >
-                <span className="w-5 h-5 rounded-lg bg-gradient-gold text-white flex items-center justify-center text-[10px] font-black shadow-sm">
-                  {step.n}
-                </span>
-                {step.t}
-              </div>
-            ))}
+      <div className="relative p-4 sm:p-7 md:p-10 lg:p-12">
+        {/* ===== Header ===== */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8 md:mb-10">
+          <div className="min-w-0">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight leading-tight">
+              اتاق پرو
+            </h2>
+            <p className="text-sm text-muted-foreground font-medium mt-1.5">
+              لباس‌ها را انتخاب کنید، روی مانکن ببینید و ست نهایی را بسازید.
+            </p>
           </div>
 
-          {profileImageUrl && (
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
-              <User className="w-3.5 h-3.5" />
-              امتحان روی عکس شما
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {profileImageUrl && (
+              <span className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full bg-card border border-border/70 text-xs font-bold text-muted-foreground">
+                <User className="w-3.5 h-3.5 text-primary" />
+                امتحان روی عکس شما
+              </span>
+            )}
+            {[
+              { n: '۱', t: 'انتخاب' },
+              { n: '۲', t: 'مانکن' },
+              { n: '۳', t: 'تولید ست' },
+            ].map((step, i) => {
+              const active =
+                (i === 0 && outfitItems.length === 0) ||
+                (i === 1 && outfitItems.length > 0 && outfitItems.length < 2) ||
+                (i === 2 && canGenerate);
+              return (
+                <div
+                  key={step.n}
+                  className={cn(
+                    'hidden md:inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-[11px] font-bold transition-colors',
+                    active
+                      ? 'bg-primary/10 text-primary'
+                      : 'bg-card border border-border/70 text-muted-foreground'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black',
+                      active ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    )}
+                  >
+                    {step.n}
+                  </span>
+                  {step.t}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        {/* فرم شرایط + تولید ست — یک بلوک پیوسته */}
-        <div className="mb-8 md:mb-10 rounded-3xl border border-border/40 bg-white dark:bg-card shadow-soft overflow-hidden">
-          {/* نوار خلاصه — دقیقاً همان chipهای «انتخاب‌های شما» */}
+        {/* ===== Context bar ===== */}
+        <div className="mb-8 md:mb-10 rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden">
           <div
             className={cn(
-              'flex flex-col sm:flex-row sm:items-center gap-2.5 p-3.5 sm:p-4',
-              showContext && 'border-b border-border/30'
+              'flex flex-col sm:flex-row sm:items-center gap-3 p-4 sm:p-5',
+              showContext && 'border-b border-border/60'
             )}
           >
             <button
               type="button"
               onClick={() => setShowContext((v) => !v)}
-              className="flex-1 min-w-0 flex items-center justify-between gap-2 text-right touch-manipulation"
+              className="flex-1 min-w-0 flex items-center justify-between gap-3 text-right touch-manipulation"
               aria-expanded={showContext}
             >
               <div className="min-w-0 flex flex-wrap items-center gap-2">
-                <span className="text-sm font-black text-foreground shrink-0">شرایط</span>
+                <span className="text-sm font-black text-foreground shrink-0 ml-1">شرایط</span>
                 {(
                   [
                     {
@@ -257,24 +260,17 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       Icon: CloudSun,
                     },
                   ] as const
-                ).map((chip, i) => (
-                  <React.Fragment key={chip.key}>
-                    {i > 0 && <span className="text-muted-foreground/40 text-xs">|</span>}
-                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/60 text-xs font-extrabold text-foreground">
-                      <chip.Icon className="w-3.5 h-3.5 shrink-0" />
-                      {chip.label}
-                    </span>
-                  </React.Fragment>
+                ).map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-muted/70 text-xs font-bold text-foreground"
+                  >
+                    <chip.Icon className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                    {chip.label}
+                  </span>
                 ))}
               </div>
-              <span
-                className={cn(
-                  'shrink-0 text-[11px] font-extrabold px-3 py-1.5 rounded-full transition-colors',
-                  showContext
-                    ? 'bg-muted/60 text-foreground'
-                    : 'bg-muted/60 text-muted-foreground hover:text-foreground'
-                )}
-              >
+              <span className="shrink-0 text-[11px] font-extrabold px-3.5 py-2 rounded-full text-primary hover:bg-primary/10 transition-colors">
                 {showContext ? 'بستن' : 'تغییر'}
               </span>
             </button>
@@ -284,7 +280,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               size="default"
               onClick={handleGenerate}
               disabled={!canGenerate || isGenerating}
-              className="font-extrabold shrink-0 min-h-[44px] sm:min-w-[140px] shadow-button-gold"
+              className="font-extrabold shrink-0 min-h-[46px] rounded-full sm:min-w-[150px] shadow-button-gold"
             >
               <Sparkles className="w-4 h-4" />
               {isGenerating ? 'در حال تولید…' : 'تولید ست'}
@@ -292,7 +288,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           </div>
 
           {showContext && (
-            <div className="p-3.5 sm:p-5 bg-white dark:bg-card">
+            <div className="p-4 sm:p-6">
               <OutfitContextPicker
                 value={outfitContext}
                 onChange={setOutfitContext}
@@ -303,160 +299,111 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           )}
         </div>
 
-        {/* ===== Studio layout: مانکن | گالری | دسته‌بندی ===== */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(260px,300px)_minmax(0,1fr)_220px] gap-4 lg:gap-5">
+        {/* ===== Three-column studio: خلاصه | مانکن + گالری | پیشنهادها ===== */}
+        <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_260px] gap-6 lg:gap-8">
 
-          {/* ---- مانکن + انتخاب‌ها + تولید ---- */}
-          <aside className="order-1 xl:order-none flex flex-col gap-3 xl:sticky xl:top-24 self-start">
-            <div className="rounded-[1.75rem] bg-white dark:bg-card border border-border/40 shadow-soft overflow-hidden">
-              <div
-                onDragOver={!isMobile ? handleDragOver : undefined}
-                onDragLeave={!isMobile ? handleDragLeave : undefined}
-                onDrop={!isMobile ? handleDrop : undefined}
-                className={cn(
-                  'relative mx-auto w-full aspect-[3/5] max-h-[420px] overflow-hidden bg-gradient-to-b from-muted/30 to-background transition-all',
-                  isDragOver && 'ring-2 ring-gold ring-inset'
+          {/* ---------- LEFT: selected summary + categories ---------- */}
+          <aside className="order-2 xl:order-3 flex flex-col gap-6 xl:sticky xl:top-24 self-start">
+            {/* Selected clothing summary */}
+            <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft p-5">
+              <div className="flex items-center justify-between gap-2 mb-4">
+                <h3 className="text-sm font-black tracking-tight">انتخاب‌های شما</h3>
+                {outfitItems.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={clearOutfit}
+                    className="text-[11px] font-bold text-muted-foreground hover:text-destructive transition-colors inline-flex items-center gap-1"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    پاک کردن
+                  </button>
                 )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {(
+                  [
+                    { cat: 'dresses' as const, label: 'لباس', fallback: 'tops' as const },
+                    { cat: 'accessories' as const, label: 'اکسسوری' },
+                    { cat: 'shoes' as const, label: 'کفش' },
+                    { cat: 'outerwear' as const, label: 'رویه' },
+                  ] as const
+                ).map((slot) => {
+                  const item =
+                    outfitItems.find((i) => i.category === slot.cat) ||
+                    ('fallback' in slot && slot.fallback
+                      ? outfitItems.find((i) => i.category === slot.fallback)
+                      : undefined);
+                  return (
+                    <button
+                      key={slot.cat}
+                      type="button"
+                      onClick={() => {
+                        setOpenGalleryCat(slot.cat);
+                        setGalleryCategory(slot.cat);
+                        if (item) removeFromOutfit(item.id);
+                      }}
+                      className={cn(
+                        'group relative aspect-square rounded-[1.25rem] overflow-hidden flex flex-col items-center justify-center transition-all duration-300',
+                        item
+                          ? 'ring-2 ring-primary bg-muted/40'
+                          : 'bg-muted/40 hover:bg-muted/70'
+                      )}
+                      title={item ? `${item.name} — برای حذف کلیک` : `افزودن ${slot.label}`}
+                    >
+                      {item ? (
+                        <>
+                          <img src={item.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                            <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                          </span>
+                        </>
+                      ) : (
+                        <Plus className="w-4 h-4 text-muted-foreground transition-transform group-hover:scale-125" />
+                      )}
+                      <span className="relative z-10 mt-auto mb-2 text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-background/85 text-foreground">
+                        {slot.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <Button
+                type="button"
+                variant="gold"
+                size="lg"
+                onClick={handleGenerate}
+                disabled={!canGenerate || isGenerating}
+                className="w-full mt-5 font-extrabold min-h-[48px] rounded-full shadow-button-gold"
               >
-                <MannequinDisplay
-                  items={outfitItems}
-                  profileImageUrl={profileImageUrl}
-                  compact
-                  className="w-full h-full"
-                />
-                {clothes.length > 0 && outfitItems.length === 0 && !isDragOver && (
-                  <div className="absolute inset-x-3 bottom-3 flex justify-center pointer-events-none">
-                    <span className="px-3 py-1.5 rounded-full bg-white/90 text-[11px] font-bold text-muted-foreground shadow-sm">
-                      {isMobile ? 'روی لباس‌ها تپ کنید' : 'لباس را بکشید اینجا'}
-                    </span>
-                  </div>
+                {isGenerating ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                    <span className="truncate max-w-[150px]">{genProgress.stage.label}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    تولید ست
+                  </>
                 )}
-              </div>
+              </Button>
 
-              {/* انتخاب‌های شما — پایین‌تر از کنترل زوم مانکن */}
-              <div className="p-3 pt-5 mt-1 border-t border-border/30">
-                <p className="text-xs font-black text-center mb-3">انتخاب‌های شما</p>
-                <div className="grid grid-cols-4 gap-2">
-                  {(
-                    [
-                      { cat: 'dresses' as const, label: 'لباس', fallback: 'tops' as const },
-                      { cat: 'accessories' as const, label: 'اکسسوری' },
-                      { cat: 'shoes' as const, label: 'کفش' },
-                      { cat: 'outerwear' as const, label: 'رویه' },
-                    ] as const
-                  ).map((slot) => {
-                    const item =
-                      outfitItems.find((i) => i.category === slot.cat) ||
-                      ('fallback' in slot && slot.fallback
-                        ? outfitItems.find((i) => i.category === slot.fallback)
-                        : undefined);
-                    return (
-                      <button
-                        key={slot.cat}
-                        type="button"
-                        onClick={() => {
-                          setOpenGalleryCat(slot.cat);
-                          setGalleryCategory(slot.cat);
-                          if (item) removeFromOutfit(item.id);
-                        }}
-                        className={cn(
-                          'relative aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-0.5 overflow-hidden transition-all',
-                          item
-                            ? 'border-gold/50 bg-gold/5'
-                            : 'border-border/50 bg-muted/20 hover:border-gold/40 hover:bg-gold/5'
-                        )}
-                        title={item ? `${item.name} — برای حذف کلیک` : `افزودن ${slot.label}`}
-                      >
-                        {item ? (
-                          <>
-                            <img src={item.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                            <span className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white/90 text-[10px] flex items-center justify-center shadow">
-                              ×
-                            </span>
-                          </>
-                        ) : (
-                          <Plus className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span className="relative z-10 mt-auto mb-0.5 text-[9px] font-extrabold bg-white/90 px-1 rounded text-foreground/80">
-                          {slot.label}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="p-3 pt-0">
-                <Button
-                  type="button"
-                  variant="gold"
-                  size="lg"
-                  onClick={handleGenerate}
-                  disabled={!canGenerate || isGenerating}
-                  className={cn(
-                    'w-full font-extrabold min-h-[48px] shadow-button-gold',
-                    canGenerate && !isGenerating && 'animate-glow-pulse'
-                  )}
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                      <span className="truncate max-w-[180px]">{genProgress.stage.label}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4" />
-                      تولید ست
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </aside>
-
-          {/* ---- گالری ---- */}
-          <section className="order-2 xl:order-none rounded-[1.75rem] bg-white dark:bg-card border border-border/40 shadow-soft p-3.5 sm:p-5 min-w-0">
-            <div className="flex items-start justify-between gap-2 mb-4">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-10 h-10 rounded-2xl bg-amber-50 dark:bg-amber-500/10 flex items-center justify-center shrink-0">
-                  <Shirt className="w-5 h-5 text-amber-600" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-black tracking-tight">لباس</h3>
-                  <p className="text-[11px] text-muted-foreground font-medium">
-                    لباس مورد نظر خود را انتخاب کنید
-                  </p>
-                </div>
-              </div>
-              <span className="text-xs font-bold text-muted-foreground tabular-nums shrink-0">
-                {galleryClothes.length.toLocaleString('fa-IR')}
-              </span>
+              <button
+                type="button"
+                onClick={handleAutoFill}
+                className="w-full mt-2.5 text-[11px] font-bold text-muted-foreground hover:text-primary transition-colors py-2"
+              >
+                پیشنهاد خودکار ست
+              </button>
             </div>
 
-            {/* جستجو */}
-            <div className="relative mb-3">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="search"
-                value={galleryQuery}
-                onChange={(e) => setGalleryQuery(e.target.value)}
-                placeholder="جستجوی نام، رنگ یا تگ..."
-                className="w-full rounded-2xl pr-10 pl-9 py-2.5 min-h-[44px] text-sm bg-muted/40 border border-transparent outline-none focus:ring-2 focus:ring-gold/35 font-medium"
-              />
-              {galleryQuery && (
-                <button
-                  type="button"
-                  onClick={() => setGalleryQuery('')}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground"
-                  aria-label="پاک کردن"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-
-            {/* فیلترهای pill دسته */}
-            <div className="flex gap-1.5 overflow-x-auto pb-2 mb-3 custom-scroll-smooth -mx-0.5 px-0.5">
+            {/* Category selector */}
+            <nav
+              className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft p-3"
+              aria-label="دسته‌بندی لباس"
+            >
               <button
                 type="button"
                 onClick={() => {
@@ -464,154 +411,20 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   setOpenGalleryCat(null);
                 }}
                 className={cn(
-                  'shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all',
-                  galleryCategory === 'all'
-                    ? 'bg-gradient-gold text-white shadow-md'
-                    : 'bg-muted/50 text-muted-foreground hover:bg-muted'
+                  'w-full flex items-center gap-3 p-3 rounded-[1.15rem] text-right transition-all duration-300',
+                  galleryCategory === 'all' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60'
                 )}
               >
-                همه
+                <span className="w-9 h-9 rounded-2xl bg-muted/70 text-muted-foreground flex items-center justify-center shrink-0">
+                  <Shirt className="w-4 h-4" />
+                </span>
+                <span className="flex-1 text-xs font-extrabold">همه لباس‌ها</span>
+                <span className="text-[11px] font-bold text-muted-foreground tabular-nums">
+                  {clothes.length.toLocaleString('fa-IR')}
+                </span>
               </button>
+
               {CATEGORY_CLOTHING_ORDER.map((cat) => {
-                const cfg = CATEGORY_CONFIG[cat];
-                const active = galleryCategory === cat;
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      setGalleryCategory(cat);
-                      setOpenGalleryCat(cat);
-                    }}
-                    className={cn(
-                      'shrink-0 px-3.5 py-1.5 rounded-full text-xs font-extrabold transition-all',
-                      active
-                        ? 'bg-gradient-gold text-white shadow-md'
-                        : 'bg-muted/50 text-muted-foreground hover:bg-muted'
-                    )}
-                  >
-                    {cfg.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* شبکه کارت‌ها */}
-            <div className="max-h-[min(560px,58vh)] overflow-y-auto custom-scroll-smooth">
-              {galleryClothes.length === 0 ? (
-                <div className="text-center py-12 text-sm text-muted-foreground font-medium">
-                  لباسی یافت نشد
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-3">
-                  {galleryClothes.map((item) => {
-                    const isSelected = outfitItems.some((i) => i.id === item.id);
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={() => handleItemTap(item)}
-                        draggable={!isMobile}
-                        onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
-                        onDragEnd={!isMobile ? handleDragEnd : undefined}
-                        className={cn(
-                          'group relative text-right rounded-2xl overflow-hidden border-2 bg-muted/20 transition-all duration-300',
-                          isSelected
-                            ? 'border-amber-400 shadow-md ring-2 ring-amber-400/30'
-                            : 'border-transparent hover:border-border/60 hover:shadow-sm'
-                        )}
-                      >
-                        <div className="aspect-[3/4] relative bg-muted/30">
-                          <img
-                            src={item.imageUrl}
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            draggable={false}
-                          />
-                          {isSelected && (
-                            <span className="absolute top-2 left-2 w-6 h-6 rounded-full bg-amber-500 text-white flex items-center justify-center shadow">
-                              <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                            </span>
-                          )}
-                          <div
-                            className={cn(
-                              'absolute top-2 right-2 flex flex-col gap-1',
-                              isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                            )}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {onViewItem && (
-                              <span
-                                role="button"
-                                title="مشاهده"
-                                className="w-7 h-7 rounded-lg bg-white/90 shadow flex items-center justify-center"
-                                onClick={() => onViewItem(item)}
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </span>
-                            )}
-                            {onEditItem && (
-                              <span
-                                role="button"
-                                title="ویرایش"
-                                className="w-7 h-7 rounded-lg bg-white/90 shadow flex items-center justify-center"
-                                onClick={() => onEditItem(item)}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="px-2 py-2">
-                          <p className="text-[11px] sm:text-xs font-extrabold truncate">{item.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium">
-                            {CATEGORY_CONFIG[item.category]?.label}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {outfitItems.length > 0 && (
-              <div className="mt-4 space-y-3 border-t border-border/30 pt-3">
-                <ColorHarmonyBadge
-                  items={outfitItems}
-                  wardrobe={clothes}
-                  onSuggestClick={addItemToOutfit}
-                  className="mx-auto"
-                />
-                <AccessorySuggestions
-                  outfitItems={outfitItems}
-                  wardrobe={clothes}
-                  context={outfitContext}
-                  onAddWardrobeItem={addItemToOutfit}
-                  className="mx-auto"
-                />
-                <ShoeSuggestions
-                  outfitItems={outfitItems}
-                  wardrobe={clothes}
-                  context={outfitContext}
-                  onAddWardrobeItem={addItemToOutfit}
-                  className="mx-auto"
-                />
-              </div>
-            )}
-          </section>
-
-          {/* ---- سایدبار دسته‌بندی (دسکتاپ) ---- */}
-          <aside className="hidden xl:flex order-3 flex-col rounded-[1.75rem] bg-white dark:bg-card border border-border/40 shadow-soft p-4 self-start sticky top-24">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center">
-                <Sparkles className="w-4 h-4 text-amber-600" />
-              </div>
-              <h3 className="text-sm font-black">دسته‌بندی‌ها</h3>
-            </div>
-            <nav className="space-y-1.5" aria-label="دسته‌بندی لباس">
-              {CATEGORY_CLOTHING_ORDER.map((cat, idx) => {
                 const cfg = CATEGORY_CONFIG[cat];
                 const Icon = cfg.icon;
                 const active = galleryCategory === cat;
@@ -626,41 +439,224 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       setOpenGalleryCat(cat);
                     }}
                     className={cn(
-                      'w-full flex items-center gap-2.5 p-2.5 rounded-2xl text-right transition-all',
-                      active
-                        ? 'bg-amber-50 dark:bg-amber-500/10 border border-amber-300/60 shadow-sm'
-                        : 'hover:bg-muted/50 border border-transparent'
+                      'w-full flex items-center gap-3 p-3 rounded-[1.15rem] text-right transition-all duration-300',
+                      active ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60'
                     )}
                   >
                     <span
                       className={cn(
-                        'w-8 h-8 rounded-xl flex items-center justify-center shrink-0',
-                        active ? 'bg-white text-amber-600 shadow-sm' : 'bg-muted/60 text-muted-foreground'
+                        'w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 transition-colors',
+                        active ? 'bg-primary text-primary-foreground' : 'bg-muted/70 text-muted-foreground'
                       )}
                     >
                       <Icon className="w-4 h-4" />
                     </span>
                     <span className="flex-1 min-w-0">
                       <span className="block text-xs font-extrabold truncate">{cfg.label}</span>
-                      <span className="block text-[10px] text-muted-foreground font-medium">
-                        {selected ? 'انتخاب شده' : count ? `${count.toLocaleString('fa-IR')} مورد` : 'انتخاب کنید'}
+                      <span className="block text-[10px] text-muted-foreground font-medium mt-0.5">
+                        {selected ? 'انتخاب شده' : count ? `${count.toLocaleString('fa-IR')} مورد` : 'خالی'}
                       </span>
                     </span>
-                    <span
-                      className={cn(
-                        'w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0',
-                        active ? 'bg-amber-500 text-white' : 'bg-muted text-muted-foreground'
-                      )}
-                    >
-                      {(idx + 1).toLocaleString('fa-IR')}
-                    </span>
+                    {selected && <Check className="w-3.5 h-3.5 text-primary shrink-0" strokeWidth={3} />}
                   </button>
                 );
               })}
             </nav>
           </aside>
-        </div>
 
+          {/* ---------- CENTER: mannequin + gallery ---------- */}
+          <section className="order-1 xl:order-2 min-w-0 space-y-6">
+            {/* Mannequin stage */}
+            <div
+              onDragOver={!isMobile ? handleDragOver : undefined}
+              onDragLeave={!isMobile ? handleDragLeave : undefined}
+              onDrop={!isMobile ? handleDrop : undefined}
+              className={cn(
+                'relative rounded-[1.75rem] overflow-hidden bg-card border border-border/70 shadow-card transition-all',
+                isDragOver && 'ring-2 ring-primary'
+              )}
+            >
+              <div className="relative mx-auto w-full aspect-[4/5] sm:aspect-[3/3.2] max-h-[560px] bg-gradient-to-b from-muted/40 to-background">
+                <MannequinDisplay
+                  items={outfitItems}
+                  profileImageUrl={profileImageUrl}
+                  className="w-full h-full"
+                />
+                {clothes.length > 0 && outfitItems.length === 0 && !isDragOver && (
+                  <div className="absolute inset-x-4 bottom-4 flex justify-center pointer-events-none">
+                    <span className="px-4 py-2 rounded-full bg-background/90 backdrop-blur text-[11px] font-bold text-muted-foreground shadow-soft">
+                      {isMobile ? 'روی لباس‌ها تپ کنید' : 'لباس را بکشید اینجا'}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Clothing grid */}
+            <div className="rounded-[1.75rem] bg-card border border-border/70 shadow-soft p-5 sm:p-6">
+              <div className="flex items-center justify-between gap-3 mb-5">
+                <div className="min-w-0">
+                  <h3 className="text-lg font-black tracking-tight leading-tight">کمد لباس</h3>
+                  <p className="text-xs text-muted-foreground font-medium mt-1">
+                    لباس مورد نظر خود را انتخاب کنید
+                  </p>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground tabular-nums shrink-0">
+                  {galleryClothes.length.toLocaleString('fa-IR')} مورد
+                </span>
+              </div>
+
+              <div className="relative mb-5">
+                <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+                <input
+                  type="search"
+                  value={galleryQuery}
+                  onChange={(e) => setGalleryQuery(e.target.value)}
+                  placeholder="جستجوی نام، رنگ یا تگ..."
+                  className="w-full rounded-full pr-11 pl-10 py-3 min-h-[46px] text-sm bg-muted/50 border border-transparent outline-none focus:bg-card focus:border-border focus:ring-2 focus:ring-primary/25 font-medium transition-all"
+                />
+                {galleryQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setGalleryQuery('')}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:bg-muted"
+                    aria-label="پاک کردن"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {/* Mobile category pills */}
+              <div className="xl:hidden flex gap-2 overflow-x-auto pb-2 mb-4 custom-scroll-smooth">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGalleryCategory('all');
+                    setOpenGalleryCat(null);
+                  }}
+                  className={cn(
+                    'shrink-0 px-4 py-2 rounded-full text-xs font-extrabold transition-all',
+                    galleryCategory === 'all'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted/60 text-muted-foreground'
+                  )}
+                >
+                  همه
+                </button>
+                {CATEGORY_CLOTHING_ORDER.map((cat) => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      setGalleryCategory(cat);
+                      setOpenGalleryCat(cat);
+                    }}
+                    className={cn(
+                      'shrink-0 px-4 py-2 rounded-full text-xs font-extrabold transition-all',
+                      galleryCategory === cat
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-muted/60 text-muted-foreground'
+                    )}
+                  >
+                    {CATEGORY_CONFIG[cat].label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="max-h-[min(620px,62vh)] overflow-y-auto custom-scroll-smooth -mx-1 px-1">
+                {galleryClothes.length === 0 ? (
+                  <div className="text-center py-16 text-sm text-muted-foreground font-medium">
+                    لباسی یافت نشد
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {galleryClothes.map((item) => {
+                      const isSelected = outfitItems.some((i) => i.id === item.id);
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleItemTap(item)}
+                          draggable={!isMobile}
+                          onDragStart={!isMobile ? (e) => handleDragStart(e, item) : undefined}
+                          onDragEnd={!isMobile ? handleDragEnd : undefined}
+                          className={cn(
+                            'group relative text-right rounded-[1.25rem] p-2 transition-all duration-300',
+                            isSelected
+                              ? 'bg-primary/5 ring-2 ring-primary shadow-soft'
+                              : 'bg-transparent hover:bg-muted/40 hover:-translate-y-1'
+                          )}
+                        >
+                          <div className="aspect-[3/4] relative rounded-[1rem] overflow-hidden bg-muted/40">
+                            <img
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                              loading="lazy"
+                              draggable={false}
+                            />
+                            {isSelected && (
+                              <span className="absolute top-2 left-2 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-sm">
+                                <Check className="w-4 h-4" strokeWidth={3} />
+                              </span>
+                            )}
+                            <div
+                              className={cn(
+                                'absolute top-2 right-2 flex flex-col gap-1.5 transition-opacity duration-300',
+                                isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                              )}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {onViewItem && (
+                                <span
+                                  role="button"
+                                  title="مشاهده"
+                                  className="w-8 h-8 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
+                                  onClick={() => onViewItem(item)}
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </span>
+                              )}
+                              {onEditItem && (
+                                <span
+                                  role="button"
+                                  title="ویرایش"
+                                  className="w-8 h-8 rounded-full bg-background/90 backdrop-blur shadow-soft flex items-center justify-center"
+                                  onClick={() => onEditItem(item)}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="px-1 pt-2.5 pb-1">
+                            <p className="text-xs font-extrabold truncate leading-tight">{item.name}</p>
+                            <p className="text-[10px] text-muted-foreground font-medium mt-1">
+                              {CATEGORY_CONFIG[item.category]?.label}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* ---------- RIGHT: AI recommendations ---------- */}
+          <aside className="order-3 xl:order-1 min-w-0 xl:sticky xl:top-24 self-start">
+            <div className="rounded-[1.75rem] bg-card border border-border/70 shadow-soft p-5 sm:p-6">
+              <AiRecommendationsPanel
+                outfitItems={outfitItems}
+                wardrobe={clothes}
+                context={outfitContext}
+                onAddWardrobeItem={addItemToOutfit}
+              />
+            </div>
+          </aside>
+        </div>
       </div>
     </div>
   );
