@@ -26,6 +26,8 @@ export interface OutfitSuggestion {
   suggestionText?: string;
   generatedImageUrl?: string;
   isFavorite?: boolean;
+  /** 👍/👎 feedback on this suggestion */
+  userFeedback?: 'liked' | 'disliked' | null;
   createdAt: Date;
   /** Occasion filters used when the outfit was generated */
   context?: OutfitContextMeta;

@@ -36,7 +36,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [feedback, setFeedback] = useState<'liked' | 'disliked' | null>(
-    suggestion.isFavorite ? 'liked' : null
+    suggestion.userFeedback ?? (suggestion.isFavorite ? 'liked' : null)
   );
   const [textExpanded, setTextExpanded] = useState(false);
   const [textOverflows, setTextOverflows] = useState(false);

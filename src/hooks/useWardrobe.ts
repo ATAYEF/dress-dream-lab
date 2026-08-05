@@ -1015,6 +1015,16 @@ export const useWardrobe = () => {
     if (liked) prefs = markWorn(prefs, ids);
     savePreferences(prefs);
 
+    // Persist feedback on the suggestion for filters (لایک‌شده‌ها)
+    const feedback: 'liked' | 'disliked' = liked ? 'liked' : 'disliked';
+    const updatedSuggestions = suggestions.map((s) =>
+      s.id === suggestion.id ? { ...s, userFeedback: feedback } : s
+    );
+    setSuggestions(updatedSuggestions);
+    if (!userId) {
+      saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
+    }
+
     // Online ML update (logistic regression SGD)
     try {
       const ctx = suggestion.context || {
