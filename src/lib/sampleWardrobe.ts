@@ -16,10 +16,9 @@ import beltBlack from '@/assets/belt-black.png';
 import bagTote from '@/assets/bag-tote.png';
 import bagClutch from '@/assets/bag-clutch.png';
 
-/* Photo samples downloaded & stored in-app (no external runtime dependency) */
+/* Clean product-style photos (light background, no model, consistent framing) */
 import topPink from '@/assets/sample-photo-top-pink.jpg';
 import topCream from '@/assets/sample-photo-top-cream.jpg';
-import topLeather from '@/assets/sample-photo-top-leather.jpg';
 import pantsBlack from '@/assets/sample-photo-pants-black.jpg';
 import pantsFormal from '@/assets/sample-photo-pants-formal.jpg';
 import pantsBeige from '@/assets/sample-photo-pants-beige.jpg';
@@ -35,7 +34,7 @@ import scarf from '@/assets/sample-photo-scarf.jpg';
 import bagRed from '@/assets/sample-photo-bag-red.jpg';
 
 /** Bump when samples change so guest localStorage refreshes */
-export const SAMPLE_WARDROBE_VERSION = 'v4-real-photos';
+export const SAMPLE_WARDROBE_VERSION = 'v5-clean-product';
 
 const base = (
   id: string,
@@ -55,51 +54,51 @@ const base = (
 });
 
 /**
- * Demo wardrobe — only bundled images (PNG/JPG in src/assets).
- * No SVG silhouettes, no external image APIs at runtime.
+ * Demo wardrobe — women’s product shots only.
+ * Style: flat / product photography on light background, no model, consistent framing.
+ * Categories + colors vary across the set (matches e-commerce grid look).
  */
 export const SAMPLE_CLOTHES: ClothingItem[] = [
-  // Tops
-  base('top-shirt', 'پیراهن سفید (نمونه)', 'tops', whiteShirt, 'سفید', ['نمونه', 'اساسی']),
-  base('top-sweater', 'پلیور مشکی (نمونه)', 'tops', blackSweater, 'مشکی', ['نمونه', 'اساسی']),
-  base('top-blouse-pink', 'بلوز صورتی', 'tops', topPink, 'صورتی', ['لوکس', 'مهمانی']),
-  base('top-knit-cream', 'ژاکت بافتنی کرم', 'tops', topCream, 'کرم', ['زمستانه', 'بافتنی']),
-  base('top-leather-black', 'کاپشن چرم مشکی', 'tops', topLeather, 'مشکی', ['چرم', 'شیک']),
+  // —— Tops (پیراهن / بلوز / بافتنی) — varied colors ——
+  base('top-shirt-white', 'پیراهن سفید', 'tops', whiteShirt, 'سفید', ['نمونه', 'اساسی', 'روزمره']),
+  base('top-blouse-pink', 'پیراهن صورتی', 'tops', topPink, 'صورتی', ['نمونه', 'لوکس']),
+  base('top-knit-cream', 'بافت کرم', 'tops', topCream, 'کرم', ['نمونه', 'زمستانه']),
+  base('top-sweater-black', 'پلیور مشکی', 'tops', blackSweater, 'مشکی', ['نمونه', 'اساسی']),
 
-  // Bottoms
-  base('bottom-jeans', 'شلوار جین آبی (نمونه)', 'bottoms', jeans, 'آبی', ['نمونه', 'روزمره']),
-  base('bottom-skirt', 'دامن پلیسه کرم (نمونه)', 'bottoms', skirt, 'کرم', ['نمونه']),
-  base('bottom-leather', 'شلوار جین تیره', 'bottoms', pantsBlack, 'مشکی', ['چرم', 'شیک']),
-  base('bottom-trouser-navy', 'شلوار پارچه‌ای رسمی', 'bottoms', pantsFormal, 'سرمه', ['رسمی', 'اداری']),
-  base('bottom-wide-beige', 'شلوار کژوال', 'bottoms', pantsBeige, 'بژ', ['روزمره', 'کژوال']),
+  // —— Bottoms ——
+  base('bottom-jeans', 'شلوار جین آبی', 'bottoms', jeans, 'آبی', ['نمونه', 'روزمره']),
+  base('bottom-skirt', 'دامن پلیسه کرم', 'bottoms', skirt, 'کرم', ['نمونه', 'شیک']),
+  base('bottom-dark', 'شلوار تیره', 'bottoms', pantsBlack, 'مشکی', ['نمونه', 'شیک']),
+  base('bottom-formal', 'شلوار پارچه‌ای', 'bottoms', pantsFormal, 'سرمه', ['نمونه', 'رسمی']),
+  base('bottom-beige', 'شلوار کژوال بژ', 'bottoms', pantsBeige, 'بژ', ['نمونه', 'روزمره']),
 
-  // Dresses
-  base('dress-navy', 'لباس سرمه‌ای (نمونه)', 'dresses', navyDress, 'سرمه', ['نمونه', 'مجلسی']),
-  base('dress-red', 'لباس مجلسی قرمز', 'dresses', dressRed, 'قرمز', ['مهمانی', 'مجلسی']),
-  base('dress-black', 'لباس مشکی کلاسیک', 'dresses', dressBlack, 'مشکی', ['رسمی', 'شب']),
-  base('dress-cream', 'پیراهن روشن تابستانی', 'dresses', dressCream, 'کرم', ['تابستانه', 'روزمره']),
+  // —— Dresses ——
+  base('dress-black', 'لباس مشکی کلاسیک', 'dresses', dressBlack, 'مشکی', ['نمونه', 'رسمی']),
+  base('dress-red', 'لباس قرمز', 'dresses', dressRed, 'قرمز', ['نمونه', 'مهمانی']),
+  base('dress-navy', 'لباس سرمه‌ای', 'dresses', navyDress, 'سرمه', ['نمونه', 'مجلسی']),
+  base('dress-cream', 'پیراهن روشن', 'dresses', dressCream, 'کرم', ['نمونه', 'تابستانه']),
 
-  // Outerwear
-  base('outer-trench', 'بارانی ترنچ (نمونه)', 'outerwear', trench, 'بژ', ['نمونه', 'بارانی']),
-  base('outer-blazer-navy', 'کت بلیزر', 'outerwear', blazer, 'سرمه', ['رسمی', 'اداری']),
-  base('outer-coat-black', 'پالتو زمستانه', 'outerwear', coat, 'مشکی', ['زمستانه', 'سرد']),
-  base('outer-jacket-denim', 'کت جین', 'outerwear', denimJkt, 'آبی', ['روزمره', 'کژوال']),
+  // —— Outerwear ——
+  base('outer-trench', 'بارانی ترنچ بژ', 'outerwear', trench, 'بژ', ['نمونه', 'بارانی']),
+  base('outer-blazer', 'کت بلیزر', 'outerwear', blazer, 'سرمه', ['نمونه', 'رسمی']),
+  base('outer-coat', 'پالتو زمستانه', 'outerwear', coat, 'مشکی', ['نمونه', 'زمستانه']),
+  base('outer-denim', 'کت جین', 'outerwear', denimJkt, 'آبی', ['نمونه', 'کژوال']),
 
-  // Shoes
-  base('shoes-sneakers', 'کتانی سفید (نمونه)', 'shoes', sneakers, 'سفید', ['نمونه', 'روزمره']),
-  base('shoes-heels', 'کفش پاشنه‌دار مشکی (نمونه)', 'shoes', heels, 'مشکی', ['نمونه', 'مهمانی']),
-  base('shoes-boots', 'بوت چرم (نمونه)', 'shoes', boots, 'قهوه‌ای', ['نمونه', 'زمستانه']),
-  base('shoes-loafers', 'کفش رسمی (نمونه)', 'shoes', loafers, 'مشکی', ['نمونه', 'اداری']),
-  base('shoes-heels-nude', 'پاشنه نود', 'shoes', heelsNude, 'بژ', ['مهمانی', 'مجلسی']),
-  base('shoes-sneakers-sport', 'کتانی ورزشی', 'shoes', sneakersSport, 'قرمز', ['روزمره', 'اسپرت']),
+  // —— Shoes ——
+  base('shoes-sneakers', 'کتانی سفید', 'shoes', sneakers, 'سفید', ['نمونه', 'روزمره']),
+  base('shoes-heels', 'پاشنه مشکی', 'shoes', heels, 'مشکی', ['نمونه', 'مهمانی']),
+  base('shoes-boots', 'بوت چرم', 'shoes', boots, 'قهوه‌ای', ['نمونه', 'زمستانه']),
+  base('shoes-loafers', 'کفش رسمی', 'shoes', loafers, 'مشکی', ['نمونه', 'اداری']),
+  base('shoes-heels-nude', 'پاشنه نود', 'shoes', heelsNude, 'بژ', ['نمونه', 'مجلسی']),
+  base('shoes-sport', 'کتانی ورزشی', 'shoes', sneakersSport, 'قرمز', ['نمونه', 'اسپرت']),
 
-  // Accessories
-  base('acc-belt-brown', 'کمربند چرم قهوه‌ای (نمونه)', 'accessories', beltBrown, 'قهوه‌ای', ['نمونه']),
-  base('acc-belt-black', 'کمربند مشکی (نمونه)', 'accessories', beltBlack, 'مشکی', ['نمونه', 'رسمی']),
-  base('acc-bag-tote', 'کیف دوشی (نمونه)', 'accessories', bagTote, 'بژ', ['نمونه', 'روزمره']),
-  base('acc-bag-clutch', 'کیف مجلسی (نمونه)', 'accessories', bagClutch, 'مشکی', ['نمونه', 'مهمانی']),
-  base('acc-scarf-blue', 'شال', 'accessories', scarf, 'آبی', ['شیک', 'لایه']),
-  base('acc-bag-red', 'کیف قرمز', 'accessories', bagRed, 'قرمز', ['مهمانی', 'چرم']),
+  // —— Accessories ——
+  base('acc-belt-brown', 'کمربند قهوه‌ای', 'accessories', beltBrown, 'قهوه‌ای', ['نمونه']),
+  base('acc-belt-black', 'کمربند مشکی', 'accessories', beltBlack, 'مشکی', ['نمونه', 'رسمی']),
+  base('acc-bag-tote', 'کیف دوشی', 'accessories', bagTote, 'بژ', ['نمونه', 'روزمره']),
+  base('acc-bag-clutch', 'کیف مجلسی', 'accessories', bagClutch, 'مشکی', ['نمونه', 'مهمانی']),
+  base('acc-scarf', 'شال', 'accessories', scarf, 'آبی', ['نمونه', 'شیک']),
+  base('acc-bag-red', 'کیف قرمز', 'accessories', bagRed, 'قرمز', ['نمونه', 'مهمانی']),
 ];
 
 export const SAMPLE_CLOTHES_CORE = SAMPLE_CLOTHES.filter((c) => c.tags?.includes('نمونه'));
