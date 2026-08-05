@@ -19,6 +19,11 @@ interface AiRecommendationsPanelProps {
 
 const WATCH_PATTERN = /ساعت|watch/i;
 
+/**
+ * Right-hand AI stylist column — recommendations grouped into
+ * shoes / bags / accessories / watches, each a compact horizontal carousel.
+ * All underlying suggestion logic is unchanged.
+ */
 export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
   outfitItems,
   wardrobe,
@@ -38,6 +43,7 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
 
     if (!hasOutfit) return { shoes, bags, accessories, watches, addMap };
 
+    // ---- Shoes (skipped when the outfit already has shoes, as before) ----
     if (!outfitItems.some((i) => i.category === 'shoes')) {
       suggestCoordinatedShoes(outfitItems, wardrobe, gender, context).forEach((s) => {
         if (s.wardrobeItem) addMap.set(s.id, s.wardrobeItem);
@@ -52,6 +58,7 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
       });
     }
 
+    // ---- Bags / belts / watches (skipped when accessories already chosen) ----
     if (!outfitItems.some((i) => i.category === 'accessories')) {
       suggestCoordinatedAccessories(outfitItems, wardrobe, gender, context).forEach((a) => {
         if (a.wardrobeItem) addMap.set(a.id, a.wardrobeItem);
@@ -68,6 +75,7 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
         else accessories.push(rail);
       });
 
+      // Watches from the wardrobe that the generic engine did not surface
       wardrobe
         .filter(
           (c) =>
@@ -101,53 +109,51 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
     shoes.length === 0 && bags.length === 0 && accessories.length === 0 && watches.length === 0;
 
   return (
-    <div className={cn('space-y-5', className)} dir="rtl">
-      <header className="flex items-center gap-2.5">
-        <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <Sparkles className="w-4.5 h-4.5" />
+    <div className={cn('space-y-7', className)} dir="rtl">
+      <header className="flex items-center gap-3">
+        <span className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <Sparkles className="w-5 h-5" />
         </span>
         <div className="min-w-0">
-          <h3 className="text-sm font-black tracking-tight leading-tight">پیشنهادهای هوش مصنوعی</h3>
-          <p className="text-[10px] text-muted-foreground font-medium mt-0.5">
-            تکمیل ست با کفش، کیف و اکسسوری
+          <h3 className="text-lg font-black tracking-tight leading-tight">پیشنهاد استایلیست</h3>
+          <p className="text-xs text-muted-foreground font-medium mt-0.5">
+            تکمیل ست شما با هوش مصنوعی
           </p>
         </div>
       </header>
 
       {!hasOutfit || isEmpty ? (
-        <div className="rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center">
-          <p className="text-xs text-muted-foreground font-medium leading-relaxed">
-            {hasOutfit
-              ? 'ست شما کامل است؛ پیشنهاد تازه‌ای نداریم.'
-              : 'یک لباس انتخاب و تأیید کنید تا کفش، کیف، اکسسوری و ساعت هماهنگ پیشنهاد شود.'}
-          </p>
-        </div>
+        <p className="text-xs text-muted-foreground font-medium leading-relaxed py-6">
+          {hasOutfit
+            ? 'ست شما کامل است؛ پیشنهاد تازه‌ای نداریم.'
+            : 'یک لباس انتخاب کنید تا کفش، کیف، اکسسوری و ساعت هماهنگ پیشنهاد شود.'}
+        </p>
       ) : (
         <>
           <ColorHarmonyBadge items={outfitItems} wardrobe={wardrobe} onSuggestClick={onAddWardrobeItem} />
           <SuggestionRail
-            title="کفش پیشنهادی"
-            subtitle="هماهنگ با ست"
+            title="کفش"
+            subtitle="هماهنگ با ست انتخابی"
             icon={Footprints}
             items={shoes}
             onSelect={handleSelect}
           />
           <SuggestionRail
-            title="کیف پیشنهادی"
+            title="کیف"
             subtitle="تکمیل‌کننده استایل"
             icon={ShoppingBag}
             items={bags}
             onSelect={handleSelect}
           />
           <SuggestionRail
-            title="اکسسوری پیشنهادی"
-            subtitle="جزئیات نهایی"
+            title="اکسسوری"
+            subtitle="کمربند و جزئیات"
             icon={Gem}
             items={accessories}
             onSelect={handleSelect}
           />
           <SuggestionRail
-            title="ساعت پیشنهادی"
+            title="ساعت"
             subtitle="از کمد شما"
             icon={Watch}
             items={watches}
