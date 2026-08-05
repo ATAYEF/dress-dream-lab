@@ -17,6 +17,11 @@ interface ColorHarmonyBadgeProps {
   className?: string;
 }
 
+/** Convert number to Persian digits */
+function toFa(n: number | string): string {
+  return String(n).replace(/\d/g, (d) => '۰۱۲۳۴۵۶۷۸۹'[Number(d)]);
+}
+
 export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
   items,
   wardrobe = [],
@@ -72,9 +77,9 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-lg font-black tabular-nums text-gold shrink-0">
-          {result.score}
-          <span className="text-[10px] font-bold text-muted-foreground mr-0.5">/۱۰۰</span>
+        <div className="text-lg font-black text-gold shrink-0" style={{ fontFeatureSettings: '"ss01"' }}>
+          {toFa(result.score)}
+          <span className="text-[10px] font-bold text-muted-foreground mr-0.5">/{toFa(100)}</span>
         </div>
       </div>
 
@@ -120,7 +125,7 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
                 type="button"
                 onClick={() => onSuggestClick(item)}
                 className="group shrink-0 flex flex-col items-center gap-1 w-[72px] p-1.5 rounded-xl bg-white/60 dark:bg-white/5 border border-white/70 hover:border-gold/40 hover:shadow-md transition-all duration-300"
-                title={`${item.name} · ${reason} (${score})`}
+                title={`${item.name} · ${reason} (${toFa(score)})`}
               >
                 <div className="relative">
                   <img
@@ -137,7 +142,7 @@ export const ColorHarmonyBadge: React.FC<ColorHarmonyBadgeProps> = ({
                 <span className="text-[9px] font-bold text-center line-clamp-1 w-full">
                   {item.name}
                 </span>
-                <span className="text-[9px] font-extrabold text-gold">{score}٪</span>
+                <span className="text-[9px] font-extrabold text-gold">{toFa(score)}٪</span>
               </button>
             ))}
           </div>
