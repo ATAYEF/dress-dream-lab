@@ -559,7 +559,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
         <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-foreground">
           <Wand2 className="w-3.5 h-3.5 text-gold" />
-          پرو مجازی
+          پرو روی مانکن
         </div>
         <p className="text-[10px] text-muted-foreground font-medium mb-2.5 leading-relaxed">
           با یک کلیک تصویر ست ساخته می‌شود. انتخاب مدل در پس‌زمینه و خودکار است.
@@ -577,7 +577,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           ) : (
             <>
               <Sparkles className="w-4 h-4" />
-              ساخت تصویر واقع‌گرایانه
+              پرو واقعی‌تر با AI
             </>
           )}
         </Button>

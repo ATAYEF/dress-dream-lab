@@ -185,7 +185,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             {[
               { n: '۱', t: 'انتخاب لباس' },
               { n: '۲', t: 'دیدن روی مانکن' },
-              { n: '۳', t: 'ساخت ست AI' },
+              { n: '۳', t: 'تولید ست' },
             ].map((step, i) => (
               <div
                 key={step.n}
@@ -306,7 +306,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 </div>
                 {!canGenerate && (
                   <p className="text-[10px] md:text-xs text-muted-foreground">
-                    برای ساخت ست، حداقل ۲ لباس انتخاب کنید 👆
+                    برای تولید ست، حداقل ۲ لباس در کمد یا روی مانکن لازم است
                   </p>
                 )}
               </div>
@@ -448,9 +448,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                         <Wand2 className="w-5 h-5 relative" />
                         <span className="relative font-extrabold">
                           {outfitItems.length >= 2
-                            ? 'ساخت ست با هوش مصنوعی'
+                            ? 'تولید ست'
                             : clothes.length >= 2
-                              ? 'پیشنهاد ست هوشمند از کمد'
+                              ? 'تولید ست از کمد شما'
                               : 'حداقل ۲ لباس در کمد لازم است'}
                         </span>
                       </>
@@ -634,7 +634,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
 
         <p className="mt-4 text-center text-[11px] text-muted-foreground font-medium">
-          برای انتخاب لباس تپ کنید · حداقل ۲ لباس برای ساخت ست
+          لباس را انتخاب کنید · حداقل ۲ لباس برای تولید ست
         </p>
       </div>
     </div>

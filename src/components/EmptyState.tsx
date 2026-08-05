@@ -95,7 +95,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ onAddClick }) => {
           <Button onClick={onAddClick} variant="gold" size="xl" className="group relative overflow-hidden">
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
             <Plus className="w-5 h-5 md:w-6 md:h-6 relative" strokeWidth={2.75} />
-            <span className="relative">افزودن اولین لباس</span>
+            <span className="relative">اولین لباس را به کمد اضافه کنید</span>
           </Button>
         </div>
 

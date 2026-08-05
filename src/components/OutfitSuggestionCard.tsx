@@ -125,7 +125,7 @@ export const OutfitSuggestionCard: React.FC<OutfitSuggestionCardProps> = ({
       >
         <span className="inline-flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-gold" />
-          پیشنهاد ست
+          پیشنهاد امروز
           {suggestion.context && (
             <span className="font-bold text-foreground/70">
               ·{' '}

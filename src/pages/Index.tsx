@@ -207,7 +207,7 @@ const Index = () => {
       </header>
 
       {/* ========== Main Content ========== */}
-      <main className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad">
+      <main className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-4 md:py-6 space-y-4 md:space-y-6 mobile-content-pad pb-28 md:pb-12">
 
         {/* Compact welcome strip */}
         <section className="animate-fade-up">
@@ -225,10 +225,10 @@ const Index = () => {
               )}
             </button>
             <div className="min-w-0 flex-1">
-              <p className="text-sm md:text-base font-black truncate">سلام؛ از اینجا شروع کنید</p>
+              <p className="text-sm md:text-base font-black truncate">کمد رویایی شما</p>
               <p className="text-[11px] md:text-xs text-muted-foreground font-medium">
                 {clothes.length < 2
-                  ? '۱) لباس اضافه کنید  ۲) ست بسازید  ۳) پیشنهاد بگیرید'
+                  ? '۱) لباس به کمد ۲) تولید ست ۳) پرو روی مانکن'
                   : `${clothes.length.toLocaleString('fa-IR')} لباس در کمد · یک کار را انتخاب کنید`}
               </p>
             </div>
@@ -263,9 +263,9 @@ const Index = () => {
           <div className="grid grid-cols-3 gap-1">
             {(
               [
-                { id: 'builder' as const, label: 'ست‌ساز', icon: Sparkles },
+                { id: 'builder' as const, label: 'پیشنهاد امروز', icon: Sparkles },
                 { id: 'wardrobe' as const, label: 'کمد من', icon: Shirt },
-                { id: 'outfits' as const, label: 'پیشنهادها', icon: Heart },
+                { id: 'outfits' as const, label: 'ست‌های شما', icon: Heart },
               ] as const
             ).map((tab) => {
               const active =
@@ -305,7 +305,7 @@ const Index = () => {
             <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
               <Sparkles className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-xl md:text-2xl font-display font-black mb-2">۳ قدم تا ست هوشمند</h1>
+            <h1 className="text-xl md:text-2xl font-display font-black mb-2">۳ قدم تا پیشنهاد امروز</h1>
             <ol className="text-sm text-muted-foreground space-y-2 max-w-sm mx-auto text-right mb-6">
               <li className="flex gap-2 items-start">
                 <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۱</span>
@@ -313,11 +313,11 @@ const Index = () => {
               </li>
               <li className="flex gap-2 items-start">
                 <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۲</span>
-                <span>در ست‌ساز لباس‌ها را روی مانکن بچینید</span>
+                <span>شرایط را انتخاب کنید و لباس‌ها را ببینید</span>
               </li>
               <li className="flex gap-2 items-start">
                 <span className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0">۳</span>
-                <span>با یک دکمه پیشنهاد هوشمند بگیرید</span>
+                <span>تولید ست و در صورت تمایل پرو روی مانکن</span>
               </li>
             </ol>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">
@@ -520,9 +520,34 @@ const Index = () => {
             </div>
 
             {displayedSuggestions.length === 0 ? (
-              <p className="text-center text-sm text-muted-foreground font-medium py-8">
-                ستی با این فیلتر پیدا نشد
-              </p>
+              <div className="text-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 space-y-3">
+                <p className="text-sm font-extrabold text-foreground">ستی با این فیلتر نیست</p>
+                <p className="text-xs text-muted-foreground font-medium max-w-sm mx-auto leading-relaxed">
+                  فیلتر را ساده‌تر کنید یا یک ست جدید با شرایط دلخواه تولید کنید.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowFavoritesOnly(false);
+                      setOutfitFilterLiked(false);
+                      setOutfitFilterStyle('all');
+                      setOutfitFilterEnv('all');
+                      setOutfitFilterWeather('all');
+                    }}
+                    className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[40px]"
+                  >
+                    پاک کردن فیلترها
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMainTab('builder')}
+                    className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[40px]"
+                  >
+                    تولید ست جدید
+                  </button>
+                </div>
+              </div>
             ) : (
             <div className="grid gap-4 sm:grid-cols-2">
               {displayedSuggestions.map((suggestion) => (
@@ -567,7 +592,7 @@ const Index = () => {
                     ذخیره‌سازی ابری و امن لباس‌ها و ست‌های شما
                   </h3>
                   <p className="text-sm md:text-base text-muted-foreground mb-5 md:mb-6 leading-relaxed">
-                    وارد حساب شوید تا همه چیز رو در ابر ذخیره بشه و از هر دستگاهی به کمد رویایی خود دسترسی داشته باشید.
+                    با ورود، کمد و ست‌های شما در ابر می‌ماند و از هر دستگاهی در دسترس است.
                     دغدغه‌ای از دست دادن لباس‌ها و ست‌های مورد علاقه‌تون نداشته باشید! 🌤️
                   </p>
                   <Button
@@ -591,7 +616,13 @@ const Index = () => {
       </main>
 
       {/* Mobile FAB + Scroll to top + Generating banner */}
-      <MobileFab onClick={handleOpenAdd} />
+      {clothes.length < 2 ? (
+        <MobileFab mode="add" onClick={handleOpenAdd} />
+      ) : mainTab === 'start' ? (
+        <MobileFab mode="generate" label="تولید ست" onClick={() => setMainTab('builder')} />
+      ) : mainTab === 'wardrobe' ? (
+        <MobileFab mode="add" onClick={handleOpenAdd} />
+      ) : null}
       <ScrollToTop />
       <GeneratingBanner visible={isGenerating} />
 
