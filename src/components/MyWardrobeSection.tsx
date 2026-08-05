@@ -179,23 +179,20 @@ export const MyWardrobeSection: React.FC<MyWardrobeSectionProps> = ({
 
       {clothes.length > 0 && (
         <div className="space-y-2.5 mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
-            <CategoryTabs
-              activeCategory={activeCategory}
-              onCategoryChange={setActiveCategory}
-              clothes={clothes}
-              defaultOpen={false}
-            />
-            <div className="flex-1 min-w-0">
-              <SearchFilter
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                colorFilter={colorFilter}
-                onColorFilterChange={setColorFilter}
-                availableColors={availableColors}
-              />
-            </div>
-          </div>
+          {/* ۱) نوع لباس → ۲) رنگ → ۳) جستجو */}
+          <CategoryTabs
+            activeCategory={activeCategory}
+            onCategoryChange={setActiveCategory}
+            clothes={clothes}
+            defaultOpen={false}
+          />
+          <SearchFilter
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            colorFilter={colorFilter}
+            onColorFilterChange={setColorFilter}
+            availableColors={availableColors}
+          />
           <ActiveFilters
             searchQuery={searchQuery}
             colorFilter={colorFilter}

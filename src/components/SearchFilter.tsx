@@ -36,39 +36,6 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
 
   return (
     <div className="flex flex-col sm:flex-row gap-2 md:gap-4" dir="rtl">
-      {/* Search Input */}
-      <div className="relative flex-1 group">
-        <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-0 blur-md group-focus-within:opacity-40 transition-all duration-500" />
-        <div className="relative flex items-center">
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 flex items-center justify-center w-12 md:w-14 text-gold/80 group-focus-within:text-gold transition-colors">
-            <Search className="w-[18px] h-[18px] md:w-5 md:h-5" strokeWidth={2.3} />
-          </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="جستجوی نام لباس، برند یا رنگ..."
-            maxLength={60}
-            className={cn(
-              'relative w-full rounded-2xl pr-12 md:pr-14 pl-10 md:pl-12 py-3 md:py-3.5 min-h-[44px] text-base outline-none transition-all duration-400 font-medium',
-              'bg-gradient-card hairline-border shadow-soft',
-              'placeholder:text-muted-foreground/60',
-              'hover:shadow-card hover:border-gold/30',
-              'focus:shadow-button-gold focus:border-gold/50 focus:shadow-[hsl(42,85%,45%)/0.18] focus:bg-white/90'
-            )}
-          />
-          {searchQuery && (
-            <button
-              onClick={() => onSearchChange('')}
-              className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 p-1.5 md:p-2 rounded-xl text-muted-foreground/60 hover:text-rose hover:bg-rose/10 transition-all duration-300 hover:scale-110"
-              aria-label="پاک کردن جستجو"
-            >
-              <X className="w-4 h-4 md:w-[18px] md:h-[18px]" strokeWidth={2.4} />
-            </button>
-          )}
-        </div>
-      </div>
-
       {/* Color Filter Dropdown */}
       <div className="relative" ref={dropdownRef}>
         <button
@@ -164,6 +131,39 @@ export const SearchFilter: React.FC<SearchFilterProps> = ({
             </div>
           </div>
         )}
+      </div>
+
+      {/* Search Input */}
+      <div className="relative flex-1 group">
+        <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-0 blur-md group-focus-within:opacity-40 transition-all duration-500" />
+        <div className="relative flex items-center">
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 flex items-center justify-center w-12 md:w-14 text-gold/80 group-focus-within:text-gold transition-colors">
+            <Search className="w-[18px] h-[18px] md:w-5 md:h-5" strokeWidth={2.3} />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="جستجوی نام لباس، برند یا رنگ..."
+            maxLength={60}
+            className={cn(
+              'relative w-full rounded-2xl pr-12 md:pr-14 pl-10 md:pl-12 py-3 md:py-3.5 min-h-[44px] text-base outline-none transition-all duration-400 font-medium',
+              'bg-gradient-card hairline-border shadow-soft',
+              'placeholder:text-muted-foreground/60',
+              'hover:shadow-card hover:border-gold/30',
+              'focus:shadow-button-gold focus:border-gold/50 focus:shadow-[hsl(42,85%,45%)/0.18] focus:bg-white/90'
+            )}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => onSearchChange('')}
+              className="absolute left-2.5 md:left-3 top-1/2 -translate-y-1/2 p-1.5 md:p-2 rounded-xl text-muted-foreground/60 hover:text-rose hover:bg-rose/10 transition-all duration-300 hover:scale-110"
+              aria-label="پاک کردن جستجو"
+            >
+              <X className="w-4 h-4 md:w-[18px] md:h-[18px]" strokeWidth={2.4} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Clear all filters indicator */}
