@@ -6,7 +6,6 @@ import { StagedProgress } from '@/components/StagedProgress';
 import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
-import mannequinMale from '@/assets/mannequin-male.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
 import { suggestAccessories, SuggestedAccessory, ALL_ACCESSORY_OPTIONS } from '@/lib/accessorySuggestion';
 import { supabase } from '@/integrations/supabase/client';
@@ -60,11 +59,13 @@ async function toDataUrl(src: string, maxSize = 768): Promise<string> {
 
 
 
-export type MannequinGender = 'female' | 'male';
+/** Kept for API compat — only female mannequin is used. */
+export type MannequinGender = 'female';
 
 interface MannequinDisplayProps {
   items: ClothingItem[];
   className?: string;
+  /** @deprecated Always female; ignored. */
   gender?: MannequinGender;
   /** @deprecated Ignored - we always use the curated mannequin assets to avoid broken AI generations. */
   profileImageUrl?: string | null;
@@ -75,7 +76,6 @@ interface MannequinDisplayProps {
 export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   items,
   className,
-  gender = 'female',
   compact = false,
 }) => {
   const [zoom, setZoom] = useState(1);
@@ -84,8 +84,9 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Always use bundled mannequin assets (never user photo) - guarantees clean result
-  const mannequinImage = gender === 'male' ? mannequinMale : mannequinFemale;
+  // Female mannequin only
+  const mannequinImage = mannequinFemale;
+  const gender = 'female' as const;
 
   // ===== AI outfit suggestions (shoes + accessories) =====
   const hasSelectedItems = items.length > 0;

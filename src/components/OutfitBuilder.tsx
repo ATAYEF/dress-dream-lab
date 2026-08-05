@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useStagedProgress, OUTFIT_SUGGESTION_STAGES } from '@/hooks/useStagedProgress';
 import { Wand2, Trash2, GripVertical, Plus, Check, User, Sparkles, ArrowLeft, ArrowRight, Shirt, Search, X, Pencil, Eye } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
-import { MannequinDisplay, MannequinGender } from './MannequinDisplay';
+import { MannequinDisplay } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -45,7 +45,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const [outfitItems, setOutfitItems] = useState<ClothingItem[]>([]);
   const [draggedItem, setDraggedItem] = useState<ClothingItem | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [mannequinGender, setMannequinGender] = useState<MannequinGender>('female');
   const [outfitContext, setOutfitContext] = useState<OutfitContext>(DEFAULT_OUTFIT_CONTEXT);
   const [galleryQuery, setGalleryQuery] = useState('');
   const [galleryCategory, setGalleryCategory] = useState<ClothingCategory | 'all'>('all');
@@ -209,35 +208,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             ))}
           </div>
 
-          {/* Gender toggle */}
-          {!profileImageUrl && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-muted-foreground hidden sm:block">مانکن:</span>
-              <ToggleGroup
-                type="single"
-                value={mannequinGender}
-                onValueChange={(value) => value && setMannequinGender(value as MannequinGender)}
-                className="bg-white/70 backdrop-blur-md rounded-2xl p-1 shadow-soft border border-white/80 hairline-border"
-              >
-                <ToggleGroupItem
-                  value="female"
-                  aria-label="مانکن زن"
-                  className="text-xs font-bold px-4 py-2 rounded-xl data-[state=on]:bg-gradient-gold data-[state=on]:text-white data-[state=on]:shadow-md transition-all duration-400"
-                >
-                  <User className="w-3.5 h-3.5 ml-1.5" />
-                  زن
-                </ToggleGroupItem>
-                <ToggleGroupItem
-                  value="male"
-                  aria-label="مانکن مرد"
-                  className="text-xs font-bold px-4 py-2 rounded-xl data-[state=on]:bg-gradient-to-br data-[state=on]:from-indigo-500 data-[state=on]:to-purple-600 data-[state=on]:text-white data-[state=on]:shadow-md transition-all duration-400"
-                >
-                  <User className="w-3.5 h-3.5 ml-1.5" />
-                  مرد
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-          )}
           {profileImageUrl && (
             <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 text-xs font-bold">
               <User className="w-3.5 h-3.5" />
@@ -327,7 +297,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               >
                 <MannequinDisplay
                   items={outfitItems}
-                  gender={mannequinGender}
+                  
                   profileImageUrl={profileImageUrl}
                   className="w-full"
                 />
@@ -406,7 +376,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   <AccessorySuggestions
                     outfitItems={outfitItems}
                     wardrobe={clothes}
-                    gender={mannequinGender}
+                    
                     context={outfitContext}
                     onAddWardrobeItem={addItemToOutfit}
                     className="mx-auto"
@@ -418,7 +388,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   <ShoeSuggestions
                     outfitItems={outfitItems}
                     wardrobe={clothes}
-                    gender={mannequinGender}
+                    
                     context={outfitContext}
                     onAddWardrobeItem={addItemToOutfit}
                     className="mx-auto"
