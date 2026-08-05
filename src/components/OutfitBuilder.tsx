@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useStagedProgress, OUTFIT_SUGGESTION_STAGES } from '@/hooks/useStagedProgress';
 import {
   Trash2,
@@ -13,14 +13,13 @@ import {
   MapPin,
   CloudSun,
   RotateCcw,
-  CircleDot,
-  Sun,
 } from 'lucide-react';
 import { ClothingItem, ClothingCategory } from '@/types/wardrobe';
 import { MannequinDisplay } from './MannequinDisplay';
 import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { CATEGORY_CONFIG, CATEGORY_ORDER } from '@/lib/categoryConfig';
 import { AiRecommendationsPanel } from './AiRecommendationsPanel';
 import { OutfitContextPicker } from './OutfitContextPicker';
 import {
@@ -44,18 +43,57 @@ interface OutfitBuilderProps {
 
 const LAYERABLE_CATEGORIES: ClothingCategory[] = ['tops', 'outerwear', 'accessories'];
 
-/** Category tabs matching mock — unique keys, icon + label */
-const PICKER_TABS: {
-  key: ClothingCategory | 'all';
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-}[] = [
-  { key: 'all', label: 'همه', icon: Shirt },
-  { key: 'tops', label: 'پیرهن', icon: Shirt },
-  { key: 'outerwear', label: 'مانتو', icon: Sun },
-  { key: 'bottoms', label: 'شلوار', icon: CircleDot },
-  { key: 'dresses', label: 'لباس', icon: Shirt },
-];
+/** Smooth horizontal drag-to-scroll for category tabs */
+function useSmoothDragScroll() {
+  const ref = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const scrollStart = useRef(0);
+  const moved = useRef(false);
+  const raf = useRef<number | null>(null);
+  const targetScroll = useRef(0);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    const el = ref.current;
+    if (!el) return;
+    dragging.current = true;
+    moved.current = false;
+    startX.current = e.pageX;
+    scrollStart.current = el.scrollLeft;
+    targetScroll.current = el.scrollLeft;
+    el.style.cursor = 'grabbing';
+    el.style.scrollBehavior = 'auto';
+  }, []);
+
+  const onMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!dragging.current || !ref.current) return;
+    e.preventDefault();
+    const dx = e.pageX - startX.current;
+    if (Math.abs(dx) > 3) moved.current = true;
+    targetScroll.current = scrollStart.current - dx * 1.15;
+    if (raf.current == null) {
+      raf.current = requestAnimationFrame(() => {
+        if (ref.current) ref.current.scrollLeft = targetScroll.current;
+        raf.current = null;
+      });
+    }
+  }, []);
+
+  const endDrag = useCallback(() => {
+    if (!dragging.current) return;
+    dragging.current = false;
+    if (ref.current) {
+      ref.current.style.cursor = 'grab';
+      ref.current.style.scrollBehavior = 'smooth';
+    }
+    if (raf.current != null) {
+      cancelAnimationFrame(raf.current);
+      raf.current = null;
+    }
+  }, []);
+
+  return { ref, onMouseDown, onMouseMove, onMouseUp: endDrag, onMouseLeave: endDrag, moved };
+}
 
 export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   clothes,
@@ -75,6 +113,18 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const isMobile = useIsMobile();
   const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
   const [showContext, setShowContext] = useState(false);
+  const catScroll = useSmoothDragScroll();
+
+  /** Tabs from real category config (DB) */
+  const pickerTabs = useMemo(
+    () =>
+      CATEGORY_ORDER.map((key) => ({
+        key,
+        label: CATEGORY_CONFIG[key].label,
+        icon: CATEGORY_CONFIG[key].icon,
+      })),
+    []
+  );
 
   const galleryClothes = useMemo(() => {
     let list = clothes;
@@ -144,7 +194,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
 
   const clearOutfit = () => setOutfitItems([]);
 
-  /** X button: reset category + search so panel stays open and state is cleared */
   const handleClosePicker = () => {
     setGalleryCategory('all');
     setGalleryQuery('');
@@ -243,7 +292,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         {/* 3-column studio */}
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(260px,300px)] gap-5 lg:gap-6 items-start">
 
-          {/* LEFT: Clothing picker — always visible */}
+          {/* LEFT: Clothing picker */}
           <aside className="order-2 xl:order-1 flex flex-col gap-4 xl:sticky xl:top-20 self-start">
             <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden flex flex-col max-h-[min(780px,85vh)]">
               {/* Header */}
@@ -260,19 +309,33 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 <h3 className="text-base font-black tracking-tight">انتخاب لباس</h3>
               </div>
 
-              {/* Category tabs — more vertical space, larger icons */}
+              {/* Category tabs from DB config — smooth drag scroll */}
               <div className="px-3 pt-4 pb-4">
-                <div className="flex gap-2 overflow-x-auto custom-scroll-smooth pb-1">
-                  {PICKER_TABS.map((tab) => {
+                <div
+                  ref={catScroll.ref}
+                  onMouseDown={catScroll.onMouseDown}
+                  onMouseMove={catScroll.onMouseMove}
+                  onMouseUp={catScroll.onMouseUp}
+                  onMouseLeave={catScroll.onMouseLeave}
+                  className="flex gap-2 overflow-x-auto custom-scroll-smooth pb-1 cursor-grab active:cursor-grabbing select-none"
+                  style={{ scrollbarWidth: 'thin', WebkitOverflowScrolling: 'touch' }}
+                >
+                  {pickerTabs.map((tab) => {
                     const isActive = galleryCategory === tab.key;
                     const Icon = tab.icon;
                     return (
                       <button
                         key={tab.key}
                         type="button"
-                        onClick={() => setGalleryCategory(tab.key)}
+                        onClick={() => {
+                          if (catScroll.moved.current) {
+                            catScroll.moved.current = false;
+                            return;
+                          }
+                          setGalleryCategory(tab.key);
+                        }}
                         className={cn(
-                          'shrink-0 flex flex-col items-center gap-2 px-3 py-3 rounded-2xl min-w-[64px] transition-all',
+                          'shrink-0 flex flex-col items-center gap-2 px-3 py-3 rounded-2xl min-w-[68px] transition-all',
                           isActive
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-muted/50'
@@ -280,7 +343,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       >
                         <span
                           className={cn(
-                            'w-11 h-11 rounded-2xl flex items-center justify-center transition-colors',
+                            'w-11 h-11 rounded-2xl flex items-center justify-center transition-colors pointer-events-none',
                             isActive
                               ? 'bg-primary text-primary-foreground shadow-sm'
                               : 'bg-muted/70'
@@ -288,7 +351,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                         >
                           <Icon className="w-5 h-5" />
                         </span>
-                        <span className="text-[11px] font-extrabold leading-tight whitespace-nowrap">
+                        <span className="text-[11px] font-extrabold leading-tight whitespace-nowrap pointer-events-none">
                           {tab.label}
                         </span>
                       </button>
@@ -297,7 +360,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 </div>
               </div>
 
-              {/* Search only */}
+              {/* Search */}
               <div className="px-3 pb-3">
                 <div className="relative">
                   <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
@@ -321,7 +384,6 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 </div>
               </div>
 
-              {/* Count when filtered */}
               {(galleryCategory !== 'all' || galleryQuery) && (
                 <div className="px-3 pb-2 flex items-center justify-between gap-2">
                   <span className="text-[10px] font-bold text-muted-foreground tabular-nums">
