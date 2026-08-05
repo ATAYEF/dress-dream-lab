@@ -68,12 +68,15 @@ interface MannequinDisplayProps {
   gender?: MannequinGender;
   /** @deprecated Ignored - we always use the curated mannequin assets to avoid broken AI generations. */
   profileImageUrl?: string | null;
+  /** Preview-only: hide AI try-on, shoe/accessory pickers, zoom chrome */
+  compact?: boolean;
 }
 
 export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   items,
   className,
   gender = 'female',
+  compact = false,
 }) => {
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -325,7 +328,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   });
 
   return (
-    <div className={cn('w-full max-w-[320px] mx-auto', className)}>
+    <div className={cn(!compact && 'w-full max-w-[320px] mx-auto', compact && 'w-full', className)}>
       {/* Body canvas */}
       <div
         ref={containerRef}
@@ -517,7 +520,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </div>
 
         {/* Instant composite indicator (before any AI generation) */}
-        {hasSelectedItems && !aiImage && !aiLoading && (
+        {!compact && hasSelectedItems && !aiImage && !aiLoading && (
           <div className="absolute top-2 right-2 z-40 flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-md px-2.5 py-1 text-[10px] font-black text-foreground/80 shadow-md hairline-border animate-fade-in">
             <Sparkles className="w-3 h-3 text-gold" />
             پیش‌نمایش فوری (بدون هوش مصنوعی)
@@ -548,10 +551,11 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           </div>
         )}
 
-        {zoomControls}
+        {!compact && zoomControls}
       </div>
 
       {/* ===== AI generate — no model picker; server auto-selects ===== */}
+      {!compact && (
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
         <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-foreground">
           <Wand2 className="w-3.5 h-3.5 text-gold" />
@@ -583,10 +587,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           </p>
         )}
       </div>
-
+      )}
 
       {/* ===== Shoe picker ===== */}
-      {hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
+      {!compact && hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
         <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
@@ -640,7 +644,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       )}
 
       {/* ===== Accessory picker ===== */}
-      {hasSelectedItems && !userAccessory && (
+      {!compact && hasSelectedItems && !userAccessory && (
         <div className="mt-2.5 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-black text-foreground">
