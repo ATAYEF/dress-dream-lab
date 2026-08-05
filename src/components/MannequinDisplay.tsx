@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { persianEdgeError, readFunctionErrorBody } from '@/lib/edgeFunctionError';
 import AiImageViewer from './AiImageViewer';
+import { GarmentImage } from './GarmentImage';
 
 /**
  * Converts any image (bundled asset, blob, data url or remote url) into a
@@ -378,7 +379,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {/* Dress (full body) — only when no separate top/bottom */}
           {dress && !top && !bottom && (
             <div key={dress.id} className="animate-fade-up" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
-              <img
+              <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
                 className="w-full h-full object-contain object-center"
@@ -390,7 +391,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {/* Tops — chest / torso */}
           {top && (
             <div key={top.id} className="animate-fade-up" style={slotStyle(SLOT.tops, 12, '0.05s')}>
-              <img
+              <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
                 className="w-full h-full object-contain object-center"
@@ -406,7 +407,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               className="animate-fade-up"
               style={slotStyle(SLOT.outerwear, 18, '0.12s')}
             >
-              <img
+              <GarmentImage
                 src={outerwear.imageUrl}
                 alt={outerwear.name}
                 className="w-full h-full object-contain object-center"
@@ -418,7 +419,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           {/* Bottoms — hips to ankles */}
           {bottom && (
             <div key={bottom.id} className="animate-fade-up" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
-              <img
+              <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
                 className="w-full h-full object-contain object-center"
@@ -433,7 +434,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               className="animate-fade-up"
               style={slotStyle(SLOT.shoes, 16, '0.15s')}
             >
-              <img
+              <GarmentImage
                 src={activeShoe.imageUrl}
                 alt={activeShoe.name}
                 loading="lazy"
@@ -460,7 +461,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                 className="animate-fade-up overflow-hidden"
                 style={slotStyle(slot, z, `${0.18 + index * 0.06}s`)}
               >
-                <img
+                <GarmentImage
                   src={acc.imageUrl}
                   alt={acc.name}
                   className={cn(
@@ -485,7 +486,7 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
                   className="animate-fade-up"
                   style={slotStyle(slot, 22, `${0.25 + index * 0.08}s`)}
                 >
-                  <img
+                  <GarmentImage
                     src={a.imageUrl}
                     alt={a.name}
                     loading="lazy"
