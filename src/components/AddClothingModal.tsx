@@ -402,17 +402,16 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
 
   return (
     <>
-
-
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4">
-      {/* Backdrop */}
+    {/* Full-screen sheet on mobile, centered dialog on sm+ */}
+    <div className="fixed inset-0 z-50 flex items-stretch sm:items-center justify-center p-0 sm:p-4">
+      {/* Backdrop — hidden visual on mobile full-sheet */}
       <div
-        className="absolute inset-0 bg-foreground/60 backdrop-blur-md animate-fade-in"
+        className="absolute inset-0 bg-foreground/60 backdrop-blur-md animate-fade-in hidden sm:block"
         onClick={handleClose}
       />
 
-      {/* Decorative blobs */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {/* Decorative blobs — desktop only */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden hidden sm:block">
         <div
           className="absolute -top-20 left-1/4 w-80 h-80 rounded-full opacity-25 animate-blob"
           style={{ background: 'radial-gradient(circle, hsl(var(--gold)) 0%, transparent 70%)' }}
@@ -423,43 +422,54 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
         />
       </div>
 
-      {/* Modal */}
-      <div className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto animate-scale-in">
-        <div className="relative bg-gradient-card hairline-border rounded-3xl shadow-elevated overflow-hidden backdrop-blur-xl">
+      {/* Modal / Sheet */}
+      <div
+        className={cn(
+          'relative w-full overflow-y-auto animate-scale-in',
+          'h-[100dvh] max-h-[100dvh] sm:h-auto sm:max-h-[92vh] sm:max-w-lg',
+          'sm:rounded-3xl'
+        )}
+      >
+        <div
+          className={cn(
+            'relative bg-gradient-card hairline-border shadow-elevated overflow-hidden backdrop-blur-xl min-h-full sm:min-h-0',
+            'rounded-none sm:rounded-3xl'
+          )}
+        >
           {/* Top accent strip (different for edit mode) */}
           <div className={`h-1.5 w-full ${isEditMode ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500' : 'bg-gradient-gold'}`} />
 
-          <div className="p-6 sm:p-8">
+          <div className="p-4 sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             {/* Header */}
-            <div className="flex items-start justify-between gap-4 mb-6">
-              <div className="flex items-start gap-3">
+            <div className="flex items-start justify-between gap-3 sm:gap-4 mb-4 sm:mb-6 sticky top-0 z-10 bg-gradient-card/95 backdrop-blur-sm -mx-4 sm:mx-0 px-4 sm:px-0 py-2 sm:py-0 sm:static">
+              <div className="flex items-start gap-2.5 sm:gap-3 min-w-0">
                 <div className="relative shrink-0">
                   <div
-                    className={`absolute -inset-1 rounded-2xl blur-lg animate-glow-pulse ${
+                    className={`absolute -inset-1 rounded-2xl blur-lg animate-glow-pulse hidden sm:block ${
                       isEditMode
                         ? 'bg-gradient-to-br from-indigo-500/40 via-purple-500/30 to-rose-500/40'
                         : 'bg-gradient-gold/30'
                     }`}
                   />
                   <div
-                    className={`relative w-12 h-12 rounded-2xl shadow-button-gold flex items-center justify-center ${
+                    className={`relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl shadow-button-gold flex items-center justify-center ${
                       isEditMode
                         ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-rose-500 shadow-purple-500/25'
                         : 'bg-gradient-gold'
                     }`}
                   >
                     {isEditMode ? (
-                      <Pencil className="w-6 h-6 text-white" strokeWidth={2.2} />
+                      <Pencil className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
                     ) : (
-                      <ImageIcon className="w-6 h-6 text-white" strokeWidth={2.2} />
+                      <ImageIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" strokeWidth={2.2} />
                     )}
                   </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl sm:text-[26px] font-display font-black tracking-tight">
+                <div className="min-w-0">
+                  <h2 className="text-lg sm:text-2xl sm:text-[26px] font-display font-black tracking-tight truncate">
                     {isEditMode ? 'ویرایش لباس' : 'افزودن لباس جدید'}
                   </h2>
-                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+                  <p className="text-[11px] sm:text-sm text-muted-foreground mt-0.5 line-clamp-2">
                     {isEditMode
                       ? 'اطلاعات لباس را به دلخواه تغییر دهید و ذخیره کنید'
                       : 'هوش مصنوعی به شما کمک می‌کند تا فرم را سریع تکمیل کنید ✨'}
@@ -470,13 +480,14 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
               <button
                 onClick={handleClose}
                 disabled={isUploading}
-                className="shrink-0 p-2 rounded-xl hover:bg-rose/10 hover:text-rose transition-all duration-300 disabled:opacity-50 hover:scale-110"
+                className="shrink-0 p-2.5 rounded-xl hover:bg-rose/10 hover:text-rose transition-all duration-300 disabled:opacity-50 touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="بستن"
               >
                 <X className="w-5 h-5" strokeWidth={2.4} />
               </button>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4 sm:space-y-5">
               {/* Image Uploader */}
               <div>
                 <ImageUploader
@@ -545,7 +556,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                       <button
                         onClick={handleReanalyze}
                         disabled={isUploading}
-                        className="shrink-0 inline-flex items-center gap-1 pl-2.5 pr-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-black text-emerald-700 hover:bg-emerald-500/15 hover:text-emerald-800 transition-all duration-300 hover:scale-105 disabled:opacity-50"
+                        className="shrink-0 inline-flex items-center gap-1 pl-2.5 pr-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-black text-emerald-700 hover:bg-emerald-500/15 hover:text-emerald-800 transition-all duration-300 hover:scale-105 disabled:opacity-50 min-h-[36px]"
                         title="تحلیل مجدد تصویر"
                       >
                         <RefreshCw className="w-3.5 h-3.5" strokeWidth={2.4} />
@@ -585,7 +596,8 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                       'placeholder:text-muted-foreground/60',
                       'hover:shadow-card hover:border-gold/30',
                       'focus:shadow-[hsl(42,85%,45%)/0.18] focus:border-gold/50 focus:bg-white/90',
-                      'disabled:opacity-50'
+                      'disabled:opacity-50',
+                      'min-h-[48px]'
                     )}
                   />
                 </div>
@@ -629,7 +641,8 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                       'placeholder:text-muted-foreground/60',
                       'hover:shadow-card hover:border-gold/30',
                       'focus:shadow-[hsl(42,85%,45%)/0.18] focus:border-gold/50 focus:bg-white/90',
-                      'disabled:opacity-50'
+                      'disabled:opacity-50',
+                      'min-h-[48px]'
                     )}
                   />
                 </div>
@@ -661,7 +674,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                         }}
                         disabled={isUploading}
                         className={cn(
-                          'group relative overflow-hidden flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm sm:text-[15px] font-extrabold transition-all duration-400 disabled:opacity-50',
+                          'group relative overflow-hidden flex items-center gap-2 px-3 py-2.5 rounded-2xl text-sm sm:text-[15px] font-extrabold transition-all duration-400 disabled:opacity-50 min-h-[44px] touch-manipulation',
                           active
                             ? 'text-white shadow-card scale-[1.02]'
                             : 'text-foreground/80 bg-gradient-card hairline-border hover:border-gold/40 hover:shadow-soft hover:text-foreground hover:-translate-y-0.5'
@@ -704,7 +717,7 @@ export const AddClothingModal: React.FC<AddClothingModalProps> = ({
                 }
                 variant={isEditMode ? 'elegant' : 'gold'}
                 size="xl"
-                className="w-full mt-2 group relative overflow-hidden shadow-lg"
+                className="w-full mt-2 group relative overflow-hidden shadow-lg min-h-[52px]"
               >
                 <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
                 {isUploading ? (
