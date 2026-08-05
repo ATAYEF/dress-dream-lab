@@ -1,10 +1,9 @@
 /**
- * Client-side clothing background removal for mannequin preview.
- * Strategy:
- *  1) Load image safely (blob fetch when possible → avoids canvas taint)
- *  2) Estimate BG from corners/edges
- *  3) Edge-connected flood + soft near-BG cleanup
- *  4) Soft fringe for cleaner edges
+ * Background removal for mannequin preview.
+ * Order:
+ *  1) Online AI via @imgly (CDN / esm.sh — ISNet model)
+ *  2) Optional remove.bg through Supabase edge (if configured)
+ *  3) Local heuristic flood-fill (studio / solid BG)
  */
 
 const cache = new Map<string, string>();
@@ -12,64 +11,76 @@ const inflight = new Map<string, Promise<string>>();
 
 const MAX_EDGE = 640;
 
-function colorDist(
-  r1: number,
-  g1: number,
-  b1: number,
-  r2: number,
-  g2: number,
-  b2: number
-): number {
+function colorDist(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
   const dr = r1 - r2;
   const dg = g1 - g2;
   const db = b1 - b2;
   return Math.sqrt(dr * dr + dg * dg + db * db);
 }
 
-function loadFromElement(src: string, useCors: boolean): Promise<HTMLImageElement> {
+function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
-    if (useCors && !src.startsWith('data:') && !src.startsWith('blob:')) {
-      img.crossOrigin = 'anonymous';
-    }
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('image load failed'));
-    img.src = src;
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error('read failed'));
+    reader.readAsDataURL(blob);
   });
 }
 
-/** Prefer blob URL so canvas is always readable when fetch is allowed. */
-async function resolveDrawableSrc(src: string): Promise<string> {
-  if (src.startsWith('data:') || src.startsWith('blob:')) return src;
-  // Vite-bundled assets are same-origin paths
-  if (src.startsWith('/') || src.startsWith('.')) return src;
+async function srcToBlob(src: string): Promise<Blob> {
+  if (src.startsWith('data:') || src.startsWith('blob:')) {
+    const res = await fetch(src);
+    return res.blob();
+  }
+  const res = await fetch(src, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`fetch ${res.status}`);
+  return res.blob();
+}
 
+/** AI removal via img.ly model downloaded from CDN (runs in-browser WASM). */
+async function removeWithImgly(src: string): Promise<string | null> {
   try {
-    const res = await fetch(src, { mode: 'cors', credentials: 'omit' });
-    if (!res.ok) throw new Error(`fetch ${res.status}`);
-    const blob = await res.blob();
-    return URL.createObjectURL(blob);
-  } catch {
-    // Fall back to direct URL + crossOrigin
-    return src;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mod: any = await import(
+      /* @vite-ignore */
+      'https://esm.sh/@imgly/background-removal@1.5.5'
+    );
+    const removeBackground = mod.removeBackground || mod.default?.removeBackground || mod.default;
+    if (typeof removeBackground !== 'function') return null;
+
+    const input = await srcToBlob(src);
+    const result: Blob = await removeBackground(input, {
+      model: 'small',
+      output: { format: 'image/png', quality: 0.9 },
+    });
+    if (!result || !(result instanceof Blob)) return null;
+    return await blobToDataUrl(result);
+  } catch (err) {
+    console.warn('[removeBg] imgly failed, falling back', err);
+    return null;
   }
 }
 
-async function loadImage(src: string): Promise<{ img: HTMLImageElement; revoke?: string }> {
-  const drawable = await resolveDrawableSrc(src);
-  const revoke = drawable.startsWith('blob:') && drawable !== src ? drawable : undefined;
-
+/** Optional online API via Supabase edge function `remove-bg`. */
+async function removeWithEdgeFunction(src: string): Promise<string | null> {
   try {
-    const img = await loadFromElement(drawable, true);
-    return { img, revoke };
-  } catch {
-    try {
-      const img = await loadFromElement(drawable, false);
-      return { img, revoke };
-    } catch (e) {
-      if (revoke) URL.revokeObjectURL(revoke);
-      throw e;
+    const { supabase } = await import('@/integrations/supabase/client');
+    let payloadSrc = src;
+    if (!src.startsWith('data:')) {
+      try {
+        payloadSrc = await blobToDataUrl(await srcToBlob(src));
+      } catch {
+        payloadSrc = src;
+      }
     }
+
+    const { data, error } = await supabase.functions.invoke('remove-bg', {
+      body: { imageUrl: payloadSrc },
+    });
+    if (error || !data?.imageUrl) return null;
+    return data.imageUrl as string;
+  } catch {
+    return null;
   }
 }
 
@@ -78,179 +89,135 @@ function median(nums: number[]): number {
   return s[Math.floor(s.length / 2)] ?? 0;
 }
 
-/**
- * Remove near-uniform / studio background; returns PNG data URL with alpha.
- * Falls back to original src on failure.
- */
+async function loadImageElement(src: string): Promise<HTMLImageElement> {
+  const tryLoad = (url: string, cors: boolean) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image();
+      if (cors && !url.startsWith('data:') && !url.startsWith('blob:')) img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('load fail'));
+      img.src = url;
+    });
+
+  try {
+    const blob = await srcToBlob(src);
+    const obj = URL.createObjectURL(blob);
+    try {
+      return await tryLoad(obj, true);
+    } finally {
+      URL.revokeObjectURL(obj);
+    }
+  } catch {
+    try {
+      return await tryLoad(src, true);
+    } catch {
+      return await tryLoad(src, false);
+    }
+  }
+}
+
+/** Local heuristic — solid/studio backgrounds */
+async function heuristicRemove(src: string): Promise<string> {
+  const img = await loadImageElement(src);
+  const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+  const w = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+  const h = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return src;
+  ctx.drawImage(img, 0, 0, w, h);
+
+  let imageData: ImageData;
+  try {
+    imageData = ctx.getImageData(0, 0, w, h);
+  } catch {
+    return src;
+  }
+  const d = imageData.data;
+
+  const samples: [number, number][] = [
+    [2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3],
+    [Math.floor(w / 2), 2], [Math.floor(w / 2), h - 3],
+    [2, Math.floor(h / 2)], [w - 3, Math.floor(h / 2)],
+  ];
+  const rs: number[] = [];
+  const gs: number[] = [];
+  const bs: number[] = [];
+  for (const [x, y] of samples) {
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    const i = (y * w + x) * 4;
+    rs.push(d[i]); gs.push(d[i + 1]); bs.push(d[i + 2]);
+  }
+  const bgR = median(rs);
+  const bgG = median(gs);
+  const bgB = median(bs);
+  const bgLum = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
+  const hard = bgLum > 210 ? 52 : bgLum > 160 ? 44 : 36;
+  const soft = hard + 28;
+
+  const isBg = new Uint8Array(w * h);
+  const queue: number[] = [];
+  const tryPush = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= w || y >= h) return;
+    const idx = y * w + x;
+    if (isBg[idx]) return;
+    const i = idx * 4;
+    if (colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB) <= soft) {
+      isBg[idx] = 1;
+      queue.push(idx);
+    }
+  };
+  for (let x = 0; x < w; x++) { tryPush(x, 0); tryPush(x, h - 1); }
+  for (let y = 0; y < h; y++) { tryPush(0, y); tryPush(w - 1, y); }
+  let qi = 0;
+  while (qi < queue.length) {
+    const idx = queue[qi++];
+    const x = idx % w;
+    const y = (idx / w) | 0;
+    tryPush(x + 1, y); tryPush(x - 1, y); tryPush(x, y + 1); tryPush(x, y - 1);
+  }
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const idx = y * w + x;
+      const i = idx * 4;
+      const dist = colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB);
+      if (isBg[idx]) {
+        if (dist <= hard) d[i + 3] = 0;
+        else {
+          const t = Math.min(1, Math.max(0, (dist - hard) / (soft - hard)));
+          d[i + 3] = Math.round(d[i + 3] * t);
+        }
+      }
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  return canvas.toDataURL('image/png');
+}
+
 export async function removeClothingBackground(src: string): Promise<string> {
   if (!src || typeof document === 'undefined') return src;
   if (cache.has(src)) return cache.get(src)!;
   if (inflight.has(src)) return inflight.get(src)!;
 
   const job = (async () => {
-    let revoke: string | undefined;
     try {
-      const loaded = await loadImage(src);
-      revoke = loaded.revoke;
-      const img = loaded.img;
+      const ai = await removeWithImgly(src);
+      if (ai) { cache.set(src, ai); return ai; }
 
-      const scale = Math.min(1, MAX_EDGE / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
-      const w = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
-      const h = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+      const edge = await removeWithEdgeFunction(src);
+      if (edge) { cache.set(src, edge); return edge; }
 
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      if (!ctx) return src;
-
-      ctx.drawImage(img, 0, 0, w, h);
-
-      let imageData: ImageData;
-      try {
-        imageData = ctx.getImageData(0, 0, w, h);
-      } catch {
-        // Tainted canvas — cannot process
-        return src;
-      }
-
-      const d = imageData.data;
-
-      // Sample BG from corners + edge midpoints + inset corners
-      const samples: [number, number][] = [
-        [2, 2],
-        [w - 3, 2],
-        [2, h - 3],
-        [w - 3, h - 3],
-        [Math.floor(w / 2), 2],
-        [Math.floor(w / 2), h - 3],
-        [2, Math.floor(h / 2)],
-        [w - 3, Math.floor(h / 2)],
-        [8, 8],
-        [w - 9, 8],
-        [8, h - 9],
-        [w - 9, h - 9],
-      ];
-
-      const rs: number[] = [];
-      const gs: number[] = [];
-      const bs: number[] = [];
-      for (const [x, y] of samples) {
-        if (x < 0 || y < 0 || x >= w || y >= h) continue;
-        const i = (y * w + x) * 4;
-        rs.push(d[i]);
-        gs.push(d[i + 1]);
-        bs.push(d[i + 2]);
-      }
-      const bgR = median(rs);
-      const bgG = median(gs);
-      const bgB = median(bs);
-      const bgLum = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
-
-      // More aggressive thresholds — product photos usually have clear BG
-      const hard = bgLum > 210 ? 52 : bgLum > 160 ? 44 : bgLum > 80 ? 36 : 28;
-      const soft = hard + 28;
-
-      // Edge flood-fill for connected background
-      const isBg = new Uint8Array(w * h);
-      const queue: number[] = [];
-      const tryPush = (x: number, y: number) => {
-        if (x < 0 || y < 0 || x >= w || y >= h) return;
-        const idx = y * w + x;
-        if (isBg[idx]) return;
-        const i = idx * 4;
-        const dist = colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB);
-        if (dist <= soft) {
-          isBg[idx] = 1;
-          queue.push(idx);
-        }
-      };
-
-      for (let x = 0; x < w; x++) {
-        tryPush(x, 0);
-        tryPush(x, h - 1);
-      }
-      for (let y = 0; y < h; y++) {
-        tryPush(0, y);
-        tryPush(w - 1, y);
-      }
-
-      let qi = 0;
-      while (qi < queue.length) {
-        const idx = queue[qi++];
-        const x = idx % w;
-        const y = (idx / w) | 0;
-        tryPush(x + 1, y);
-        tryPush(x - 1, y);
-        tryPush(x, y + 1);
-        tryPush(x, y - 1);
-      }
-
-      // Also mark near-BG pixels that are very close to estimated BG (studio white/gray),
-      // but only if sufficiently close AND not deep inside a colored region
-      // (use a lighter second pass on remaining edge band).
-      const band = Math.max(4, Math.round(Math.min(w, h) * 0.04));
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const idx = y * w + x;
-          if (isBg[idx]) continue;
-          const nearEdge = x < band || y < band || x >= w - band || y >= h - band;
-          if (!nearEdge) continue;
-          const i = idx * 4;
-          const dist = colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB);
-          if (dist <= hard * 0.9) isBg[idx] = 1;
-        }
-      }
-
-      // Apply alpha
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const idx = y * w + x;
-          const i = idx * 4;
-          const dist = colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB);
-
-          if (isBg[idx]) {
-            if (dist <= hard) {
-              d[i + 3] = 0;
-            } else {
-              const t = Math.min(1, Math.max(0, (dist - hard) / (soft - hard)));
-              d[i + 3] = Math.round(d[i + 3] * t);
-            }
-          } else if (dist <= hard * 0.55 && (x < 2 || y < 2 || x > w - 3 || y > h - 3)) {
-            d[i + 3] = 0;
-          }
-        }
-      }
-
-      // For very light studio backgrounds: extra pass on remaining near-white edge pixels
-      if (bgLum > 200) {
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const i = (y * w + x) * 4;
-            if (d[i + 3] === 0) continue;
-            const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-            const nearEdge = x < band || y < band || x >= w - band || y >= h - band;
-            if (nearEdge && lum > 245 && colorDist(d[i], d[i + 1], d[i + 2], bgR, bgG, bgB) < hard) {
-              d[i + 3] = 0;
-            }
-          }
-        }
-      }
-
-      ctx.putImageData(imageData, 0, 0);
-      const out = canvas.toDataURL('image/png');
-      cache.set(src, out);
-      return out;
+      const local = await heuristicRemove(src);
+      cache.set(src, local);
+      return local;
     } catch {
       return src;
     } finally {
-      if (revoke) {
-        try {
-          URL.revokeObjectURL(revoke);
-        } catch {
-          /* ignore */
-        }
-      }
       inflight.delete(src);
     }
   })();
