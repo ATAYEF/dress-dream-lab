@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 import { useStagedProgress, TRYON_RENDER_STAGES } from '@/hooks/useStagedProgress';
@@ -14,11 +14,6 @@ import { persianEdgeError, readFunctionErrorBody } from '@/lib/edgeFunctionError
 import AiImageViewer from './AiImageViewer';
 import { GarmentImage } from './GarmentImage';
 
-/**
- * Converts any image (bundled asset, blob, data url or remote url) into a
- * compressed base64 JPEG data URL. Downscaling is essential: raw camera photos
- * are several MB in base64 and make the try-on request fail silently.
- */
 async function loadImage(src: string, useCors: boolean) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -30,15 +25,12 @@ async function loadImage(src: string, useCors: boolean) {
 }
 
 async function toDataUrl(src: string, maxSize = 768): Promise<string> {
-  // Some remote images block CORS; retry without it (canvas may still work for
-  // same-origin / data URLs, and the retry catches transient failures).
   let img: HTMLImageElement;
   try {
     img = await loadImage(src, true);
   } catch {
     img = await loadImage(src, false);
   }
-
 
   let { width, height } = img;
   const scale = Math.min(1, maxSize / Math.max(width, height));
@@ -50,45 +42,49 @@ async function toDataUrl(src: string, maxSize = 768): Promise<string> {
   canvas.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('عدم پشتیبانی مرورگر');
-  // White backdrop so transparent PNGs stay clean once flattened to JPEG
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
   ctx.drawImage(img, 0, 0, width, height);
   return canvas.toDataURL('image/jpeg', 0.72);
 }
 
-
-
-/** Kept for API compat — only female mannequin is used. */
 export type MannequinGender = 'female';
+
+export type MannequinDisplayHandle = {
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetView: () => void;
+};
 
 interface MannequinDisplayProps {
   items: ClothingItem[];
   className?: string;
-  /** @deprecated Always female; ignored. */
   gender?: MannequinGender;
-  /** @deprecated Ignored - we always use the curated mannequin assets to avoid broken AI generations. */
   profileImageUrl?: string | null;
-  /** Preview-only: hide AI try-on, shoe/accessory pickers, zoom chrome */
   compact?: boolean;
+  /** Hide built-in zoom chrome (parent will drive zoom via ref) */
+  hideZoomChrome?: boolean;
 }
 
-export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
-  items,
-  className,
-  compact = false,
-}) => {
-  const [zoom, setZoom] = useState(1);
+const ZOOM_MIN = 0.6;
+const ZOOM_MAX = 2.5;
+const ZOOM_STEP = 0.15;
+const ZOOM_DEFAULT = 1;
+
+export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisplayProps>(
+  function MannequinDisplay(
+    { items, className, compact = false, hideZoomChrome = false },
+    ref
+  ) {
+  const [zoom, setZoom] = useState(ZOOM_DEFAULT);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Female mannequin only
   const mannequinImage = mannequinFemale;
   const gender = 'female' as const;
 
-  // ===== AI outfit suggestions (shoes + accessories) =====
   const hasSelectedItems = items.length > 0;
   const suggestedShoe = suggestShoes(items, gender);
   const suggestedAccessories = suggestAccessories(items, gender);
@@ -107,17 +103,15 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     ? [userAccessory as ClothingItem]
     : ALL_ACCESSORY_OPTIONS.filter((a) => selectedAccessoryIds.includes(a.id));
 
-  // outfit key - re-sync suggestions when the user changes items
   const outfitKey = `${gender}-${items.map((i) => i.id).sort().join(',')}`;
   useEffect(() => {
-    // Default suggestions first
     setSelectedShoeId(suggestedShoe?.id ?? null);
     setSelectedAccessoryIds(suggestedAccessories.map((a) => a.id));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outfitKey]);
 
   const toggleShoe = (shoe: SuggestedShoe) => {
-    if (items.some((i) => i.category === 'shoes')) return; // user already selected their own shoes
+    if (items.some((i) => i.category === 'shoes')) return;
     setSelectedShoeId((prev) => (prev === shoe.id ? null : shoe.id));
   };
 
@@ -127,18 +121,15 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       if (prev.includes(accessory.id)) {
         return prev.filter((id) => id !== accessory.id);
       }
-      // Swap out same-type accessories (only one belt, one bag at a time)
       const sameTypeIds = ALL_ACCESSORY_OPTIONS.filter((a) => a.type === accessory.type).map((a) => a.id);
       return [...prev.filter((id) => !sameTypeIds.includes(id)), accessory.id];
     });
   };
 
-  // ===== AI Virtual Try-on =====
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const tryonProgress = useStagedProgress(aiLoading, TRYON_RENDER_STAGES);
 
-  // Drop a stale generated image whenever the outfit or model changes
   const generationKey = `${outfitKey}-${selectedShoeId ?? ''}-${selectedAccessoryIds.join(',')}`;
   useEffect(() => {
     setAiImage(null);
@@ -150,8 +141,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     setAiLoading(true);
     try {
       const baseImageUrl = await toDataUrl(mannequinImage, 512);
-      // Cap the number of garments and downscale them harder — keeps the
-      // request payload small enough for the edge function to accept it.
       const converted = await Promise.all(
         items.slice(0, 4).map(async (item) => {
           try {
@@ -175,7 +164,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         throw new Error('تصویر لباس‌ها قابل خواندن نیست؛ لباس دیگری امتحان کنید');
       }
 
-
       const suggestedFootwear =
         !items.some((i) => i.category === 'shoes') && activeShoe ? activeShoe.name : undefined;
       const suggestedAccessory =
@@ -183,17 +171,10 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           ? activeAccessories.map((a) => a.name).join(' و ')
           : undefined;
 
-      const payloadKb = Math.round(
-        (baseImageUrl.length + clothingItems.reduce((s, c) => s + c.imageUrl.length, 0)) / 1024
-      );
-      console.log('Virtual try-on payload ~', payloadKb, 'KB (auto model chain)');
-
       const { data, error } = await supabase.functions.invoke('virtual-tryon', {
         body: { baseImageUrl, clothingItems, suggestedFootwear, suggestedAccessory },
       });
 
-      // Non-2xx: Supabase sets error with English "Edge Function returned a non-2xx..."
-      // Real Persian message is usually in the response body (error.context).
       if (error) {
         const body = await readFunctionErrorBody(error);
         throw new Error(persianEdgeError(error, body || data));
@@ -225,20 +206,36 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
     }
   };
 
+  // ===== Zoom & Pan (smooth) =====
+  const handleZoomIn = useCallback(() => {
+    setZoom((prev) => Math.min(+(prev + ZOOM_STEP).toFixed(2), ZOOM_MAX));
+  }, []);
 
+  const handleZoomOut = useCallback(() => {
+    setZoom((prev) => Math.max(+(prev - ZOOM_STEP).toFixed(2), ZOOM_MIN));
+  }, []);
 
-  // ===== Zoom & Pan =====
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 3));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
-  const handleReset = () => {
-    setZoom(1);
+  const handleReset = useCallback(() => {
+    setZoom(ZOOM_DEFAULT);
     setPan({ x: 0, y: 0 });
-  };
+  }, []);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      zoomIn: handleZoomIn,
+      zoomOut: handleZoomOut,
+      resetView: handleReset,
+    }),
+    [handleZoomIn, handleZoomOut, handleReset]
+  );
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    setZoom((prev) => Math.min(Math.max(prev + delta, 0.5), 3));
+    const delta = e.deltaY > 0 ? -0.08 : 0.08;
+    setZoom((prev) => Math.min(Math.max(+(prev + delta).toFixed(2), ZOOM_MIN), ZOOM_MAX));
   };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom > 1) {
       setIsDragging(true);
@@ -264,73 +261,93 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   };
   const handleTouchEnd = () => setIsDragging(false);
 
-  // ===== UI pieces =====
-  const zoomControls = (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-background/90 backdrop-blur-md rounded-full px-2 py-1 shadow-lg z-50 hairline-border">
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomOut} disabled={zoom <= 0.5}>
+  const zoomControls = !hideZoomChrome && (
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-background/95 backdrop-blur-md rounded-full px-1.5 py-1 shadow-lg z-50 hairline-border">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full transition-transform active:scale-90"
+        onClick={handleZoomOut}
+        disabled={zoom <= ZOOM_MIN}
+        aria-label="کوچک‌نمایی"
+        title="کوچک‌نمایی"
+      >
         <ZoomOut className="w-4 h-4" />
       </Button>
-      <span className="text-xs font-bold min-w-[40px] text-center">{Math.round(zoom * 100)}%</span>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleZoomIn} disabled={zoom >= 3}>
+      <span className="text-[11px] font-bold min-w-[44px] text-center tabular-nums select-none">
+        {Math.round(zoom * 100).toLocaleString('fa-IR')}٪
+      </span>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full transition-transform active:scale-90"
+        onClick={handleZoomIn}
+        disabled={zoom >= ZOOM_MAX}
+        aria-label="بزرگ‌نمایی"
+        title="بزرگ‌نمایی"
+      >
         <ZoomIn className="w-4 h-4" />
       </Button>
-      {(zoom !== 1 || pan.x !== 0 || pan.y !== 0) && (
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handleReset}>
-          <RotateCcw className="w-3 h-3" />
-        </Button>
-      )}
+      <div className="w-px h-5 bg-border/60 mx-0.5" />
+      <Button
+        variant="ghost"
+        size="icon"
+        className="h-8 w-8 rounded-full transition-transform active:scale-90"
+        onClick={handleReset}
+        aria-label="بازنشانی اندازه"
+        title="بازنشانی اندازه"
+      >
+        <RotateCcw className="w-3.5 h-3.5" />
+      </Button>
     </div>
   );
 
   const zoomableStyle: React.CSSProperties = {
-    transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+    transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+    transformOrigin: 'center center',
     cursor: zoom > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
-    transition: isDragging ? 'none' : 'transform 0.2s ease-out',
+    transition: isDragging ? 'none' : 'transform 0.28s cubic-bezier(0.22, 1, 0.36, 1)',
+    willChange: 'transform',
   };
 
-  // ===== Body-slot layout (category zones — not "stuck on" mannequin face) =====
   const top = items.find((i) => i.category === 'tops');
   const bottom = items.find((i) => i.category === 'bottoms');
   const dress = items.find((i) => i.category === 'dresses');
   const outerwear = items.find((i) => i.category === 'outerwear');
-  const shoesItem = items.find((i) => i.category === 'shoes');
   const accessoryItems = items.filter((i) => i.category === 'accessories');
 
-  /**
-   * Body-aligned slots for female mannequin (aspect-[3/5]).
-   * objectPosition is tuned for typical product photos (subject centered, top-weighted).
-   */
+  /** Body slots — slightly lower shoes zone so feet stay inside taller frame */
   const SLOT = {
     tops: {
-      top: '17%', left: '21%', width: '58%', height: '28%',
+      top: '16%', left: '21%', width: '58%', height: '27%',
       objectPosition: '50% 12%',
     },
     outerwear: {
-      top: '14%', left: '15%', width: '70%', height: '40%',
+      top: '13%', left: '15%', width: '70%', height: '38%',
       objectPosition: '50% 18%',
     },
     bottoms: {
-      top: '39%', left: '25%', width: '50%', height: '44%',
+      top: '38%', left: '25%', width: '50%', height: '42%',
       objectPosition: '50% 8%',
     },
     dresses: {
-      top: '15%', left: '18%', width: '64%', height: '66%',
+      top: '14%', left: '18%', width: '64%', height: '64%',
       objectPosition: '50% 10%',
     },
     shoes: {
-      top: '85%', left: '28%', width: '44%', height: '13%',
+      top: '82%', left: '27%', width: '46%', height: '16%',
       objectPosition: '50% 55%',
     },
     accessoryHead: {
-      top: '9%', left: '34%', width: '32%', height: '9%',
+      top: '8%', left: '34%', width: '32%', height: '9%',
       objectPosition: '50% 40%',
     },
     accessoryBelt: {
-      top: '38%', left: '27%', width: '46%', height: '7%',
+      top: '37%', left: '27%', width: '46%', height: '7%',
       objectPosition: '50% 50%',
     },
     accessoryBag: {
-      top: '44%', left: '62%', width: '32%', height: '20%',
+      top: '42%', left: '62%', width: '32%', height: '20%',
       objectPosition: '50% 45%',
     },
   } as const;
@@ -360,11 +377,11 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
   });
 
   return (
-    <div className={cn(!compact && 'w-full max-w-[320px] mx-auto', compact && 'w-full', className)}>
-      {/* Body canvas */}
+    <div className={cn(!compact && 'w-full max-w-[360px] mx-auto', compact && 'w-full', className)}>
+      {/* Taller body canvas so shoes stay visible */}
       <div
         ref={containerRef}
-        className="relative w-full aspect-[3/5] overflow-hidden rounded-3xl bg-gradient-card hairline-border shadow-card pb-1"
+        className="relative w-full aspect-[3/5.2] min-h-[420px] overflow-hidden rounded-3xl bg-gradient-card hairline-border shadow-card"
         onWheel={handleWheel}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -384,20 +401,17 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         />
 
         <div style={zoomableStyle} className="w-full h-full relative select-none">
-          {/* Faint silhouette guide only — garments sit in category slots, not glued on mannequin */}
           <img
             src={mannequinImage}
             alt=""
             aria-hidden
             className={cn(
-              'absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-500',
+              'absolute inset-0 w-full h-full object-contain object-bottom pointer-events-none transition-opacity duration-500',
               hasSelectedItems ? 'opacity-40' : 'opacity-90 drop-shadow-xl'
             )}
             draggable={false}
           />
 
-
-          {/* Dress (full body) — only when no separate top/bottom */}
           {dress && !top && !bottom && (
             <div key={dress.id} className="animate-fade-up" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
               <GarmentImage
@@ -410,7 +424,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             </div>
           )}
 
-          {/* Tops — chest / torso */}
           {top && (
             <div key={top.id} className="animate-fade-up" style={slotStyle(SLOT.tops, 12, '0.05s')}>
               <GarmentImage
@@ -423,7 +436,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             </div>
           )}
 
-          {/* Outerwear — over torso, wider */}
           {outerwear && (
             <div
               key={outerwear.id}
@@ -440,7 +452,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             </div>
           )}
 
-          {/* Bottoms — hips to ankles */}
           {bottom && (
             <div key={bottom.id} className="animate-fade-up" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
               <GarmentImage
@@ -453,7 +464,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             </div>
           )}
 
-          {/* Shoes — feet zone */}
           {activeShoe && (
             <div
               className="animate-fade-up"
@@ -470,7 +480,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             </div>
           )}
 
-          {/* User accessories — distribute by type heuristic */}
           {accessoryItems.map((acc, index) => {
             const name = `${acc.name} ${(acc.tags || []).join(' ')}`.toLowerCase();
             const isBelt = /کمربند|belt/.test(name);
@@ -501,7 +510,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
             );
           })}
 
-          {/* AI suggested accessories only if user has none */}
           {hasSelectedItems &&
             accessoryItems.length === 0 &&
             activeAccessories.map((accessory, index) => {
@@ -525,7 +533,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
               );
             })}
 
-          {/* Empty state */}
           {items.length === 0 && (
             <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/75 backdrop-blur-md rounded-3xl animate-fade-in">
               <div className="relative">
@@ -544,10 +551,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           )}
         </div>
 
-        {/* Instant composite indicator (before any AI generation) */}
-        
-
-        {/* AI generated try-on result */}
         {aiImage && (
           <AiImageViewer
             src={aiImage}
@@ -556,8 +559,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
           />
         )}
 
-
-        {/* Generating overlay — multi-stage progress */}
         {aiLoading && (
           <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-background/70 backdrop-blur-sm animate-fade-in">
             <StagedProgress
@@ -573,7 +574,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         {zoomControls}
       </div>
 
-      {/* ===== AI generate — no model picker; server auto-selects ===== */}
       {!compact && (
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
         <div className="mb-1.5 flex items-center gap-1.5 text-xs font-black text-foreground">
@@ -608,8 +608,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       </div>
       )}
 
-
-      {/* Collapsible extras — reduces scroll to keep mannequin visible */}
       {!compact && hasSelectedItems && (
         <button
           type="button"
@@ -624,7 +622,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </button>
       )}
 
-      {/* ===== Shoe picker ===== */}
       {!compact && extrasOpen && hasSelectedItems && !items.some((i) => i.category === 'shoes') && (
         <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
@@ -678,7 +675,6 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
         </div>
       )}
 
-      {/* ===== Accessory picker ===== */}
       {!compact && extrasOpen && hasSelectedItems && !userAccessory && (
         <div className="mt-2.5 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
           <div className="mb-2 flex items-center justify-between">
@@ -738,4 +734,4 @@ export const MannequinDisplay: React.FC<MannequinDisplayProps> = ({
       )}
     </div>
   );
-};
+});
