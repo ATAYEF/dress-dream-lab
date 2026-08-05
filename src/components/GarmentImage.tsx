@@ -7,15 +7,11 @@ interface GarmentImageProps {
   alt: string;
   className?: string;
   style?: React.CSSProperties;
-  /** Skip processing (e.g. already transparent assets) */
   skip?: boolean;
   loading?: 'lazy' | 'eager';
   draggable?: boolean;
 }
 
-/**
- * Clothing image with client-side background removal for mannequin preview.
- */
 export const GarmentImage: React.FC<GarmentImageProps> = ({
   src,
   alt,
@@ -37,29 +33,25 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
 
     let cancelled = false;
     setReady(false);
+    // Keep previous processed frame if same category reshuffle — still start from src
     setDisplaySrc(src);
 
-    // Defer so first paint is not blocked
-    const run = () => {
-      removeClothingBackground(src)
-        .then((url) => {
-          if (!cancelled) {
-            setDisplaySrc(url);
-            setReady(true);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setDisplaySrc(src);
-            setReady(true);
-          }
-        });
-    };
+    removeClothingBackground(src)
+      .then((url) => {
+        if (cancelled) return;
+        setDisplaySrc(url || src);
+        setReady(true);
+      })
+      .catch((err) => {
+        console.warn('[GarmentImage] bg remove failed', err);
+        if (!cancelled) {
+          setDisplaySrc(src);
+          setReady(true);
+        }
+      });
 
-    const id = window.setTimeout(run, 0);
     return () => {
       cancelled = true;
-      window.clearTimeout(id);
     };
   }, [src, skip]);
 
@@ -72,8 +64,8 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
       style={style}
       className={cn(
         className,
-        'transition-opacity duration-300',
-        ready ? 'opacity-100' : 'opacity-70'
+        'transition-opacity duration-500',
+        ready ? 'opacity-100' : 'opacity-50'
       )}
     />
   );
