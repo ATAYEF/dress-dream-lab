@@ -535,16 +535,13 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 </div>
               ) : (
                 <div className="relative p-3 sm:p-4">
-                  {/*
-                    MannequinDisplay owns: canvas, zoom, try-on (پرو واقعی‌تر با AI),
-                    and shoe/accessory extras. Do NOT wrap it in aspect+overflow or the
-                    try-on button gets clipped.
-                  */}
                   <MannequinDisplay
                     ref={mannequinRef}
                     items={outfitItems}
                     profileImageUrl={profileImageUrl}
                     className="w-full max-w-none mx-auto"
+                    onRemoveItem={removeFromOutfit}
+                    onClearAll={clearOutfit}
                   />
                 </div>
               )}
