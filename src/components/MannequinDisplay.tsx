@@ -412,7 +412,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     },
     // full leg length — waist to just above shoes
     bottoms: {
-      top: '38%', left: '29%', width: '42%', height: '44%',
+      top: '39%', left: '30%', width: '40%', height: '34%',
       objectPosition: '50% 0%',
     },
     dresses: {
@@ -485,9 +485,10 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       transformOrigin: 'center center',
       // فریم باریک و چسبیده (بدون outlineOffset بزرگ)
       boxShadow: selected
-        ? 'inset 0 0 0 1.5px hsl(var(--gold)), 0 0 0 1px hsl(var(--gold) / 0.35)'
+        ? '0 0 0 1.5px hsl(var(--gold))'
         : undefined,
-      borderRadius: 6,
+      borderRadius: 8,
+      overflow: 'visible',
       touchAction: itemId ? 'none' : undefined,
       cursor: itemId ? (selected ? 'grab' : 'pointer') : undefined,
     };
@@ -619,23 +620,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     if (e.touches.length < 2) pinchRef.current = null;
   };
 
-  const RotateHandle = ({ itemId }: { itemId: string }) => {
-    if (editItemId !== itemId) return null;
-    return (
-      <button
-        type="button"
-        aria-label="چرخش"
-        title="بکشید برای چرخاندن"
-        className="absolute -bottom-2 -right-2 z-[65] w-7 h-7 rounded-full bg-sky-500 text-white shadow-md border-2 border-white flex items-center justify-center touch-manipulation cursor-grab"
-        onPointerDown={(e) => onGarmentPointerDown(e, itemId, 'rotate')}
-        onPointerMove={onGarmentPointerMove}
-        onPointerUp={onGarmentPointerUp}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.5} />
-      </button>
-    );
-  };
 
   const garmentImgStyle = (slot: SlotBox): React.CSSProperties => ({
     objectPosition: slot.objectPosition ?? '50% 50%',
@@ -732,7 +716,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={dress.id} label={dress.name} />
-              <RotateHandle itemId={dress.id} />
             </div>
           )}
 
@@ -751,7 +734,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={top.id} label={top.name} />
-              <RotateHandle itemId={top.id} />
             </div>
           )}
 
@@ -774,7 +756,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={outerwear.id} label={outerwear.name} />
-              <RotateHandle itemId={outerwear.id} />
             </div>
           )}
 
@@ -793,7 +774,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={bottom.id} label={bottom.name} />
-              <RotateHandle itemId={bottom.id} />
             </div>
           )}
 
@@ -816,7 +796,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               {shoeItem && <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />}
-              {shoeItem && <RotateHandle itemId={shoeItem.id} />}
             </div>
           )}
 
@@ -852,7 +831,6 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                   draggable={false}
                 />
                 <RemoveBadge itemId={acc.id} label={acc.name} />
-                <RotateHandle itemId={acc.id} />
               </div>
             );
           })}
@@ -938,7 +916,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            لبه = تغییر سایز (نشانگر ↘) · وسط = جابه‌جایی · دو انگشت = زوم · −/+ = دقیق
+            لبه = تغییر سایز · وسط = جابه‌جایی · دو انگشت = زوم · −/+ = اندازه دقیق
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.1 })} aria-label="کوچک‌تر">−</button>
