@@ -518,7 +518,7 @@ const Index = () => {
                     { value: 'casual', label: 'روزمره' },
                     { value: 'formal', label: 'رسمی' },
                     { value: 'party', label: 'مهمانی' },
-                  ]}
+                  ] as const}
                 />
                 <SegmentedControl
                   label="مکان"
@@ -528,7 +528,7 @@ const Index = () => {
                     { value: 'all', label: 'همه' },
                     { value: 'office', label: 'محل کار' },
                     { value: 'gathering', label: 'دورهمی' },
-                  ]}
+                  ] as const}
                 />
                 <SegmentedControl
                   label="هوا"
@@ -539,7 +539,7 @@ const Index = () => {
                     { value: 'sunny', label: 'آفتابی' },
                     { value: 'rainy', label: 'بارانی' },
                     { value: 'cold', label: 'سرد' },
-                  ]}
+                  ] as const}
                 />
               </div>
             </div>

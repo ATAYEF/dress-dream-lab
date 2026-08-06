@@ -4,7 +4,7 @@ export { MannequinDisplay } from '@/components/MannequinDisplay';
 export { OutfitSuggestionCard } from '@/components/OutfitSuggestionCard';
 export { OutfitContextPicker } from '@/components/OutfitContextPicker';
 export { AiRecommendationsPanel } from '@/components/AiRecommendationsPanel';
-export { AiImageViewer } from '@/components/AiImageViewer';
+export { default as AiImageViewer } from '@/components/AiImageViewer';
 export { AccessorySuggestions } from '@/components/AccessorySuggestions';
 export { ShoeSuggestions } from '@/components/ShoeSuggestions';
 export { SuggestionRail } from '@/components/SuggestionRail';
