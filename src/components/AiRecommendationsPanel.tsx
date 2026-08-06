@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Footprints, ShoppingBag, Gem, Watch, Sparkles, ChevronLeft } from 'lucide-react';
+import { Footprints, ShoppingBag, Gem, Watch, Sparkles, ChevronLeft, X } from 'lucide-react';
 import { ClothingItem } from '@/types/wardrobe';
 import { suggestCoordinatedShoes } from '@/lib/shoeSuggestion';
 import { suggestCoordinatedAccessories } from '@/lib/accessorySuggestion';
@@ -14,6 +14,7 @@ interface AiRecommendationsPanelProps {
   gender?: 'female' | 'male';
   context?: OutfitContext;
   onAddWardrobeItem?: (item: ClothingItem) => void;
+  onClose?: () => void;
   className?: string;
 }
 
@@ -29,6 +30,7 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
   gender = 'female',
   context,
   onAddWardrobeItem,
+  onClose,
   className,
 }) => {
   const hasOutfit = outfitItems.length > 0;
@@ -119,6 +121,17 @@ export const AiRecommendationsPanel: React.FC<AiRecommendationsPanelProps> = ({
             </p>
           </div>
         </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+            aria-label="بستن پیشنهادهای هوش مصنوعی"
+            title="بستن برای فضای بیشتر مانکن"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </header>
 
       {!hasOutfit || isEmpty ? (

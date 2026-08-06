@@ -115,6 +115,8 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const isMobile = useIsMobile();
   const genProgress = useStagedProgress(isGenerating, OUTFIT_SUGGESTION_STAGES);
   const [showContext, setShowContext] = useState(false);
+  const [showPickerPanel, setShowPickerPanel] = useState(true);
+  const [showAiPanel, setShowAiPanel] = useState(true);
   const catScroll = useSmoothDragScroll();
   const mannequinRef = useRef<MannequinDisplayHandle>(null);
 
@@ -224,6 +226,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const handleClosePicker = () => {
     setGalleryCategory('all');
     setGalleryQuery('');
+    setShowPickerPanel(false);
   };
 
   const handleGenerate = () => {
@@ -317,9 +320,21 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         </div>
 
         {/* 3-column studio */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(260px,300px)] gap-5 lg:gap-6 items-start">
+        <div
+          className={cn(
+            'grid grid-cols-1 gap-5 lg:gap-6 items-start',
+            showPickerPanel && showAiPanel &&
+              'xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(260px,300px)]',
+            showPickerPanel && !showAiPanel &&
+              'xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]',
+            !showPickerPanel && showAiPanel &&
+              'xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)]',
+            !showPickerPanel && !showAiPanel && 'xl:grid-cols-1'
+          )}
+        >
 
           {/* LEFT: Clothing picker */}
+          {showPickerPanel ? (
           <aside className="order-2 xl:order-1 flex flex-col gap-4 xl:sticky xl:top-20 self-start">
             <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden flex flex-col max-h-[min(780px,85vh)]">
               {/* Header */}
@@ -328,8 +343,8 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   type="button"
                   onClick={handleClosePicker}
                   className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
-                  aria-label="بازنشانی فیلترها"
-                  title="بازنشانی فیلترها"
+                  aria-label="بستن پنل انتخاب لباس"
+                  title="بستن برای فضای بیشتر مانکن"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -528,6 +543,19 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
               )}
             </div>
           </aside>
+          ) : (
+            <div className="order-2 xl:order-1 xl:sticky xl:top-20 self-start">
+              <button
+                type="button"
+                onClick={() => setShowPickerPanel(true)}
+                className="w-full xl:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-card border border-border/70 shadow-soft text-xs font-extrabold text-foreground hover:border-gold/40 transition-colors"
+                aria-label="باز کردن انتخاب لباس"
+              >
+                <Shirt className="w-4 h-4 text-amber-600" />
+                انتخاب لباس
+              </button>
+            </div>
+          )}
 
           {/* CENTER: Mannequin + try-on controls (must not clip MannequinDisplay chrome) */}
           <section className="order-1 xl:order-2 min-w-0">
@@ -593,6 +621,7 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
           </section>
 
           {/* RIGHT: AI */}
+          {showAiPanel ? (
           <aside className="order-3 xl:order-3 min-w-0 xl:sticky xl:top-20 self-start">
             <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft p-5">
               <AiRecommendationsPanel
@@ -600,9 +629,23 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 wardrobe={clothes}
                 context={outfitContext}
                 onAddWardrobeItem={addItemToOutfit}
+                onClose={() => setShowAiPanel(false)}
               />
             </div>
           </aside>
+          ) : (
+            <div className="order-3 xl:order-3 xl:sticky xl:top-20 self-start">
+              <button
+                type="button"
+                onClick={() => setShowAiPanel(true)}
+                className="w-full xl:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-card border border-border/70 shadow-soft text-xs font-extrabold text-foreground hover:border-gold/40 transition-colors"
+                aria-label="باز کردن پیشنهادهای هوش مصنوعی"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                پیشنهادهای هوش مصنوعی
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>
