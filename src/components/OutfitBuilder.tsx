@@ -505,19 +505,19 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             </div>
           </aside>
 
-          {/* CENTER: Mannequin — taller frame so shoes are visible */}
+          {/* CENTER: Mannequin + try-on controls (must not clip MannequinDisplay chrome) */}
           <section className="order-1 xl:order-2 min-w-0">
             <div
               onDragOver={!isMobile ? handleDragOver : undefined}
               onDragLeave={!isMobile ? handleDragLeave : undefined}
               onDrop={!isMobile ? handleDrop : undefined}
               className={cn(
-                'relative rounded-[1.75rem] overflow-hidden bg-card border border-border/70 shadow-card transition-all',
+                'relative rounded-[1.75rem] bg-card border border-border/70 shadow-card transition-all',
                 isDragOver && 'ring-2 ring-primary'
               )}
             >
-              <div className="relative mx-auto w-full aspect-[3/5] sm:aspect-[3/5.1] max-h-[720px] min-h-[460px] bg-gradient-to-b from-muted/30 via-background to-muted/20">
-                {outfitItems.length === 0 ? (
+              {outfitItems.length === 0 ? (
+                <div className="relative mx-auto w-full aspect-[3/5] sm:aspect-[3/5.1] max-h-[720px] min-h-[420px] overflow-hidden rounded-[1.75rem] bg-gradient-to-b from-muted/30 via-background to-muted/20">
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
                     <div className="w-16 h-16 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
                       <Shirt className="w-7 h-7" strokeWidth={1.5} />
@@ -532,49 +532,22 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                       {isMobile ? 'روی لباس‌ها تپ کنید' : 'لباس را بکشید اینجا'}
                     </span>
                   </div>
-                ) : (
+                </div>
+              ) : (
+                <div className="relative p-3 sm:p-4">
+                  {/*
+                    MannequinDisplay owns: canvas, zoom, try-on (پرو واقعی‌تر با AI),
+                    and shoe/accessory extras. Do NOT wrap it in aspect+overflow or the
+                    try-on button gets clipped.
+                  */}
                   <MannequinDisplay
                     ref={mannequinRef}
                     items={outfitItems}
                     profileImageUrl={profileImageUrl}
-                    className="w-full h-full max-w-none"
-                    hideZoomChrome
+                    className="w-full max-w-none mx-auto"
                   />
-                )}
-
-                {/* Zoom + reset toolbar */}
-                {outfitItems.length > 0 && (
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-full bg-background/95 backdrop-blur-md border border-border/70 shadow-lg px-1.5 py-1">
-                    <button
-                      type="button"
-                      onClick={() => mannequinRef.current?.zoomOut()}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
-                      title="کوچک‌نمایی"
-                      aria-label="کوچک‌نمایی"
-                    >
-                      <ZoomOut className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => mannequinRef.current?.resetView()}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
-                      title="بازنشانی اندازه"
-                      aria-label="بازنشانی اندازه"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => mannequinRef.current?.zoomIn()}
-                      className="w-9 h-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all active:scale-90"
-                      title="بزرگ‌نمایی"
-                      aria-label="بزرگ‌نمایی"
-                    >
-                      <ZoomIn className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
