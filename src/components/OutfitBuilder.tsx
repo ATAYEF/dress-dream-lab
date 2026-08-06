@@ -174,14 +174,38 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   const addItemToOutfit = (item: ClothingItem) => {
     setOutfitItems((prev) => {
       if (prev.some((i) => i.id === item.id)) return prev;
-      if (LAYERABLE_CATEGORIES.includes(item.category)) return [...prev, item];
-      const existingIndex = prev.findIndex((i) => i.category === item.category);
+
+      let next = [...prev];
+
+      // لباس یکسره با بالاتنه/پایین‌تنه هم‌زمان نمی‌آید
+      if (item.category === 'dresses') {
+        next = next.filter(
+          (i) => i.category !== 'tops' && i.category !== 'bottoms' && i.category !== 'dresses'
+        );
+        return [...next, item];
+      }
+      if (item.category === 'tops' || item.category === 'bottoms') {
+        next = next.filter((i) => i.category !== 'dresses');
+      }
+
+      // رویه: یک عدد
+      if (item.category === 'outerwear') {
+        next = next.filter((i) => i.category !== 'outerwear');
+        return [...next, item];
+      }
+
+      // اکسسوری چندتایی مجاز
+      if (item.category === 'accessories') {
+        return [...next, item];
+      }
+
+      // بالاتنه/پایین‌تنه/کفش: جایگزین هم‌دسته
+      const existingIndex = next.findIndex((i) => i.category === item.category);
       if (existingIndex !== -1) {
-        const next = [...prev];
         next[existingIndex] = item;
         return next;
       }
-      return [...prev, item];
+      return [...next, item];
     });
   };
 

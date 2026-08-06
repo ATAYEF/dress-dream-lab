@@ -353,42 +353,37 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
    * Body slots retuned for flat product photography (white bg, no model).
    * Values are % of the taller aspect-[3/5.2] canvas.
    */
-  /** Slots aligned to female mannequin proportions (aspect 3/5.2) */
+  /** Slots matched to female mannequin body (aspect 3/5.2) */
   const SLOT = {
-    // shoulders → natural waist
     tops: {
-      top: '16%', left: '20%', width: '60%', height: '24%',
-      objectPosition: '50% 12%',
-    },
-    // jacket over torso, slightly larger
-    outerwear: {
-      top: '14%', left: '16%', width: '68%', height: '36%',
-      objectPosition: '50% 16%',
-    },
-    // waist → ankles (matches mannequin leg length)
-    bottoms: {
-      top: '37%', left: '26%', width: '48%', height: '46%',
-      objectPosition: '50% 8%',
-    },
-    // shoulders → mid-calf
-    dresses: {
-      top: '15%', left: '18%', width: '64%', height: '68%',
+      top: '15%', left: '19%', width: '62%', height: '26%',
       objectPosition: '50% 10%',
     },
-    // feet only
+    outerwear: {
+      top: '13%', left: '15%', width: '70%', height: '38%',
+      objectPosition: '50% 14%',
+    },
+    // full leg length — waist to just above shoes
+    bottoms: {
+      top: '34%', left: '27%', width: '46%', height: '52%',
+      objectPosition: '50% 0%',
+    },
+    dresses: {
+      top: '14%', left: '17%', width: '66%', height: '72%',
+      objectPosition: '50% 8%',
+    },
     shoes: {
-      top: '87%', left: '30%', width: '40%', height: '11%',
-      objectPosition: '50% 55%',
+      top: '88%', left: '30%', width: '40%', height: '10%',
+      objectPosition: '50% 50%',
     },
     accessoryHead: {
       top: '8%', left: '35%', width: '30%', height: '8%',
       objectPosition: '50% 40%',
     },
     accessoryBelt: {
-      top: '36%', left: '30%', width: '40%', height: '5%',
+      top: '35%', left: '30%', width: '40%', height: '5%',
       objectPosition: '50% 50%',
     },
-    // bag at right hip, outside silhouette
     accessoryBag: {
       top: '42%', left: '66%', width: '28%', height: '16%',
       objectPosition: '50% 45%',
@@ -474,7 +469,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             draggable={false}
           />
 
-          {dress && !top && !bottom && (
+          {dress && (
             <div key={dress.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
               <GarmentImage
                 src={dress.imageUrl}
@@ -487,7 +482,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </div>
           )}
 
-          {top && (
+          {top && !dress && (
             <div key={top.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.tops, 12, '0.05s')}>
               <GarmentImage
                 src={top.imageUrl}
@@ -517,13 +512,13 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </div>
           )}
 
-          {bottom && (
+          {bottom && !dress && (
             <div key={bottom.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-contain"
-                style={garmentImgStyle(SLOT.bottoms)}
+                className="w-full h-full object-contain object-top"
+                style={{ ...garmentImgStyle(SLOT.bottoms), objectPosition: '50% 0%' }}
                 draggable={false}
               />
               <RemoveBadge itemId={bottom.id} label={bottom.name} />
