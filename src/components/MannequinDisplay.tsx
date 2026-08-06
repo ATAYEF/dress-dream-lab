@@ -410,10 +410,10 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       top: '14%', left: '18%', width: '64%', height: '34%',
       objectPosition: '50% 14%',
     },
-    // full leg length — waist to just above shoes
+    // tight to garment (matches product photo fill with object-cover)
     bottoms: {
-      top: '39%', left: '30%', width: '40%', height: '34%',
-      objectPosition: '50% 0%',
+      top: '40%', left: '31%', width: '38%', height: '32%',
+      objectPosition: '50% 8%',
     },
     dresses: {
       top: '14%', left: '17%', width: '66%', height: '72%',
@@ -485,10 +485,10 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       transformOrigin: 'center center',
       // فریم باریک و چسبیده (بدون outlineOffset بزرگ)
       boxShadow: selected
-        ? '0 0 0 1.5px hsl(var(--gold))'
+        ? '0 0 0 2px hsl(var(--gold))'
         : undefined,
-      borderRadius: 8,
-      overflow: 'visible',
+      borderRadius: 10,
+      overflow: 'hidden',
       touchAction: itemId ? 'none' : undefined,
       cursor: itemId ? (selected ? 'grab' : 'pointer') : undefined,
     };
@@ -769,8 +769,8 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
-                className="w-full h-full object-contain object-top"
-                style={{ ...garmentImgStyle(SLOT.bottoms), objectPosition: '50% 0%' }}
+                className="w-full h-full object-cover object-top"
+                style={{ ...garmentImgStyle(SLOT.bottoms), objectPosition: '50% 8%' }}
                 draggable={false}
               />
               <RemoveBadge itemId={bottom.id} label={bottom.name} />
