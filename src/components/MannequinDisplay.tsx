@@ -3,7 +3,7 @@ import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 import { useStagedProgress, TRYON_RENDER_STAGES } from '@/hooks/useStagedProgress';
 import { StagedProgress } from '@/components/StagedProgress';
-import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2, ChevronDown } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2, ChevronDown, Trash2 } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
@@ -64,6 +64,10 @@ interface MannequinDisplayProps {
   compact?: boolean;
   /** Hide built-in zoom chrome (parent will drive zoom via ref) */
   hideZoomChrome?: boolean;
+  /** Remove a single garment from the outfit by id */
+  onRemoveItem?: (itemId: string) => void;
+  /** Clear entire outfit */
+  onClearAll?: () => void;
 }
 
 const ZOOM_MIN = 0.6;
@@ -73,7 +77,7 @@ const ZOOM_DEFAULT = 1;
 
 export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisplayProps>(
   function MannequinDisplay(
-    { items, className, compact = false, hideZoomChrome = false },
+    { items, className, compact = false, hideZoomChrome = false, onRemoveItem, onClearAll },
     ref
   ) {
   const [zoom, setZoom] = useState(ZOOM_DEFAULT);
@@ -299,6 +303,21 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       >
         <RotateCcw className="w-3.5 h-3.5" />
       </Button>
+      {hasSelectedItems && onClearAll && (
+        <>
+          <div className="w-px h-5 bg-border/60 mx-0.5" />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 rounded-full transition-transform active:scale-90 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+            onClick={onClearAll}
+            aria-label="پاک کردن همه لباس‌ها"
+            title="پاک کردن همه"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </>
+      )}
     </div>
   );
 
@@ -314,41 +333,45 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const bottom = items.find((i) => i.category === 'bottoms');
   const dress = items.find((i) => i.category === 'dresses');
   const outerwear = items.find((i) => i.category === 'outerwear');
+  const shoeItem = items.find((i) => i.category === 'shoes');
   const accessoryItems = items.filter((i) => i.category === 'accessories');
 
-  /** Body slots — slightly lower shoes zone so feet stay inside taller frame */
+  /**
+   * Body slots retuned for flat product photography (white bg, no model).
+   * Values are % of the taller aspect-[3/5.2] canvas.
+   */
   const SLOT = {
     tops: {
-      top: '16%', left: '21%', width: '58%', height: '27%',
-      objectPosition: '50% 12%',
+      top: '15%', left: '22%', width: '56%', height: '26%',
+      objectPosition: '50% 15%',
     },
     outerwear: {
-      top: '13%', left: '15%', width: '70%', height: '38%',
+      top: '12%', left: '14%', width: '72%', height: '40%',
       objectPosition: '50% 18%',
     },
     bottoms: {
-      top: '38%', left: '25%', width: '50%', height: '42%',
-      objectPosition: '50% 8%',
-    },
-    dresses: {
-      top: '14%', left: '18%', width: '64%', height: '64%',
+      top: '40%', left: '24%', width: '52%', height: '40%',
       objectPosition: '50% 10%',
     },
+    dresses: {
+      top: '13%', left: '17%', width: '66%', height: '66%',
+      objectPosition: '50% 8%',
+    },
     shoes: {
-      top: '82%', left: '27%', width: '46%', height: '16%',
-      objectPosition: '50% 55%',
+      top: '84%', left: '28%', width: '44%', height: '14%',
+      objectPosition: '50% 60%',
     },
     accessoryHead: {
-      top: '8%', left: '34%', width: '32%', height: '9%',
+      top: '7%', left: '34%', width: '32%', height: '9%',
       objectPosition: '50% 40%',
     },
     accessoryBelt: {
-      top: '37%', left: '27%', width: '46%', height: '7%',
+      top: '39%', left: '28%', width: '44%', height: '6%',
       objectPosition: '50% 50%',
     },
     accessoryBag: {
-      top: '42%', left: '62%', width: '32%', height: '20%',
-      objectPosition: '50% 45%',
+      top: '44%', left: '64%', width: '30%', height: '18%',
+      objectPosition: '50% 40%',
     },
   } as const;
 
@@ -375,6 +398,25 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const garmentImgStyle = (slot: SlotBox): React.CSSProperties => ({
     objectPosition: slot.objectPosition ?? '50% 50%',
   });
+
+  /** Small X badge on a garment layer */
+  const RemoveBadge = ({ itemId, label }: { itemId: string; label: string }) => {
+    if (!onRemoveItem) return null;
+    return (
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemoveItem(itemId);
+        }}
+        className="absolute -top-1.5 -right-1.5 z-[60] w-6 h-6 rounded-full bg-background/95 border border-border/80 shadow-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 hover:border-destructive/40 transition-colors touch-manipulation"
+        aria-label={`حذف ${label}`}
+        title={`حذف ${label}`}
+      >
+        <X className="w-3 h-3" strokeWidth={2.5} />
+      </button>
+    );
+  };
 
   return (
     <div className={cn(!compact && 'w-full max-w-[360px] mx-auto', compact && 'w-full', className)}>
@@ -413,7 +455,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
           />
 
           {dress && !top && !bottom && (
-            <div key={dress.id} className="animate-fade-up" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
+            <div key={dress.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
               <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
@@ -421,11 +463,12 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.dresses)}
                 draggable={false}
               />
+              <RemoveBadge itemId={dress.id} label={dress.name} />
             </div>
           )}
 
           {top && (
-            <div key={top.id} className="animate-fade-up" style={slotStyle(SLOT.tops, 12, '0.05s')}>
+            <div key={top.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.tops, 12, '0.05s')}>
               <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
@@ -433,13 +476,14 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.tops)}
                 draggable={false}
               />
+              <RemoveBadge itemId={top.id} label={top.name} />
             </div>
           )}
 
           {outerwear && (
             <div
               key={outerwear.id}
-              className="animate-fade-up"
+              className="animate-fade-up group/garment"
               style={slotStyle(SLOT.outerwear, 18, '0.12s')}
             >
               <GarmentImage
@@ -449,11 +493,12 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.outerwear)}
                 draggable={false}
               />
+              <RemoveBadge itemId={outerwear.id} label={outerwear.name} />
             </div>
           )}
 
           {bottom && (
-            <div key={bottom.id} className="animate-fade-up" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
+            <div key={bottom.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
@@ -461,12 +506,13 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.bottoms)}
                 draggable={false}
               />
+              <RemoveBadge itemId={bottom.id} label={bottom.name} />
             </div>
           )}
 
           {activeShoe && (
             <div
-              className="animate-fade-up"
+              className="animate-fade-up group/garment"
               style={slotStyle(SLOT.shoes, 16, '0.15s')}
             >
               <GarmentImage
@@ -477,6 +523,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.shoes)}
                 draggable={false}
               />
+              {shoeItem && <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />}
             </div>
           )}
 
@@ -493,7 +540,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             return (
               <div
                 key={acc.id}
-                className="animate-fade-up overflow-hidden"
+                className="animate-fade-up overflow-visible group/garment"
                 style={slotStyle(slot, z, `${0.18 + index * 0.06}s`)}
               >
                 <GarmentImage
@@ -506,6 +553,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                   style={garmentImgStyle(slot)}
                   draggable={false}
                 />
+                <RemoveBadge itemId={acc.id} label={acc.name} />
               </div>
             );
           })}
