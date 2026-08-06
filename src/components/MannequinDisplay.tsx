@@ -142,11 +142,24 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
 
   const handleGenerate = async () => {
     if (items.length === 0 || aiLoading) return;
+
+    // Only tops / bottoms / dresses go as images to AI (outerwear/shoes/accessories = text hints)
+    const BODY_CATS = new Set(['tops', 'bottoms', 'dresses']);
+    const bodyItems = items.filter((i) => BODY_CATS.has(i.category));
+    if (bodyItems.length === 0) {
+      toast({
+        title: 'لباس اصلی لازم است',
+        description: 'برای تولید تصویر حداقل یک لباس بالاتنه یا پایین‌تنه انتخاب کنید',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setAiLoading(true);
     try {
       const baseImageUrl = await toDataUrl(mannequinImage, 512);
       const converted = await Promise.all(
-        items.slice(0, 4).map(async (item) => {
+        bodyItems.slice(0, 4).map(async (item) => {
           try {
             return {
               name: item.name,

@@ -10,22 +10,18 @@ const corsHeaders = {
  * we automatically move on to the next model in the list.
  */
 /**
- * Cost-optimized order:
- * 1) lite/flash (cheap)  2) mini image  3) full flash  4) expensive pro last
- * We try at most MAX_MODEL_ATTEMPTS so a prolonged outage does not burn paid tiers.
+ * Free Gemini image models only (lite → 2.5 flash → 3.1 flash).
+ * MAX_MODEL_ATTEMPTS matches chain length — no paid OpenAI/Pro tiers.
  */
+/** Free-tier only — no paid OpenAI / Pro models */
 const FALLBACK_CHAIN = [
-  'google/gemini-3.1-flash-lite-image', // cheapest Gemini image
+  'google/gemini-3.1-flash-lite-image',
   'google/gemini-2.5-flash-image',
   'google/gemini-3.1-flash-image',
-  'openai/gpt-image-1-mini',
-  // Paid / premium — only if cheaper tiers fail
-  'openai/gpt-image-2',
-  'google/gemini-3-pro-image',
 ];
 
-/** Stop after this many attempts to avoid cascading paid-model spend */
-const MAX_MODEL_ATTEMPTS = 4;
+/** Match free chain length */
+const MAX_MODEL_ATTEMPTS = 3;
 
 const ALLOWED_MODELS = FALLBACK_CHAIN;
 const DEFAULT_MODEL = FALLBACK_CHAIN[0];
@@ -41,8 +37,6 @@ function buildChain(_requested?: string): string[] {
 
 // Models that are image-only (must use /v1/images/generations instead of chat completions)
 const IMAGE_ONLY_MODELS = [
-  'openai/gpt-image-2',
-  'openai/gpt-image-1-mini',
   'google/gemini-3.1-flash-lite-image',
 ];
 const isImageOnlyModel = (model: string) => IMAGE_ONLY_MODELS.includes(model);
