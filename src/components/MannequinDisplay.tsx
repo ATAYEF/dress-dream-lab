@@ -177,6 +177,13 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     });
   };
 
+  const dismissSuggestedAccessory = (id: string) => {
+    setSelectedAccessoryIds((prev) => prev.filter((x) => x !== id));
+  };
+  const dismissSuggestedShoe = () => {
+    setSelectedShoeId(null);
+  };
+
   const [aiImage, setAiImage] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const tryonProgress = useStagedProgress(aiLoading, TRYON_RENDER_STAGES);
@@ -859,7 +866,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               return (
                 <div
                   key={a.id}
-                  className="animate-fade-up"
+                  className="animate-fade-up relative"
                   style={slotStyle(slot, 22, `${0.25 + index * 0.08}s`)}
                 >
                   <GarmentImage
@@ -870,6 +877,18 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                     style={garmentImgStyle(slot)}
                     draggable={false}
                   />
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      dismissSuggestedAccessory(a.id);
+                    }}
+                    className="absolute -top-1.5 -right-1.5 z-[70] w-6 h-6 rounded-full bg-background/95 border border-border/80 shadow-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 pointer-events-auto touch-manipulation"
+                    aria-label={`حذف ${a.name}`}
+                    title="حذف پیشنهاد"
+                  >
+                    <X className="w-3 h-3" strokeWidth={2.5} />
+                  </button>
                 </div>
               );
             })}
