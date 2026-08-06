@@ -796,7 +796,22 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 style={garmentImgStyle(SLOT.shoes)}
                 draggable={false}
               />
-              {shoeItem && <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />}
+              {shoeItem ? (
+                <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />
+              ) : (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    dismissSuggestedShoe();
+                  }}
+                  className="absolute -top-1.5 -right-1.5 z-[70] w-6 h-6 rounded-full bg-background/95 border border-border/80 shadow-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 pointer-events-auto touch-manipulation"
+                  aria-label={`حذف ${activeShoe.name}`}
+                  title="حذف پیشنهاد کفش"
+                >
+                  <X className="w-3 h-3" strokeWidth={2.5} />
+                </button>
+              )}
             </div>
           )}
 
