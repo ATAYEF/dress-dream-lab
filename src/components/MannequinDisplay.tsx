@@ -3,7 +3,7 @@ import { ClothingItem } from '@/types/wardrobe';
 import { cn } from '@/lib/utils';
 import { useStagedProgress, TRYON_RENDER_STAGES } from '@/hooks/useStagedProgress';
 import { StagedProgress } from '@/components/StagedProgress';
-import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2, ChevronDown, Trash2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, RotateCcw, Sparkles, Check, X, Wand2, Loader2, ChevronDown, Trash2, Minus, Plus, Move, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
 import mannequinFemale from '@/assets/mannequin-female.png';
 import { suggestShoes, SuggestedShoe, ALL_SHOE_OPTIONS } from '@/lib/shoeSuggestion';
@@ -86,6 +86,41 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
+  /** Per-garment manual fit: scale + offset in % of canvas */
+  type GarmentAdjust = { scale: number; x: number; y: number };
+  const DEFAULT_ADJUST: GarmentAdjust = { scale: 1, x: 0, y: 0 };
+  const [adjustMap, setAdjustMap] = useState<Record<string, GarmentAdjust>>({});
+  const [editItemId, setEditItemId] = useState<string | null>(null);
+  const garmentDrag = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const getAdjust = (id: string): GarmentAdjust => adjustMap[id] ?? DEFAULT_ADJUST;
+
+  const updateAdjust = (id: string, patch: Partial<GarmentAdjust>) => {
+    setAdjustMap((prev) => {
+      const cur = prev[id] ?? DEFAULT_ADJUST;
+      const next = {
+        scale: Math.min(1.8, Math.max(0.55, patch.scale ?? cur.scale)),
+        x: Math.min(18, Math.max(-18, patch.x ?? cur.x)),
+        y: Math.min(22, Math.max(-22, patch.y ?? cur.y)),
+      };
+      return { ...prev, [id]: next };
+    });
+  };
+
+  const nudge = (id: string, dx: number, dy: number) => {
+    const cur = getAdjust(id);
+    updateAdjust(id, { x: cur.x + dx, y: cur.y + dy });
+  };
+
+  const resetAdjust = (id: string) => {
+    setAdjustMap((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  };
+
+
   const mannequinImage = mannequinFemale;
   const gender = 'female' as const;
 
@@ -111,6 +146,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   useEffect(() => {
     setSelectedShoeId(suggestedShoe?.id ?? null);
     setSelectedAccessoryIds(suggestedAccessories.map((a) => a.id));
+    setEditItemId(null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [outfitKey]);
 
@@ -365,7 +401,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     },
     // full leg length — waist to just above shoes
     bottoms: {
-      top: '34%', left: '27%', width: '46%', height: '52%',
+      top: '33%', left: '25%', width: '50%', height: '55%',
       objectPosition: '50% 0%',
     },
     dresses: {
@@ -398,8 +434,14 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     objectPosition?: string;
   };
 
-  const slotStyle = (slot: SlotBox, z: number, delay = '0.05s'): React.CSSProperties => {
+  const slotStyle = (
+    slot: SlotBox,
+    z: number,
+    delay = '0.05s',
+    itemId?: string
+  ): React.CSSProperties => {
     const { objectPosition: _op, ...box } = slot;
+    const adj = itemId ? getAdjust(itemId) : DEFAULT_ADJUST;
     return {
       ...box,
       zIndex: z,
@@ -407,7 +449,47 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       animationDelay: delay,
       animationFillMode: 'backwards',
       filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
+      transform: `translate(${adj.x}%, ${adj.y}%) scale(${adj.scale})`,
+      transformOrigin: 'center top',
+      cursor: itemId ? (editItemId === itemId ? 'move' : 'pointer') : undefined,
+      outline: itemId && editItemId === itemId ? '2px solid hsl(var(--gold))' : undefined,
+      outlineOffset: 2,
+      borderRadius: 4,
+      touchAction: itemId ? 'none' : undefined,
     };
+  };
+
+  const onGarmentPointerDown = (e: React.PointerEvent, itemId: string) => {
+    e.stopPropagation();
+    setEditItemId(itemId);
+    const adj = getAdjust(itemId);
+    garmentDrag.current = {
+      id: itemId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: adj.x,
+      origY: adj.y,
+    };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+  };
+
+  const onGarmentPointerMove = (e: React.PointerEvent) => {
+    if (!garmentDrag.current || !containerRef.current) return;
+    e.stopPropagation();
+    const rect = containerRef.current.getBoundingClientRect();
+    const dxPct = ((e.clientX - garmentDrag.current.startX) / rect.width) * 100;
+    const dyPct = ((e.clientY - garmentDrag.current.startY) / rect.height) * 100;
+    updateAdjust(garmentDrag.current.id, {
+      x: garmentDrag.current.origX + dxPct,
+      y: garmentDrag.current.origY + dyPct,
+    });
+  };
+
+  const onGarmentPointerUp = (e: React.PointerEvent) => {
+    if (garmentDrag.current) {
+      e.stopPropagation();
+      garmentDrag.current = null;
+    }
   };
 
   const garmentImgStyle = (slot: SlotBox): React.CSSProperties => ({
@@ -470,7 +552,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
           />
 
           {dress && (
-            <div key={dress.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.dresses, 10, '0.05s')}>
+            <div key={dress.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.dresses, 10, '0.05s', dress.id)}
+              onPointerDown={(e) => onGarmentPointerDown(e, dress.id)}
+              onPointerMove={onGarmentPointerMove}
+              onPointerUp={onGarmentPointerUp}
+              onClick={(e) => { e.stopPropagation(); setEditItemId(dress.id); }}>
               <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
@@ -483,7 +569,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
           )}
 
           {top && !dress && (
-            <div key={top.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.tops, 12, '0.05s')}>
+            <div key={top.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.tops, 12, '0.05s', top.id)}
+              onPointerDown={(e) => onGarmentPointerDown(e, top.id)}
+              onPointerMove={onGarmentPointerMove}
+              onPointerUp={onGarmentPointerUp}
+              onClick={(e) => { e.stopPropagation(); setEditItemId(top.id); }}>
               <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
@@ -499,7 +589,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             <div
               key={outerwear.id}
               className="animate-fade-up group/garment"
-              style={slotStyle(SLOT.outerwear, 18, '0.12s')}
+              style={slotStyle(SLOT.outerwear, 18, '0.12s', outerwear.id)}
+              onPointerDown={(e) => onGarmentPointerDown(e, outerwear.id)}
+              onPointerMove={onGarmentPointerMove}
+              onPointerUp={onGarmentPointerUp}
+              onClick={(e) => { e.stopPropagation(); setEditItemId(outerwear.id); }}
             >
               <GarmentImage
                 src={outerwear.imageUrl}
@@ -513,7 +607,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
           )}
 
           {bottom && !dress && (
-            <div key={bottom.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.bottoms, 14, '0.08s')}>
+            <div key={bottom.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.bottoms, 14, '0.08s', bottom.id)}
+              onPointerDown={(e) => onGarmentPointerDown(e, bottom.id)}
+              onPointerMove={onGarmentPointerMove}
+              onPointerUp={onGarmentPointerUp}
+              onClick={(e) => { e.stopPropagation(); setEditItemId(bottom.id); }}>
               <GarmentImage
                 src={bottom.imageUrl}
                 alt={bottom.name}
@@ -528,7 +626,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
           {activeShoe && (
             <div
               className="animate-fade-up group/garment"
-              style={slotStyle(SLOT.shoes, 16, '0.15s')}
+              style={slotStyle(SLOT.shoes, 16, '0.15s', (shoeItem?.id || activeShoe.id))}
+              onPointerDown={(e) => shoeItem && onGarmentPointerDown(e, shoeItem.id)}
+              onPointerMove={onGarmentPointerMove}
+              onPointerUp={onGarmentPointerUp}
+              onClick={(e) => { e.stopPropagation(); if (shoeItem) setEditItemId(shoeItem.id); }}
             >
               <GarmentImage
                 src={activeShoe.imageUrl}
@@ -556,7 +658,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               <div
                 key={acc.id}
                 className="animate-fade-up overflow-visible group/garment"
-                style={slotStyle(slot, z, `${0.18 + index * 0.06}s`)}
+                style={slotStyle(slot, z, `${0.18 + index * 0.06}s`, acc.id)}
+                onPointerDown={(e) => onGarmentPointerDown(e, acc.id)}
+                onPointerMove={onGarmentPointerMove}
+                onPointerUp={onGarmentPointerUp}
+                onClick={(e) => { e.stopPropagation(); setEditItemId(acc.id); }}
               >
                 <GarmentImage
                   src={acc.imageUrl}
@@ -636,6 +742,40 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
 
         {zoomControls}
       </div>
+
+      {/* نوار اصلاح دستی لباس انتخاب‌شده */}
+      {editItemId && items.some((i) => i.id === editItemId) && (
+        <div className="mt-2 rounded-2xl border border-border/50 bg-white/95 dark:bg-card shadow-soft p-2.5 space-y-2" dir="rtl">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[11px] font-extrabold text-foreground inline-flex items-center gap-1">
+              <Move className="w-3.5 h-3.5 text-amber-600" />
+              اصلاح جای لباس
+            </span>
+            <button
+              type="button"
+              className="text-[10px] font-bold text-muted-foreground hover:text-foreground px-2 py-1 rounded-lg"
+              onClick={() => setEditItemId(null)}
+            >
+              بستن
+            </button>
+          </div>
+          <p className="text-[10px] text-muted-foreground font-medium">
+            بکشید تا جابه‌جا شود · دکمه‌ها برای اندازه و جابه‌جایی دقیق
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-1.5">
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.08 })} aria-label="کوچک‌تر"><Minus className="w-3.5 h-3.5" /></button>
+            <span className="text-[11px] font-black tabular-nums min-w-[3rem] text-center">{Math.round(getAdjust(editItemId).scale * 100)}٪</span>
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale + 0.08 })} aria-label="بزرگ‌تر"><Plus className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-6 bg-border/60 mx-0.5" />
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, -2)} aria-label="بالا"><ArrowUp className="w-3.5 h-3.5" /></button>
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, 2)} aria-label="پایین"><ArrowDown className="w-3.5 h-3.5" /></button>
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, -2, 0)} aria-label="چپ"><ArrowLeft className="w-3.5 h-3.5" /></button>
+            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 2, 0)} aria-label="راست"><ArrowRight className="w-3.5 h-3.5" /></button>
+            <div className="w-px h-6 bg-border/60 mx-0.5" />
+            <button type="button" className="h-8 px-2.5 rounded-xl bg-muted/60 text-[10px] font-extrabold touch-manipulation" onClick={() => resetAdjust(editItemId)}>بازنشانی</button>
+          </div>
+        </div>
+      )}
 
       {!compact && (
       <div className="mt-3 rounded-2xl hairline-border bg-gradient-card/80 backdrop-blur p-3 shadow-soft">
