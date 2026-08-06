@@ -320,51 +320,62 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
         </div>
 
         {/* 3-column studio */}
+        {/* نوار باز کردن پنل‌های جمع‌شده — بالای استودیو */}
+        {(!showPickerPanel || !showAiPanel) && (
+          <div className="flex flex-wrap items-center justify-center gap-2 mb-3">
+            {!showPickerPanel && (
+              <button
+                type="button"
+                onClick={() => setShowPickerPanel(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-border/70 shadow-soft text-xs font-extrabold hover:border-gold/40 transition-colors"
+              >
+                <Shirt className="w-4 h-4 text-amber-600" />
+                انتخاب لباس
+              </button>
+            )}
+            {!showAiPanel && (
+              <button
+                type="button"
+                onClick={() => setShowAiPanel(true)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-card border border-border/70 shadow-soft text-xs font-extrabold hover:border-gold/40 transition-colors"
+              >
+                <Sparkles className="w-4 h-4 text-amber-600" />
+                پیشنهادهای هوش مصنوعی
+              </button>
+            )}
+          </div>
+        )}
+
         <div
           className={cn(
-            'grid grid-cols-1 gap-5 lg:gap-6 items-start',
-            // ستون‌های کناری همیشه هستند (حتی جمع‌شده) تا دکمه باز کردن گم نشود
-            'xl:grid-cols-[minmax(200px,340px)_minmax(0,1fr)_minmax(180px,300px)]'
+            'grid grid-cols-1 gap-5 lg:gap-6 items-start transition-all duration-300',
+            showPickerPanel && showAiPanel &&
+              'xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)_minmax(260px,300px)]',
+            showPickerPanel && !showAiPanel &&
+              'xl:grid-cols-[minmax(280px,340px)_minmax(0,1fr)]',
+            !showPickerPanel && showAiPanel &&
+              'xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)]',
+            !showPickerPanel && !showAiPanel &&
+              'xl:grid-cols-[minmax(0,1fr)] max-w-3xl mx-auto w-full'
           )}
         >
 
-          {/* LEFT: Clothing picker — همیشه در DOM؛ محتوا جمع/باز */}
+          {/* LEFT: Clothing picker */}
+          {showPickerPanel && (
           <aside className="order-2 xl:order-1 flex flex-col gap-4 xl:sticky xl:top-20 self-start">
             <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden flex flex-col max-h-[min(780px,85vh)]">
-              <div className={cn(
-                'flex items-center justify-between gap-3 px-4 py-3',
-                showPickerPanel && 'border-b border-border/50 pt-4 pb-3'
-              )}>
+              <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3 border-b border-border/50">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (showPickerPanel) {
-                      handleClosePicker();
-                    } else {
-                      setShowPickerPanel(true);
-                    }
-                  }}
+                  onClick={handleClosePicker}
                   className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
-                  aria-label={showPickerPanel ? 'جمع کردن انتخاب لباس' : 'باز کردن انتخاب لباس'}
-                  aria-expanded={showPickerPanel}
-                  title={showPickerPanel ? 'جمع کردن برای فضای بیشتر مانکن' : 'نمایش مجدد'}
+                  aria-label="جمع کردن انتخاب لباس"
+                  title="جمع کردن برای فضای بیشتر مانکن"
                 >
-                  {showPickerPanel ? <X className="w-4 h-4" /> : <Shirt className="w-4 h-4 text-amber-600" />}
+                  <X className="w-4 h-4" />
                 </button>
-                <button
-                  type="button"
-                  className="flex-1 text-right"
-                  onClick={() => setShowPickerPanel(true)}
-                >
-                  <h3 className="text-base font-black tracking-tight">انتخاب لباس</h3>
-                  {!showPickerPanel && (
-                    <p className="text-[10px] text-muted-foreground font-medium">برای باز کردن لمس کنید</p>
-                  )}
-                </button>
+                <h3 className="text-base font-black tracking-tight">انتخاب لباس</h3>
               </div>
-
-              {showPickerPanel && (
-              <>
 
               {/* Category tabs from DB config — smooth drag scroll */}
               <div className="px-3 pt-4 pb-4">
@@ -556,10 +567,9 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                   </span>
                 </div>
               )}
-              </>
-              )}
             </div>
           </aside>
+          )}
 
           {/* CENTER: Mannequin + try-on controls (must not clip MannequinDisplay chrome) */}
           <section className="order-1 xl:order-2 min-w-0">
@@ -624,38 +634,20 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             </div>
           </section>
 
-          {/* RIGHT: AI — هدر همیشه دیده می‌شود */}
+          {/* RIGHT: AI */}
+          {showAiPanel && (
           <aside className="order-3 xl:order-3 min-w-0 xl:sticky xl:top-20 self-start">
-            <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft overflow-hidden">
-              {!showAiPanel ? (
-                <button
-                  type="button"
-                  onClick={() => setShowAiPanel(true)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 text-right hover:bg-muted/30 transition-colors"
-                  aria-expanded={false}
-                  aria-label="باز کردن پیشنهادهای هوش مصنوعی"
-                >
-                  <span className="w-9 h-9 rounded-full bg-muted/60 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4 text-amber-600" />
-                  </span>
-                  <span className="flex-1 min-w-0">
-                    <span className="block text-sm font-black">پیشنهادهای هوش مصنوعی</span>
-                    <span className="block text-[10px] text-muted-foreground font-medium">برای باز کردن لمس کنید</span>
-                  </span>
-                </button>
-              ) : (
-                <div className="p-5">
-                  <AiRecommendationsPanel
-                    outfitItems={outfitItems}
-                    wardrobe={clothes}
-                    context={outfitContext}
-                    onAddWardrobeItem={addItemToOutfit}
-                    onClose={() => setShowAiPanel(false)}
-                  />
-                </div>
-              )}
+            <div className="rounded-[1.5rem] bg-card border border-border/70 shadow-soft p-5">
+              <AiRecommendationsPanel
+                outfitItems={outfitItems}
+                wardrobe={clothes}
+                context={outfitContext}
+                onAddWardrobeItem={addItemToOutfit}
+                onClose={() => setShowAiPanel(false)}
+              />
             </div>
           </aside>
+          )}
         </div>
       </div>
     </div>
