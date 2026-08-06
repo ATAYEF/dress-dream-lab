@@ -403,16 +403,16 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   /** Slots matched to female mannequin body (aspect 3/5.2) */
   const SLOT = {
     tops: {
-      top: '15%', left: '19%', width: '62%', height: '26%',
+      top: '16%', left: '22%', width: '56%', height: '24%',
       objectPosition: '50% 10%',
     },
     outerwear: {
-      top: '13%', left: '15%', width: '70%', height: '38%',
+      top: '14%', left: '18%', width: '64%', height: '34%',
       objectPosition: '50% 14%',
     },
     // full leg length — waist to just above shoes
     bottoms: {
-      top: '33%', left: '25%', width: '50%', height: '55%',
+      top: '38%', left: '29%', width: '42%', height: '44%',
       objectPosition: '50% 0%',
     },
     dresses: {
@@ -445,6 +445,26 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     objectPosition?: string;
   };
 
+  const edgeZone = 0.22; // fraction of box near edge → resize
+
+  const hitZone = (
+    el: HTMLElement,
+    clientX: number,
+    clientY: number
+  ): 'move' | 'scale' => {
+    const r = el.getBoundingClientRect();
+    const px = (clientX - r.left) / Math.max(r.width, 1);
+    const py = (clientY - r.top) / Math.max(r.height, 1);
+    const near =
+      px < edgeZone || px > 1 - edgeZone || py < edgeZone || py > 1 - edgeZone;
+    return near ? 'scale' : 'move';
+  };
+
+  const cursorForZone = (zone: 'move' | 'scale', selected: boolean) => {
+    if (!selected) return 'pointer';
+    return zone === 'scale' ? 'nwse-resize' : 'grab';
+  };
+
   const slotStyle = (
     slot: SlotBox,
     z: number,
@@ -453,21 +473,40 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   ): React.CSSProperties => {
     const { objectPosition: _op, ...box } = slot;
     const adj = itemId ? getAdjust(itemId) : DEFAULT_ADJUST;
+    const selected = !!(itemId && editItemId === itemId);
     return {
       ...box,
       zIndex: z,
       position: 'absolute',
       animationDelay: delay,
       animationFillMode: 'backwards',
-      filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
+      filter: 'drop-shadow(0 3px 8px rgba(0,0,0,0.16))',
       transform: `translate(${adj.x}%, ${adj.y}%) scale(${adj.scale}) rotate(${adj.rotate}deg)`,
-      transformOrigin: 'center top',
-      cursor: itemId ? (editItemId === itemId ? 'grab' : 'pointer') : undefined,
-      outline: itemId && editItemId === itemId ? '2px solid hsl(var(--gold))' : undefined,
-      outlineOffset: 2,
-      borderRadius: 4,
+      transformOrigin: 'center center',
+      // فریم باریک و چسبیده (بدون outlineOffset بزرگ)
+      boxShadow: selected
+        ? 'inset 0 0 0 1.5px hsl(var(--gold)), 0 0 0 1px hsl(var(--gold) / 0.35)'
+        : undefined,
+      borderRadius: 6,
       touchAction: itemId ? 'none' : undefined,
+      cursor: itemId ? (selected ? 'grab' : 'pointer') : undefined,
     };
+  };
+
+  const onGarmentHoverMove = (e: React.PointerEvent) => {
+    if (garmentDrag.current) return;
+    if (!(e.currentTarget instanceof HTMLElement)) return;
+    const selected = e.currentTarget.dataset.itemId === editItemId;
+    if (!selected && !editItemId) {
+      e.currentTarget.style.cursor = 'pointer';
+      return;
+    }
+    if (e.currentTarget.dataset.itemId !== editItemId) {
+      e.currentTarget.style.cursor = 'pointer';
+      return;
+    }
+    const zone = hitZone(e.currentTarget, e.clientX, e.clientY);
+    e.currentTarget.style.cursor = cursorForZone(zone, true);
   };
 
   const onGarmentPointerDown = (
@@ -484,14 +523,9 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     setEditItemId(itemId);
     const adj = getAdjust(itemId);
 
-    // اگر mode صریح نبود: نزدیک لبه/گوشه = scale، وسط = move
     let resolved: 'move' | 'scale' | 'rotate' = mode;
     if (mode === 'move' && e.currentTarget instanceof HTMLElement) {
-      const r = e.currentTarget.getBoundingClientRect();
-      const px = (e.clientX - r.left) / Math.max(r.width, 1);
-      const py = (e.clientY - r.top) / Math.max(r.height, 1);
-      const nearEdge = px < 0.18 || px > 0.82 || py < 0.18 || py > 0.82;
-      if (nearEdge) resolved = 'scale';
+      resolved = hitZone(e.currentTarget, e.clientX, e.clientY);
     }
 
     garmentDrag.current = {
@@ -512,7 +546,11 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   };
 
   const onGarmentPointerMove = (e: React.PointerEvent) => {
-    if (!garmentDrag.current || !containerRef.current) return;
+    if (!garmentDrag.current) {
+      onGarmentHoverMove(e);
+      return;
+    }
+    if (!containerRef.current) return;
     e.stopPropagation();
     e.preventDefault();
     const rect = containerRef.current.getBoundingClientRect();
@@ -547,27 +585,38 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     }
   };
 
-  /** Pinch-to-scale on selected garment (two touches on canvas) */
+  /** پینچ دو انگشتی روی لباس انتخاب‌شده (موبایل) */
   const onCanvasTouchStartCapture = (e: React.TouchEvent) => {
-    if (!editItemId || e.touches.length !== 2) return;
+    if (e.touches.length !== 2) return;
+    // اگر آیتمی انتخاب نیست، نزدیک‌ترین لباس را انتخاب کن
+    let id = editItemId;
+    if (!id && items.length > 0) {
+      id = items[0].id;
+      setEditItemId(id);
+    }
+    if (!id) return;
     const [a, b] = [e.touches[0], e.touches[1]];
     const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
     pinchRef.current = {
-      id: editItemId,
-      startDist: dist || 1,
-      origScale: getAdjust(editItemId).scale,
+      id,
+      startDist: Math.max(dist, 1),
+      origScale: getAdjust(id).scale,
     };
+    garmentDrag.current = null; // تداخل با درگ تک‌انگشتی نباشد
   };
   const onCanvasTouchMoveCapture = (e: React.TouchEvent) => {
     if (!pinchRef.current || e.touches.length !== 2) return;
     e.preventDefault();
+    e.stopPropagation();
     const [a, b] = [e.touches[0], e.touches[1]];
     const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
     const ratio = dist / pinchRef.current.startDist;
-    updateAdjust(pinchRef.current.id, { scale: pinchRef.current.origScale * ratio });
+    updateAdjust(pinchRef.current.id, {
+      scale: pinchRef.current.origScale * ratio,
+    });
   };
-  const onCanvasTouchEndCapture = () => {
-    pinchRef.current = null;
+  const onCanvasTouchEndCapture = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) pinchRef.current = null;
   };
 
   const RotateHandle = ({ itemId }: { itemId: string }) => {
@@ -670,6 +719,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
 
           {dress && (
             <div key={dress.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.dresses, 10, '0.05s', dress.id)}
+              data-item-id={dress.id}
               onPointerDown={(e) => onGarmentPointerDown(e, dress.id)}
               onPointerMove={onGarmentPointerMove}
               onPointerUp={onGarmentPointerUp}
@@ -688,6 +738,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
 
           {top && !dress && (
             <div key={top.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.tops, 12, '0.05s', top.id)}
+              data-item-id={top.id}
               onPointerDown={(e) => onGarmentPointerDown(e, top.id)}
               onPointerMove={onGarmentPointerMove}
               onPointerUp={onGarmentPointerUp}
@@ -709,6 +760,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               key={outerwear.id}
               className="animate-fade-up group/garment"
               style={slotStyle(SLOT.outerwear, 18, '0.12s', outerwear.id)}
+              data-item-id={outerwear.id}
               onPointerDown={(e) => onGarmentPointerDown(e, outerwear.id)}
               onPointerMove={onGarmentPointerMove}
               onPointerUp={onGarmentPointerUp}
@@ -728,6 +780,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
 
           {bottom && !dress && (
             <div key={bottom.id} className="animate-fade-up group/garment" style={slotStyle(SLOT.bottoms, 14, '0.08s', bottom.id)}
+              data-item-id={bottom.id}
               onPointerDown={(e) => onGarmentPointerDown(e, bottom.id)}
               onPointerMove={onGarmentPointerMove}
               onPointerUp={onGarmentPointerUp}
@@ -748,6 +801,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             <div
               className="animate-fade-up group/garment"
               style={slotStyle(SLOT.shoes, 16, '0.15s', (shoeItem?.id || activeShoe.id))}
+              data-item-id={shoeItem?.id}
               onPointerDown={(e) => shoeItem && onGarmentPointerDown(e, shoeItem.id)}
               onPointerMove={onGarmentPointerMove}
               onPointerUp={onGarmentPointerUp}
@@ -781,6 +835,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 key={acc.id}
                 className="animate-fade-up overflow-visible group/garment"
                 style={slotStyle(slot, z, `${0.18 + index * 0.06}s`, acc.id)}
+                data-item-id={acc.id}
                 onPointerDown={(e) => onGarmentPointerDown(e, acc.id)}
                 onPointerMove={onGarmentPointerMove}
                 onPointerUp={onGarmentPointerUp}
@@ -883,7 +938,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            وسط تصویر = جابه‌جایی · لبه تصویر بکشید = اندازه · گوشه آبی = چرخش · دکمه‌های −/+ = دقیق
+            لبه = تغییر سایز (نشانگر ↘) · وسط = جابه‌جایی · دو انگشت = زوم · −/+ = دقیق
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.1 })} aria-label="کوچک‌تر">−</button>
