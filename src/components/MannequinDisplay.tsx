@@ -91,7 +91,16 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const DEFAULT_ADJUST: GarmentAdjust = { scale: 1, x: 0, y: 0 };
   const [adjustMap, setAdjustMap] = useState<Record<string, GarmentAdjust>>({});
   const [editItemId, setEditItemId] = useState<string | null>(null);
-  const garmentDrag = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const garmentDrag = useRef<{
+    id: string;
+    mode: 'move' | 'scale';
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    origScale: number;
+  } | null>(null);
+  const pinchRef = useRef<{ id: string; startDist: number; origScale: number } | null>(null);
 
   const getAdjust = (id: string): GarmentAdjust => adjustMap[id] ?? DEFAULT_ADJUST;
 
@@ -99,9 +108,9 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     setAdjustMap((prev) => {
       const cur = prev[id] ?? DEFAULT_ADJUST;
       const next = {
-        scale: Math.min(1.8, Math.max(0.55, patch.scale ?? cur.scale)),
-        x: Math.min(18, Math.max(-18, patch.x ?? cur.x)),
-        y: Math.min(22, Math.max(-22, patch.y ?? cur.y)),
+        scale: Math.min(2.2, Math.max(0.45, patch.scale ?? cur.scale)),
+        x: Math.min(22, Math.max(-22, patch.x ?? cur.x)),
+        y: Math.min(28, Math.max(-28, patch.y ?? cur.y)),
       };
       return { ...prev, [id]: next };
     });
@@ -459,30 +468,52 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     };
   };
 
-  const onGarmentPointerDown = (e: React.PointerEvent, itemId: string) => {
+  const onGarmentPointerDown = (
+    e: React.PointerEvent,
+    itemId: string,
+    mode: 'move' | 'scale' = 'move'
+  ) => {
     e.stopPropagation();
+    e.preventDefault();
     setEditItemId(itemId);
     const adj = getAdjust(itemId);
     garmentDrag.current = {
       id: itemId,
+      mode,
       startX: e.clientX,
       startY: e.clientY,
       origX: adj.x,
       origY: adj.y,
+      origScale: adj.scale,
     };
-    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+    } catch {
+      /* ignore */
+    }
   };
 
   const onGarmentPointerMove = (e: React.PointerEvent) => {
     if (!garmentDrag.current || !containerRef.current) return;
     e.stopPropagation();
+    e.preventDefault();
     const rect = containerRef.current.getBoundingClientRect();
-    const dxPct = ((e.clientX - garmentDrag.current.startX) / rect.width) * 100;
-    const dyPct = ((e.clientY - garmentDrag.current.startY) / rect.height) * 100;
-    updateAdjust(garmentDrag.current.id, {
-      x: garmentDrag.current.origX + dxPct,
-      y: garmentDrag.current.origY + dyPct,
-    });
+    const dx = e.clientX - garmentDrag.current.startX;
+    const dy = e.clientY - garmentDrag.current.startY;
+    if (garmentDrag.current.mode === 'scale') {
+      // drag corner: diagonal distance controls scale
+      const delta = (dx + dy) / Math.max(rect.width, 1);
+      updateAdjust(garmentDrag.current.id, {
+        scale: garmentDrag.current.origScale + delta * 1.6,
+      });
+    } else {
+      const dxPct = (dx / rect.width) * 100;
+      const dyPct = (dy / rect.height) * 100;
+      updateAdjust(garmentDrag.current.id, {
+        x: garmentDrag.current.origX + dxPct,
+        y: garmentDrag.current.origY + dyPct,
+      });
+    }
   };
 
   const onGarmentPointerUp = (e: React.PointerEvent) => {
@@ -490,6 +521,47 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       e.stopPropagation();
       garmentDrag.current = null;
     }
+  };
+
+  /** Pinch-to-scale on selected garment (two touches on canvas) */
+  const onCanvasTouchStartCapture = (e: React.TouchEvent) => {
+    if (!editItemId || e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    pinchRef.current = {
+      id: editItemId,
+      startDist: dist || 1,
+      origScale: getAdjust(editItemId).scale,
+    };
+  };
+  const onCanvasTouchMoveCapture = (e: React.TouchEvent) => {
+    if (!pinchRef.current || e.touches.length !== 2) return;
+    e.preventDefault();
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const ratio = dist / pinchRef.current.startDist;
+    updateAdjust(pinchRef.current.id, { scale: pinchRef.current.origScale * ratio });
+  };
+  const onCanvasTouchEndCapture = () => {
+    pinchRef.current = null;
+  };
+
+  const ScaleHandle = ({ itemId }: { itemId: string }) => {
+    if (editItemId !== itemId) return null;
+    return (
+      <button
+        type="button"
+        aria-label="تغییر اندازه"
+        title="بکشید برای بزرگ/کوچک کردن"
+        className="absolute -bottom-2 -left-2 z-[65] w-7 h-7 rounded-full bg-amber-500 text-white shadow-md border-2 border-white flex items-center justify-center touch-manipulation cursor-nwse-resize"
+        onPointerDown={(e) => onGarmentPointerDown(e, itemId, 'scale')}
+        onPointerMove={onGarmentPointerMove}
+        onPointerUp={onGarmentPointerUp}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </button>
+    );
   };
 
   const garmentImgStyle = (slot: SlotBox): React.CSSProperties => ({
@@ -529,6 +601,9 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchStartCapture={onCanvasTouchStartCapture}
+        onTouchMoveCapture={onCanvasTouchMoveCapture}
+        onTouchEndCapture={onCanvasTouchEndCapture}
       >
         <div
           className="pointer-events-none absolute -top-12 -right-12 w-40 h-40 rounded-full opacity-40 animate-blob"
@@ -565,6 +640,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={dress.id} label={dress.name} />
+              <ScaleHandle itemId={dress.id} />
             </div>
           )}
 
@@ -582,6 +658,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={top.id} label={top.name} />
+              <ScaleHandle itemId={top.id} />
             </div>
           )}
 
@@ -603,6 +680,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={outerwear.id} label={outerwear.name} />
+              <ScaleHandle itemId={outerwear.id} />
             </div>
           )}
 
@@ -620,6 +698,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               <RemoveBadge itemId={bottom.id} label={bottom.name} />
+              <ScaleHandle itemId={bottom.id} />
             </div>
           )}
 
@@ -641,6 +720,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 draggable={false}
               />
               {shoeItem && <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />}
+              {shoeItem && <ScaleHandle itemId={shoeItem.id} />}
             </div>
           )}
 
@@ -675,6 +755,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                   draggable={false}
                 />
                 <RemoveBadge itemId={acc.id} label={acc.name} />
+                <ScaleHandle itemId={acc.id} />
               </div>
             );
           })}
@@ -760,12 +841,12 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            بکشید تا جابه‌جا شود · دکمه‌ها برای اندازه و جابه‌جایی دقیق
+            بکشید = جابه‌جایی · گوشه طلایی یا دو انگشت = اندازه · دکمه‌ها = دقیق
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1.5">
-            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.08 })} aria-label="کوچک‌تر"><Minus className="w-3.5 h-3.5" /></button>
-            <span className="text-[11px] font-black tabular-nums min-w-[3rem] text-center">{Math.round(getAdjust(editItemId).scale * 100)}٪</span>
-            <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale + 0.08 })} aria-label="بزرگ‌تر"><Plus className="w-3.5 h-3.5" /></button>
+            <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.1 })} aria-label="کوچک‌تر">−</button>
+            <span className="text-[12px] font-black tabular-nums min-w-[3.25rem] text-center bg-muted/50 rounded-lg py-1.5">{Math.round(getAdjust(editItemId).scale * 100)}٪</span>
+            <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale + 0.1 })} aria-label="بزرگ‌تر">+</button>
             <div className="w-px h-6 bg-border/60 mx-0.5" />
             <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, -2)} aria-label="بالا"><ArrowUp className="w-3.5 h-3.5" /></button>
             <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, 2)} aria-label="پایین"><ArrowDown className="w-3.5 h-3.5" /></button>
