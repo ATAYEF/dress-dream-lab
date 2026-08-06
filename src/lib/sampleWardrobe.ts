@@ -2,7 +2,7 @@ import { ClothingItem } from '@/types/wardrobe';
 import { sampleVector, SAMPLE_COLORS } from '@/lib/sampleAssets';
 
 /** Bump when samples change so guest localStorage refreshes */
-export const SAMPLE_WARDROBE_VERSION = 'v6-vector';
+export const SAMPLE_WARDROBE_VERSION = 'v6-vector-hq';
 
 const base = (
   id: string,
@@ -22,8 +22,8 @@ const base = (
 });
 
 /**
- * Demo wardrobe — women’s vector product cards.
- * Consistent framing, warm-white background, no model, offline SVG.
+ * Demo wardrobe — women’s premium fashion-flat vector cards.
+ * Soft gradients, stitch detail, consistent framing, offline SVG.
  */
 export const SAMPLE_CLOTHES: ClothingItem[] = [
   // —— Tops ——
