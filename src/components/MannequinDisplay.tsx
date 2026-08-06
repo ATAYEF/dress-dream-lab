@@ -402,22 +402,23 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
    */
   /** Slots matched to female mannequin body (aspect 3/5.2) */
   const SLOT = {
+    // پیراهن/تاپ: فقط بالاتنه مانکن — بدون فضای خالی زیر
     tops: {
-      top: '16%', left: '22%', width: '56%', height: '24%',
-      objectPosition: '50% 10%',
+      top: '17%', left: '24%', width: '52%', height: '28%',
+      objectPosition: '50% 12%',
     },
     outerwear: {
-      top: '14%', left: '18%', width: '64%', height: '34%',
+      top: '15%', left: '20%', width: '60%', height: '36%',
       objectPosition: '50% 14%',
     },
-    // tight to garment (matches product photo fill with object-cover)
     bottoms: {
       top: '40%', left: '31%', width: '38%', height: '32%',
       objectPosition: '50% 8%',
     },
+    // یکسره: نزدیک قد واقعی لباس روی بدن (نه تا کف پا اگر کوتاه است)
     dresses: {
-      top: '14%', left: '17%', width: '66%', height: '72%',
-      objectPosition: '50% 8%',
+      top: '15%', left: '21%', width: '58%', height: '52%',
+      objectPosition: '50% 10%',
     },
     shoes: {
       top: '88%', left: '30%', width: '40%', height: '10%',
@@ -711,8 +712,8 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               <GarmentImage
                 src={dress.imageUrl}
                 alt={dress.name}
-                className="w-full h-full object-contain"
-                style={garmentImgStyle(SLOT.dresses)}
+                className="w-full h-full object-cover object-top"
+                style={{ ...garmentImgStyle(SLOT.dresses), objectPosition: '50% 10%' }}
                 draggable={false}
               />
               <RemoveBadge itemId={dress.id} label={dress.name} />
@@ -729,8 +730,8 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               <GarmentImage
                 src={top.imageUrl}
                 alt={top.name}
-                className="w-full h-full object-contain"
-                style={garmentImgStyle(SLOT.tops)}
+                className="w-full h-full object-cover object-top"
+                style={{ ...garmentImgStyle(SLOT.tops), objectPosition: '50% 12%' }}
                 draggable={false}
               />
               <RemoveBadge itemId={top.id} label={top.name} />
@@ -751,8 +752,8 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               <GarmentImage
                 src={outerwear.imageUrl}
                 alt={outerwear.name}
-                className="w-full h-full object-contain"
-                style={garmentImgStyle(SLOT.outerwear)}
+                className="w-full h-full object-cover object-top"
+                style={{ ...garmentImgStyle(SLOT.outerwear), objectPosition: '50% 14%' }}
                 draggable={false}
               />
               <RemoveBadge itemId={outerwear.id} label={outerwear.name} />
