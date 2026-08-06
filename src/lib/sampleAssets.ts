@@ -1,16 +1,8 @@
 /**
- * Vector product cards for the demo wardrobe.
- * Pure SVG data-URLs — offline, consistent framing, no CDN, no photos.
- * Style: flat fashion vector on warm-white background (catalog grid look).
+ * Premium fashion-flat vector product cards for the demo wardrobe.
+ * SVG data-URLs — offline, consistent 3:4 framing, no CDN.
+ * Style: editorial fashion illustration (soft gradients, stitch detail, depth).
  */
-
-export type SampleCategory =
-  | 'tops'
-  | 'bottoms'
-  | 'dresses'
-  | 'outerwear'
-  | 'shoes'
-  | 'accessories';
 
 export type VectorVariant =
   | 'shirt'
@@ -31,205 +23,427 @@ export type VectorVariant =
   | 'clutch'
   | 'scarf';
 
-/** Fashion palette — soft, retail-friendly */
 export const SAMPLE_COLORS = {
-  white: '#F4F2EE',
-  cream: '#E8D9C0',
-  beige: '#C4A574',
-  pink: '#E8A0B5',
-  sage: '#8FAF9A',
-  sky: '#8BB4D4',
-  denim: '#4A6FA5',
-  navy: '#2C3E5C',
-  black: '#2A2A2E',
-  charcoal: '#3D3D42',
-  red: '#C45C5C',
-  brown: '#8B5E3C',
+  white: '#F1EDE6',
+  cream: '#E5D4B5',
+  beige: '#C9A87C',
+  pink: '#E39AAD',
+  sage: '#87A892',
+  sky: '#7EADCB',
+  denim: '#4A6F9C',
+  navy: '#2A3D5C',
+  black: '#2C2C30',
+  charcoal: '#3A3A40',
+  red: '#C25050',
+  brown: '#8A5A38',
   gold: '#C9A227',
   rose: '#D4848A',
 } as const;
 
-function darker(hex: string, amount = 0.18): string {
+function hexToRgb(hex: string): [number, number, number] {
   const n = hex.replace('#', '');
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
+  return [parseInt(n.slice(0, 2), 16), parseInt(n.slice(2, 4), 16), parseInt(n.slice(4, 6), 16)];
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
   const f = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v * (1 - amount))))
+    Math.max(0, Math.min(255, Math.round(v)))
       .toString(16)
       .padStart(2, '0');
   return `#${f(r)}${f(g)}${f(b)}`;
 }
 
-function lighter(hex: string, amount = 0.25): string {
-  const n = hex.replace('#', '');
-  const r = parseInt(n.slice(0, 2), 16);
-  const g = parseInt(n.slice(2, 4), 16);
-  const b = parseInt(n.slice(4, 6), 16);
-  const f = (v: number) =>
-    Math.max(0, Math.min(255, Math.round(v + (255 - v) * amount)))
-      .toString(16)
-      .padStart(2, '0');
-  return `#${f(r)}${f(g)}${f(b)}`;
+function mix(a: string, b: string, t: number): string {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  return rgbToHex(ar + (br - ar) * t, ag + (bg - ag) * t, ab + (bb - ab) * t);
 }
 
-/** Vector garment geometry (viewBox 0 0 240 300, centered) */
-function silhouette(variant: VectorVariant, color: string): string {
-  const deep = darker(color, 0.22);
-  const soft = lighter(color, 0.35);
-  const line = '#1a1a1a18';
+function darker(hex: string, amount = 0.2): string {
+  return mix(hex, '#000000', amount);
+}
+
+function lighter(hex: string, amount = 0.3): string {
+  return mix(hex, '#ffffff', amount);
+}
+
+/** Stable short id so gradient/filter ids don't clash across cards */
+function uid(variant: string, color: string): string {
+  let h = 0;
+  const s = variant + color;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return `v${(h >>> 0).toString(36)}`;
+}
+
+function garmentDefs(id: string, color: string): string {
+  const c0 = lighter(color, 0.22);
+  const c1 = color;
+  const c2 = darker(color, 0.18);
+  const c3 = darker(color, 0.32);
+  return `
+  <linearGradient id="${id}-g" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="${c0}"/>
+    <stop offset="45%" stop-color="${c1}"/>
+    <stop offset="100%" stop-color="${c2}"/>
+  </linearGradient>
+  <linearGradient id="${id}-v" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="${c0}"/>
+    <stop offset="100%" stop-color="${c2}"/>
+  </linearGradient>
+  <linearGradient id="${id}-shine" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset="40%" stop-color="#ffffff" stop-opacity="0.22"/>
+    <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="${id}-spot" cx="35%" cy="30%" r="65%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+    <stop offset="100%" stop-color="${c3}" stop-opacity="0"/>
+  </radialGradient>
+  <filter id="${id}-sh" x="-40%" y="-20%" width="180%" height="160%">
+    <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#1a1410" flood-opacity="0.16"/>
+  </filter>
+  <filter id="${id}-soft" x="-10%" y="-10%" width="120%" height="120%">
+    <feGaussianBlur stdDeviation="0.4"/>
+  </filter>`;
+}
+
+function silhouette(variant: VectorVariant, color: string, id: string): string {
+  const deep = darker(color, 0.28);
+  const mid = darker(color, 0.12);
+  const soft = lighter(color, 0.4);
+  const fill = `url(#${id}-g)`;
+  const fillV = `url(#${id}-v)`;
+  const stitch = deep;
 
   switch (variant) {
     case 'shirt':
       return `
-        <path d="M78 92 L102 68 L120 76 L138 68 L162 92 L150 108 L142 100 V200 H98 V100 L90 108 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M110 72 L120 64 L130 72 L126 88 L120 80 L114 88 Z" fill="${soft}"/>
-        <line x1="120" y1="88" x2="120" y2="196" stroke="${deep}" stroke-width="1.2" opacity="0.35"/>
-        <circle cx="120" cy="110" r="2.2" fill="${deep}" opacity="0.4"/>
-        <circle cx="120" cy="130" r="2.2" fill="${deep}" opacity="0.4"/>
-        <circle cx="120" cy="150" r="2.2" fill="${deep}" opacity="0.4"/>
-        <circle cx="120" cy="170" r="2.2" fill="${deep}" opacity="0.4"/>`;
+      <g filter="url(#${id}-sh)">
+        <!-- body -->
+        <path d="M70 98
+          C78 82 96 64 112 70
+          L120 76 L128 70
+          C144 64 162 82 170 98
+          L158 118 L150 108
+          L150 218 C150 226 144 230 136 230
+          L104 230 C96 230 90 226 90 218
+          L90 108 L82 118 Z" fill="${fill}"/>
+        <path d="M90 108 L150 108 L150 218 C150 226 144 230 136 230 L104 230 C96 230 90 226 90 218 Z" fill="url(#${id}-spot)"/>
+        <!-- collar -->
+        <path d="M108 72 L120 64 L132 72 L128 92 L120 84 L112 92 Z" fill="${soft}"/>
+        <path d="M108 72 L120 64 L132 72" fill="none" stroke="${mid}" stroke-width="1.2" opacity="0.5"/>
+        <!-- placket + buttons -->
+        <line x1="120" y1="92" x2="120" y2="220" stroke="${stitch}" stroke-width="1.4" opacity="0.35"/>
+        <circle cx="120" cy="112" r="2.6" fill="${soft}" stroke="${mid}" stroke-width="0.8"/>
+        <circle cx="120" cy="136" r="2.6" fill="${soft}" stroke="${mid}" stroke-width="0.8"/>
+        <circle cx="120" cy="160" r="2.6" fill="${soft}" stroke="${mid}" stroke-width="0.8"/>
+        <circle cx="120" cy="184" r="2.6" fill="${soft}" stroke="${mid}" stroke-width="0.8"/>
+        <circle cx="120" cy="208" r="2.6" fill="${soft}" stroke="${mid}" stroke-width="0.8"/>
+        <!-- cuff hints -->
+        <path d="M70 98 L82 118" stroke="${mid}" stroke-width="1" opacity="0.35"/>
+        <path d="M170 98 L158 118" stroke="${mid}" stroke-width="1" opacity="0.35"/>
+        <!-- hem -->
+        <path d="M94 228 H146" stroke="${stitch}" stroke-width="1" opacity="0.2" stroke-dasharray="3 2"/>
+      </g>`;
 
     case 'sweater':
       return `
-        <path d="M72 100 L100 70 L120 78 L140 70 L168 100 L154 118 L146 108 V210 H94 V108 L86 118 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <ellipse cx="120" cy="78" rx="16" ry="9" fill="${soft}"/>
-        <ellipse cx="120" cy="82" rx="11" ry="7" fill="#FAF8F5"/>
-        <path d="M94 150 H146" stroke="${deep}" stroke-width="1" opacity="0.2"/>
-        <path d="M94 170 H146" stroke="${deep}" stroke-width="1" opacity="0.2"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M64 108
+          C74 78 98 62 118 72
+          L120 74 L122 72
+          C142 62 166 78 176 108
+          L160 128 L152 116
+          L152 228 C152 236 146 240 138 240
+          L102 240 C94 240 88 236 88 228
+          L88 116 L80 128 Z" fill="${fill}"/>
+        <path d="M88 116 L152 116 L152 228 C152 236 146 240 138 240 L102 240 C94 240 88 236 88 228 Z" fill="url(#${id}-spot)"/>
+        <!-- rib neck -->
+        <ellipse cx="120" cy="78" rx="18" ry="11" fill="${soft}"/>
+        <ellipse cx="120" cy="84" rx="12" ry="8" fill="#FAF8F5"/>
+        <!-- knit rows -->
+        <path d="M92 150 H148" stroke="${stitch}" stroke-width="1.2" opacity="0.15"/>
+        <path d="M92 170 H148" stroke="${stitch}" stroke-width="1.2" opacity="0.15"/>
+        <path d="M92 190 H148" stroke="${stitch}" stroke-width="1.2" opacity="0.15"/>
+        <path d="M92 210 H148" stroke="${stitch}" stroke-width="1.2" opacity="0.15"/>
+        <!-- cuff ribs -->
+        <path d="M64 108 L80 128" stroke="${mid}" stroke-width="3" opacity="0.25" stroke-linecap="round"/>
+        <path d="M176 108 L160 128" stroke="${mid}" stroke-width="3" opacity="0.25" stroke-linecap="round"/>
+      </g>`;
 
     case 'jeans':
       return `
-        <path d="M92 70 H148 V105 L158 230 H128 L120 130 L112 230 H82 L92 105 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M92 70 H148 V88 H92 Z" fill="${deep}" opacity="0.25"/>
-        <line x1="120" y1="88" x2="120" y2="128" stroke="${deep}" stroke-width="1.2" opacity="0.35"/>
-        <circle cx="104" cy="92" r="2" fill="${soft}" opacity="0.7"/>
-        <circle cx="136" cy="92" r="2" fill="${soft}" opacity="0.7"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M88 62 H152
+          L152 100 L164 248 C164 256 158 260 150 260 L128 260
+          L120 130 L112 260 L90 260 C82 260 76 256 76 248
+          L88 100 Z" fill="${fillV}"/>
+        <path d="M88 62 H152 V92 H88 Z" fill="${deep}" opacity="0.22"/>
+        <!-- fly -->
+        <line x1="120" y1="92" x2="120" y2="128" stroke="${stitch}" stroke-width="1.5" opacity="0.4"/>
+        <!-- pockets -->
+        <path d="M94 100 C100 118 110 122 118 118" fill="none" stroke="${stitch}" stroke-width="1.4" opacity="0.45"/>
+        <path d="M146 100 C140 118 130 122 122 118" fill="none" stroke="${stitch}" stroke-width="1.4" opacity="0.45"/>
+        <!-- rivets -->
+        <circle cx="100" cy="96" r="2.2" fill="${SAMPLE_COLORS.gold}" opacity="0.75"/>
+        <circle cx="140" cy="96" r="2.2" fill="${SAMPLE_COLORS.gold}" opacity="0.75"/>
+        <!-- belt loops -->
+        <rect x="96" y="62" width="4" height="12" rx="1" fill="${mid}" opacity="0.5"/>
+        <rect x="140" y="62" width="4" height="12" rx="1" fill="${mid}" opacity="0.5"/>
+        <rect x="118" y="62" width="4" height="12" rx="1" fill="${mid}" opacity="0.5"/>
+        <!-- hem stitch -->
+        <path d="M90 252 H112" stroke="${stitch}" stroke-width="1" opacity="0.3"/>
+        <path d="M128 252 H150" stroke="${stitch}" stroke-width="1" opacity="0.3"/>
+      </g>`;
 
     case 'pants':
       return `
-        <path d="M94 68 H146 V100 L156 235 H128 L120 125 L112 235 H84 L94 100 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M94 68 H146 V82 H94 Z" fill="${deep}" opacity="0.2"/>
-        <line x1="120" y1="82" x2="120" y2="122" stroke="${deep}" stroke-width="1" opacity="0.3"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M90 58 H150
+          L150 96 L162 252 C162 260 156 264 148 264 L128 264
+          L120 122 L112 264 L92 264 C84 264 78 260 78 252
+          L90 96 Z" fill="${fillV}"/>
+        <path d="M90 58 H150 V80 H90 Z" fill="${deep}" opacity="0.18"/>
+        <line x1="120" y1="80" x2="120" y2="120" stroke="${stitch}" stroke-width="1.2" opacity="0.3"/>
+        <path d="M92 256 H112" stroke="${stitch}" stroke-width="1" opacity="0.25" stroke-dasharray="2 2"/>
+        <path d="M128 256 H148" stroke="${stitch}" stroke-width="1" opacity="0.25" stroke-dasharray="2 2"/>
+        <path d="M90 58 H150" stroke="${soft}" stroke-width="2" opacity="0.3"/>
+      </g>`;
 
     case 'skirt':
       return `
-        <path d="M95 78 H145 L165 220 H75 Z" fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M95 72 H145 V86 H95 Z" fill="${deep}" opacity="0.28"/>
-        <path d="M100 100 Q120 108 140 100" fill="none" stroke="${deep}" stroke-width="1" opacity="0.2"/>
-        <path d="M92 140 Q120 150 148 140" fill="none" stroke="${deep}" stroke-width="1" opacity="0.15"/>
-        <path d="M84 180 Q120 192 156 180" fill="none" stroke="${deep}" stroke-width="1" opacity="0.12"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M92 72 H148
+          L172 236 C172 248 164 252 152 252
+          L88 252 C76 252 68 248 68 236 Z" fill="${fillV}"/>
+        <path d="M92 66 H148 V84 H92 Z" fill="${deep}" opacity="0.22"/>
+        <!-- pleats -->
+        <path d="M100 84 L92 248" stroke="${stitch}" stroke-width="1" opacity="0.18"/>
+        <path d="M112 84 L108 248" stroke="${stitch}" stroke-width="1" opacity="0.14"/>
+        <path d="M120 84 L120 248" stroke="${stitch}" stroke-width="1.2" opacity="0.2"/>
+        <path d="M128 84 L132 248" stroke="${stitch}" stroke-width="1" opacity="0.14"/>
+        <path d="M140 84 L148 248" stroke="${stitch}" stroke-width="1" opacity="0.18"/>
+        <path d="M92 84 H148" stroke="${soft}" stroke-width="1.5" opacity="0.35"/>
+      </g>`;
 
     case 'dress':
       return `
-        <path d="M100 58 L120 50 L140 58 L150 80 L142 92 V110 L168 230 H72 L98 110 V92 L90 80 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M110 54 L120 48 L130 54 L126 70 L120 64 L114 70 Z" fill="${soft}"/>
-        <path d="M98 110 H142" stroke="${deep}" stroke-width="1.2" opacity="0.25"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M96 58
+          C104 48 116 44 120 44
+          C124 44 136 48 144 58
+          L154 84 L146 98
+          L146 118 L176 248 C176 258 168 264 156 264
+          L84 264 C72 264 64 258 64 248
+          L94 118 L94 98 L86 84 Z" fill="${fill}"/>
+        <path d="M94 118 L146 118 L176 248 C176 258 168 264 156 264 L84 264 C72 264 64 258 64 248 Z" fill="url(#${id}-spot)"/>
+        <!-- neckline -->
+        <path d="M108 56 C114 50 126 50 132 56" fill="none" stroke="${soft}" stroke-width="2" opacity="0.6"/>
+        <!-- waist seam -->
+        <path d="M96 118 H144" stroke="${stitch}" stroke-width="1.3" opacity="0.3"/>
+        <!-- darts -->
+        <path d="M108 98 L112 118" stroke="${stitch}" stroke-width="1" opacity="0.25"/>
+        <path d="M132 98 L128 118" stroke="${stitch}" stroke-width="1" opacity="0.25"/>
+      </g>`;
 
     case 'trench':
       return `
-        <path d="M68 95 L98 68 L120 76 L142 68 L172 95 L158 114 L148 104 V215 H92 V104 L82 114 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <line x1="120" y1="76" x2="120" y2="215" stroke="${soft}" stroke-width="2.5" opacity="0.55"/>
-        <path d="M88 145 H152" stroke="${deep}" stroke-width="6" stroke-linecap="round" opacity="0.55"/>
-        <circle cx="120" cy="145" r="4" fill="${deep}" opacity="0.45"/>
-        <path d="M98 68 L120 76 L142 68" fill="none" stroke="${deep}" stroke-width="1.2" opacity="0.3"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M60 100
+          C72 72 96 58 116 68
+          L120 72 L124 68
+          C144 58 168 72 180 100
+          L164 122 L154 110
+          L154 240 C154 248 148 252 140 252
+          L100 252 C92 252 86 248 86 240
+          L86 110 L76 122 Z" fill="${fill}"/>
+        <path d="M86 110 L154 110 L154 240 C154 248 148 252 140 252 L100 252 C92 252 86 248 86 240 Z" fill="url(#${id}-spot)"/>
+        <!-- lapels -->
+        <path d="M116 68 L120 72 L100 115 L90 108 Z" fill="${soft}" opacity="0.7"/>
+        <path d="M124 68 L120 72 L140 115 L150 108 Z" fill="${soft}" opacity="0.7"/>
+        <!-- center storm flap -->
+        <line x1="120" y1="72" x2="120" y2="248" stroke="${soft}" stroke-width="3" opacity="0.45"/>
+        <!-- belt -->
+        <rect x="84" y="158" width="72" height="12" rx="3" fill="${mid}" opacity="0.85"/>
+        <circle cx="120" cy="164" r="4.5" fill="${deep}" opacity="0.55"/>
+        <circle cx="120" cy="164" r="2" fill="${SAMPLE_COLORS.gold}" opacity="0.7"/>
+        <!-- cuff straps -->
+        <path d="M60 100 L76 122" stroke="${mid}" stroke-width="2.5" opacity="0.3" stroke-linecap="round"/>
+        <path d="M180 100 L164 122" stroke="${mid}" stroke-width="2.5" opacity="0.3" stroke-linecap="round"/>
+      </g>`;
 
     case 'blazer':
       return `
-        <path d="M70 98 L100 70 L120 78 L140 70 L170 98 L156 116 L148 106 V210 H92 V106 L84 116 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M120 78 L112 115 L120 210" fill="none" stroke="${soft}" stroke-width="1.5" opacity="0.5"/>
-        <path d="M120 78 L128 115 L120 210" fill="none" stroke="${soft}" stroke-width="1.5" opacity="0.5"/>
-        <path d="M92 155 H110" stroke="${deep}" stroke-width="1" opacity="0.25"/>
-        <path d="M130 155 H148" stroke="${deep}" stroke-width="1" opacity="0.25"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M62 104
+          C74 74 98 60 118 70
+          L120 74 L122 70
+          C142 60 166 74 178 104
+          L162 126 L152 114
+          L152 236 C152 244 146 248 138 248
+          L102 248 C94 248 88 244 88 236
+          L88 114 L78 126 Z" fill="${fill}"/>
+        <path d="M88 114 L152 114 L152 236 C152 244 146 248 138 248 L102 248 C94 248 88 244 88 236 Z" fill="url(#${id}-spot)"/>
+        <!-- notch lapels -->
+        <path d="M118 70 L120 74 L105 125 L88 114 L100 95 Z" fill="${soft}" opacity="0.65"/>
+        <path d="M122 70 L120 74 L135 125 L152 114 L140 95 Z" fill="${soft}" opacity="0.65"/>
+        <!-- buttons -->
+        <circle cx="120" cy="150" r="3" fill="${SAMPLE_COLORS.gold}" opacity="0.7"/>
+        <circle cx="120" cy="175" r="3" fill="${SAMPLE_COLORS.gold}" opacity="0.7"/>
+        <!-- pocket flaps -->
+        <rect x="92" y="168" width="22" height="8" rx="1.5" fill="${mid}" opacity="0.35"/>
+        <rect x="126" y="168" width="22" height="8" rx="1.5" fill="${mid}" opacity="0.35"/>
+      </g>`;
 
     case 'coat':
       return `
-        <path d="M64 92 L98 64 L120 72 L142 64 L176 92 L162 112 L152 102 V230 H88 V102 L78 112 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <line x1="120" y1="72" x2="120" y2="230" stroke="${soft}" stroke-width="2" opacity="0.4"/>
-        <path d="M100 64 L120 72 L140 64" fill="none" stroke="${deep}" stroke-width="1.2" opacity="0.3"/>
-        <circle cx="120" cy="120" r="2.5" fill="${deep}" opacity="0.35"/>
-        <circle cx="120" cy="145" r="2.5" fill="${deep}" opacity="0.35"/>
-        <circle cx="120" cy="170" r="2.5" fill="${deep}" opacity="0.35"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M56 98
+          C70 66 98 52 118 64
+          L120 68 L122 64
+          C142 52 170 66 184 98
+          L168 120 L158 108
+          L158 252 C158 260 152 264 144 264
+          L96 264 C88 264 82 260 82 252
+          L82 108 L72 120 Z" fill="${fill}"/>
+        <path d="M82 108 L158 108 L158 252 C158 260 152 264 144 264 L96 264 C88 264 82 260 82 252 Z" fill="url(#${id}-spot)"/>
+        <line x1="120" y1="68" x2="120" y2="260" stroke="${soft}" stroke-width="2.2" opacity="0.35"/>
+        <circle cx="120" cy="130" r="3" fill="${deep}" opacity="0.4"/>
+        <circle cx="120" cy="160" r="3" fill="${deep}" opacity="0.4"/>
+        <circle cx="120" cy="190" r="3" fill="${deep}" opacity="0.4"/>
+        <circle cx="120" cy="220" r="3" fill="${deep}" opacity="0.4"/>
+        <path d="M118 64 L120 68 L100 105" fill="none" stroke="${mid}" stroke-width="1.2" opacity="0.35"/>
+        <path d="M122 64 L120 68 L140 105" fill="none" stroke="${mid}" stroke-width="1.2" opacity="0.35"/>
+      </g>`;
 
     case 'sneakers':
       return `
-        <path d="M55 175 Q90 150 140 158 L185 165 Q198 168 192 185 L70 192 Q50 188 55 175 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M55 175 Q90 150 140 158 L160 162 L155 175 Z" fill="${soft}" opacity="0.7"/>
-        <path d="M70 192 L192 185 Q196 190 190 198 L72 202 Q55 200 70 192 Z" fill="${deep}" opacity="0.35"/>
-        <path d="M100 158 L105 175" stroke="${deep}" stroke-width="1.5" opacity="0.3"/>
-        <path d="M125 160 L128 176" stroke="${deep}" stroke-width="1.5" opacity="0.3"/>
-        <path d="M150 163 L151 178" stroke="${deep}" stroke-width="1.5" opacity="0.3"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M48 182
+          C70 152 110 148 150 156
+          L195 168 C208 172 210 182 200 192
+          L70 204 C48 202 42 194 48 182 Z" fill="${fill}"/>
+        <!-- toe cap -->
+        <path d="M150 156 C175 160 195 168 200 180 L200 192 C190 188 170 182 150 178 Z" fill="${soft}" opacity="0.75"/>
+        <!-- sole -->
+        <path d="M52 196 L200 188 C206 192 204 200 196 204 L60 210 C48 208 46 202 52 196 Z" fill="${deep}" opacity="0.4"/>
+        <!-- laces -->
+        <path d="M100 160 L108 186" stroke="${mid}" stroke-width="2" opacity="0.4"/>
+        <path d="M120 158 L126 186" stroke="${mid}" stroke-width="2" opacity="0.4"/>
+        <path d="M140 160 L144 186" stroke="${mid}" stroke-width="2" opacity="0.4"/>
+        <path d="M95 172 H145" stroke="${soft}" stroke-width="1.5" opacity="0.35"/>
+        <path d="M98 182 H148" stroke="${soft}" stroke-width="1.5" opacity="0.3"/>
+      </g>`;
 
     case 'heels':
       return `
-        <path d="M70 150 L150 148 L175 165 L160 175 L150 195 L145 230 L130 230 L128 195 L115 175 L70 168 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M145 230 L138 255 L132 255 L130 230" fill="${deep}"/>
-        <path d="M70 150 L150 148 L160 155 L70 160 Z" fill="${soft}" opacity="0.5"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M62 155
+          L155 150 L185 170
+          L168 182 L155 205
+          L150 248 L132 248
+          L130 205 L115 182 L62 172 Z" fill="${fill}"/>
+        <path d="M62 155 L155 150 L168 160 L62 168 Z" fill="${soft}" opacity="0.55"/>
+        <!-- stiletto -->
+        <path d="M150 248 L142 278 L134 278 L132 248 Z" fill="${deep}"/>
+        <ellipse cx="138" cy="278" rx="8" ry="3" fill="${mid}" opacity="0.6"/>
+        <!-- insole hint -->
+        <path d="M80 162 Q120 158 150 162" fill="none" stroke="${soft}" stroke-width="2" opacity="0.4"/>
+      </g>`;
 
     case 'boots':
       return `
-        <path d="M88 100 H152 V150 L165 230 Q168 245 155 250 H95 Q82 245 85 230 L98 150 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M88 100 H152 V118 H88 Z" fill="${deep}" opacity="0.22"/>
-        <path d="M95 250 Q125 258 155 250" fill="none" stroke="${deep}" stroke-width="2" opacity="0.3"/>
-        <line x1="120" y1="118" x2="120" y2="200" stroke="${soft}" stroke-width="1" opacity="0.25"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M85 88 H155
+          L155 150 L172 250
+          C174 262 166 270 152 270
+          L98 270 C84 270 76 262 78 250
+          L95 150 Z" fill="${fillV}"/>
+        <path d="M85 88 H155 V112 H85 Z" fill="${deep}" opacity="0.2"/>
+        <path d="M95 150 L98 270" stroke="${stitch}" stroke-width="1" opacity="0.15"/>
+        <path d="M155 150 L152 270" stroke="${stitch}" stroke-width="1" opacity="0.15"/>
+        <!-- buckle strap -->
+        <rect x="100" y="200" width="40" height="8" rx="2" fill="${mid}" opacity="0.45"/>
+        <rect x="132" y="196" width="12" height="16" rx="2" fill="${SAMPLE_COLORS.gold}" opacity="0.55"/>
+        <path d="M90 265 Q125 272 160 265" fill="none" stroke="${deep}" stroke-width="2" opacity="0.3"/>
+      </g>`;
 
     case 'loafers':
       return `
-        <path d="M52 170 Q88 148 140 155 L188 162 Q200 166 194 182 L68 190 Q48 186 52 170 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M90 155 Q120 148 150 158" fill="none" stroke="${deep}" stroke-width="3" stroke-linecap="round" opacity="0.35"/>
-        <path d="M68 190 L194 182 Q198 188 192 196 L70 200 Q52 198 68 190 Z" fill="${deep}" opacity="0.3"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M46 178
+          C72 150 115 148 155 156
+          L198 168 C210 172 210 184 198 192
+          L64 202 C46 198 40 188 46 178 Z" fill="${fill}"/>
+        <path d="M46 178 C72 150 115 148 155 156 L170 160 L160 178 Z" fill="${soft}" opacity="0.5"/>
+        <!-- penny strap -->
+        <path d="M88 162 Q120 152 152 164" fill="none" stroke="${deep}" stroke-width="5" stroke-linecap="round" opacity="0.4"/>
+        <ellipse cx="120" cy="160" rx="10" ry="5" fill="${SAMPLE_COLORS.gold}" opacity="0.45"/>
+        <!-- sole -->
+        <path d="M50 194 L198 186 C206 192 204 200 196 204 L58 210 C46 208 44 200 50 194 Z" fill="${deep}" opacity="0.35"/>
+      </g>`;
 
     case 'belt':
       return `
-        <rect x="48" y="140" width="144" height="28" rx="6" fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <rect x="100" y="132" width="40" height="44" rx="4" fill="${SAMPLE_COLORS.gold}" opacity="0.9"/>
-        <rect x="108" y="140" width="24" height="28" rx="2" fill="#FAF8F5"/>
-        <rect x="52" y="148" width="40" height="4" rx="1" fill="${deep}" opacity="0.25"/>
-        <rect x="148" y="148" width="40" height="4" rx="1" fill="${deep}" opacity="0.25"/>`;
+      <g filter="url(#${id}-sh)">
+        <rect x="36" y="138" width="168" height="32" rx="7" fill="${fill}"/>
+        <rect x="40" y="146" width="50" height="5" rx="1.5" fill="${deep}" opacity="0.2"/>
+        <rect x="150" y="146" width="50" height="5" rx="1.5" fill="${deep}" opacity="0.2"/>
+        <!-- buckle -->
+        <rect x="98" y="128" width="44" height="52" rx="5" fill="${SAMPLE_COLORS.gold}"/>
+        <rect x="106" y="138" width="28" height="32" rx="3" fill="#FAF8F5"/>
+        <rect x="116" y="138" width="4" height="32" fill="${SAMPLE_COLORS.gold}" opacity="0.7"/>
+      </g>`;
 
     case 'tote':
       return `
-        <path d="M70 120 H170 L178 230 Q178 242 166 242 H74 Q62 242 62 230 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M88 120 Q88 78 120 78 Q152 78 152 120" fill="none" stroke="${color}" stroke-width="7" stroke-linecap="round"/>
-        <path d="M70 120 H170" stroke="${deep}" stroke-width="2" opacity="0.25"/>
-        <circle cx="120" cy="175" r="6" fill="${SAMPLE_COLORS.gold}" opacity="0.55"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M62 118 H178
+          L188 242 C188 256 176 264 162 264
+          H78 C64 264 52 256 52 242 Z" fill="${fill}"/>
+        <path d="M62 118 H178 L188 242 C188 256 176 264 162 264 H78 C64 264 52 256 52 242 Z" fill="url(#${id}-spot)"/>
+        <!-- handles -->
+        <path d="M85 118 C85 72 120 62 120 62 C120 62 155 72 155 118"
+          fill="none" stroke="${color}" stroke-width="8" stroke-linecap="round"/>
+        <path d="M85 118 C85 72 120 62 120 62 C120 62 155 72 155 118"
+          fill="none" stroke="${soft}" stroke-width="3" stroke-linecap="round" opacity="0.4"/>
+        <path d="M62 118 H178" stroke="${deep}" stroke-width="2" opacity="0.2"/>
+        <circle cx="120" cy="185" r="7" fill="${SAMPLE_COLORS.gold}" opacity="0.5"/>
+        <circle cx="120" cy="185" r="3" fill="#FAF8F5" opacity="0.8"/>
+      </g>`;
 
     case 'clutch':
       return `
-        <rect x="55" y="145" width="130" height="55" rx="10" fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M55 162 H185" stroke="${deep}" stroke-width="1" opacity="0.2"/>
-        <circle cx="120" cy="172" r="5" fill="${SAMPLE_COLORS.gold}" opacity="0.75"/>
-        <circle cx="120" cy="172" r="2" fill="#FAF8F5"/>`;
+      <g filter="url(#${id}-sh)">
+        <rect x="48" y="142" width="144" height="62" rx="12" fill="${fill}"/>
+        <path d="M48 160 H192" stroke="${deep}" stroke-width="1.2" opacity="0.2"/>
+        <rect x="48" y="142" width="144" height="20" rx="12" fill="${soft}" opacity="0.35"/>
+        <circle cx="120" cy="174" r="6" fill="${SAMPLE_COLORS.gold}" opacity="0.8"/>
+        <circle cx="120" cy="174" r="2.5" fill="#FAF8F5"/>
+      </g>`;
 
     case 'scarf':
       return `
-        <path d="M85 70 Q120 55 155 70 L165 95 Q140 110 120 105 Q100 110 75 95 Z"
-          fill="${color}" stroke="${line}" stroke-width="1.5"/>
-        <path d="M95 95 L80 210 Q120 225 160 210 L145 95" fill="${color}" stroke="${line}" stroke-width="1.5" opacity="0.92"/>
-        <path d="M100 130 Q120 140 140 130" fill="none" stroke="${soft}" stroke-width="2" opacity="0.4"/>
-        <path d="M96 160 Q120 172 144 160" fill="none" stroke="${soft}" stroke-width="2" opacity="0.3"/>`;
+      <g filter="url(#${id}-sh)">
+        <path d="M80 68
+          C100 48 140 48 160 68
+          L172 98 C150 118 120 112 120 112
+          C120 112 90 118 68 98 Z" fill="${fill}"/>
+        <path d="M92 100
+          L72 230 C100 250 140 250 168 230
+          L148 100" fill="${fillV}" opacity="0.95"/>
+        <path d="M100 140 Q120 152 140 140" fill="none" stroke="${soft}" stroke-width="2.5" opacity="0.45"/>
+        <path d="M96 170 Q120 184 144 170" fill="none" stroke="${soft}" stroke-width="2.5" opacity="0.35"/>
+        <path d="M94 200 Q120 214 146 200" fill="none" stroke="${soft}" stroke-width="2" opacity="0.28"/>
+      </g>`;
 
     default:
-      return `<rect x="70" y="100" width="100" height="100" rx="16" fill="${color}"/>`;
+      return `<rect x="70" y="100" width="100" height="100" rx="16" fill="${fill}"/>`;
   }
 }
 
 /**
- * Build a clean vector product card as SVG data-URL.
- * No text label on the image — name comes from the wardrobe card UI.
+ * Premium fashion-flat product card as SVG data-URL.
  */
 export function productSvg(options: {
   color: string;
@@ -237,31 +451,28 @@ export function productSvg(options: {
   accent?: string;
 }): string {
   const { color, variant, accent = SAMPLE_COLORS.gold } = options;
-  const shape = silhouette(variant, color);
+  const id = uid(variant, color);
+  const shape = silhouette(variant, color, id);
+  const defs = garmentDefs(id, color);
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="480" height="600" viewBox="0 0 240 300">
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="750" viewBox="0 0 240 300">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#FCFBF8"/>
-      <stop offset="100%" stop-color="#F5F0E8"/>
+    <linearGradient id="${id}-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FFFEFB"/>
+      <stop offset="100%" stop-color="#F3EDE4"/>
     </linearGradient>
-    <filter id="shadow" x="-30%" y="-20%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#2a201810"/>
-    </filter>
+    ${defs}
   </defs>
-  <rect width="240" height="300" fill="url(#bg)"/>
-  <circle cx="200" cy="36" r="48" fill="${accent}" opacity="0.08"/>
-  <circle cx="28" cy="270" r="40" fill="${color}" opacity="0.07"/>
-  <g filter="url(#shadow)" transform="translate(0,8)">
-    ${shape}
-  </g>
+  <rect width="240" height="300" fill="url(#${id}-bg)"/>
+  <circle cx="198" cy="32" r="52" fill="${accent}" opacity="0.07"/>
+  <circle cx="24" cy="275" r="44" fill="${color}" opacity="0.06"/>
+  ${shape}
 </svg>`;
 
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
-/** Convenience: one-liner for wardrobe samples */
 export function sampleVector(variant: VectorVariant, color: string): string {
   return productSvg({ variant, color });
 }
