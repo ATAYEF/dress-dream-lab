@@ -5,6 +5,7 @@ import {
   Check,
   User,
   Sparkles,
+  Heart,
   Shirt,
   Search,
   X,
@@ -36,6 +37,7 @@ import {
 interface OutfitBuilderProps {
   clothes: ClothingItem[];
   onGenerateSuggestion: (items: ClothingItem[], context: OutfitContext) => void;
+  onSaveFavorite?: (items: ClothingItem[], context: OutfitContext) => void;
   isGenerating: boolean;
   profileImageUrl?: string | null;
   onEditItem?: (item: ClothingItem) => void;
@@ -100,6 +102,7 @@ function useSmoothDragScroll() {
 export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
   clothes,
   onGenerateSuggestion,
+  onSaveFavorite,
   isGenerating,
   profileImageUrl = null,
   onEditItem,
@@ -237,6 +240,11 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
     onGenerateSuggestion(finalItems, outfitContext);
   };
 
+  const handleSaveFavorite = () => {
+    if (outfitItems.length < 1 || !onSaveFavorite) return;
+    onSaveFavorite(outfitItems, outfitContext);
+  };
+
   const handleAutoFill = () => {
     setOutfitItems(buildContextOutfit(clothes, outfitContext, []));
   };
@@ -263,6 +271,20 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
                 <User className="w-3.5 h-3.5 text-primary" />
                 امتحان روی عکس شما
               </span>
+            )}
+            {onSaveFavorite && (
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                onClick={handleSaveFavorite}
+                disabled={outfitItems.length < 1}
+                className="font-extrabold min-h-[44px] rounded-full border-rose-200 text-rose-600 hover:bg-rose-50 hover:text-rose-700 dark:border-rose-800 dark:hover:bg-rose-950/40"
+                title="ذخیره ست فعلی در علاقه‌مندی‌ها"
+              >
+                <Heart className="w-4 h-4" />
+                علاقه‌مندی
+              </Button>
             )}
             <Button
               type="button"
@@ -614,6 +636,17 @@ export const OutfitBuilder: React.FC<OutfitBuilderProps> = ({
             </div>
 
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              {onSaveFavorite && (
+                <button
+                  type="button"
+                  onClick={handleSaveFavorite}
+                  disabled={outfitItems.length < 1}
+                  className="px-4 py-2 rounded-full text-[11px] font-bold text-rose-600 hover:bg-rose-50 disabled:opacity-40 transition-colors inline-flex items-center gap-1"
+                >
+                  <Heart className="w-3.5 h-3.5" />
+                  افزودن به علاقه‌مندی
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleAutoFill}

@@ -42,6 +42,7 @@ const Index = () => {
     removeClothing,
     updateClothing,
     generateSuggestion,
+    saveFavoriteOutfit,
     feedbackOutfit,
     toggleFavorite,
     deleteSuggestion,
@@ -441,6 +442,7 @@ const Index = () => {
               <OutfitBuilder
                 clothes={clothes}
                 onGenerateSuggestion={generateSuggestion}
+                onSaveFavorite={saveFavoriteOutfit}
                 isGenerating={isGenerating}
                 profileImageUrl={profile.imageUrl}
                 onViewItem={setViewingItem}

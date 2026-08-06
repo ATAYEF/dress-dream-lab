@@ -702,6 +702,86 @@ export const useWardrobe = () => {
     });
   };
 
+
+  /** ذخیره مستقیم ست انتخاب‌شده روی مانکن به‌عنوان علاقه‌مندی (بدون تولید AI) */
+  const saveFavoriteOutfit = async (
+    selectedItems: ClothingItem[],
+    context: OutfitContext = DEFAULT_OUTFIT_CONTEXT
+  ) => {
+    if (selectedItems.length < 1) {
+      toast({
+        title: 'لباسی انتخاب نشده',
+        description: 'حداقل یک لباس روی مانکن بگذارید',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    const names = selectedItems.map((i) => i.name).filter(Boolean);
+    const suggestionText =
+      names.length > 0
+        ? `ست انتخابی شما: ${names.join('، ')}. مناسب «${contextLabels(context)}».`
+        : `ست انتخابی شما برای «${contextLabels(context)}».`;
+
+    try {
+      let newSuggestion: OutfitSuggestion;
+
+      if (userId) {
+        const { data: savedSuggestion, error: saveError } = await supabase
+          .from('outfit_suggestions')
+          .insert({
+            user_id: userId,
+            item_ids: selectedItems.map((i) => i.id),
+            suggestion_text: suggestionText,
+            is_favorite: true,
+          })
+          .select()
+          .single();
+
+        if (saveError) throw saveError;
+
+        newSuggestion = {
+          id: savedSuggestion.id,
+          items: selectedItems,
+          suggestionText,
+          isFavorite: true,
+          userFeedback: 'liked',
+          createdAt: new Date(savedSuggestion.created_at),
+          context: { ...context },
+        };
+      } else {
+        newSuggestion = {
+          id: createLocalId(),
+          items: selectedItems,
+          suggestionText,
+          isFavorite: true,
+          userFeedback: 'liked',
+          createdAt: new Date(),
+          context: { ...context },
+        };
+      }
+
+      const updatedSuggestions = [newSuggestion, ...suggestions];
+      setSuggestions(updatedSuggestions);
+
+      if (!userId) {
+        saveToLocalStorage(LOCAL_STORAGE_KEYS.SUGGESTIONS, updatedSuggestions);
+      }
+
+      toast({
+        title: 'به علاقه‌مندی‌ها اضافه شد',
+        description: 'ست انتخابی شما در بخش ست‌ها ذخیره شد',
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: 'خطا',
+        description: 'ذخیره علاقه‌مندی انجام نشد',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const toggleFavorite = async (id: string, isFavorite: boolean) => {
     if (userId) {
       try {
@@ -1068,6 +1148,7 @@ export const useWardrobe = () => {
     removeClothing,
     updateClothing,
     generateSuggestion,
+    saveFavoriteOutfit,
     feedbackOutfit,
     toggleFavorite,
     deleteSuggestion,
