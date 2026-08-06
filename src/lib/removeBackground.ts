@@ -1,21 +1,58 @@
 /**
  * Background removal for mannequin preview.
- * Priority: remove.bg edge → img.ly AI → local heuristic
+ * Priority: cache → remove.bg edge → img.ly AI → local heuristic
+ *
+ * Cache layers:
+ *  1) in-memory Map (same session, instant)
+ *  2) IndexedDB (persists across reloads — second open skips processing)
+ *  3) sessionStorage fallback if IDB unavailable
  */
 
-const CACHE_VERSION = 'rb-v3';
+const CACHE_VERSION = 'rb-v4';
+const IDB_NAME = 'dress-dream-bgcut';
+const IDB_STORE = 'cuts';
 const memoryCache = new Map<string, string>();
 const inflight = new Map<string, Promise<string>>();
 
 const MAX_EDGE = 720;
 const EDGE_SEND_MAX = 768;
 
-function cacheKey(src: string) {
-  return `${CACHE_VERSION}:${src.slice(0, 120)}:${src.length}`;
+/** Stable key: strip signed-URL query noise so same garment hits cache again */
+export function cacheKey(src: string): string {
+  if (!src) return `${CACHE_VERSION}:empty`;
+  if (src.startsWith('data:')) {
+    return `${CACHE_VERSION}:data:${src.length}:${src.slice(21, 80)}:${src.slice(-40)}`;
+  }
+  if (src.startsWith('blob:')) {
+    return `${CACHE_VERSION}:blob:${src}`;
+  }
+  try {
+    const u = new URL(src, typeof window !== 'undefined' ? window.location.origin : 'https://local');
+    const drop = [
+      'token',
+      'X-Amz-Algorithm',
+      'X-Amz-Credential',
+      'X-Amz-Date',
+      'X-Amz-Expires',
+      'X-Amz-SignedHeaders',
+      'X-Amz-Signature',
+      'X-Amz-Security-Token',
+      'Signature',
+      'Expires',
+      'AWSAccessKeyId',
+    ];
+    drop.forEach((p) => u.searchParams.delete(p));
+    // Supabase storage path is enough
+    return `${CACHE_VERSION}:${u.origin}${u.pathname}`;
+  } catch {
+    return `${CACHE_VERSION}:${src.slice(0, 160)}:${src.length}`;
+  }
 }
 
 function colorDist(r1: number, g1: number, b1: number, r2: number, g2: number, b2: number): number {
-  const dr = r1 - r2, dg = g1 - g2, db = b1 - b2;
+  const dr = r1 - r2,
+    dg = g1 - g2,
+    db = b1 - b2;
   return Math.sqrt(dr * dr + dg * dg + db * db);
 }
 
@@ -28,6 +65,11 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
+  const res = await fetch(dataUrl);
+  return res.blob();
+}
+
 async function srcToBlob(src: string): Promise<Blob> {
   if (src.startsWith('data:') || src.startsWith('blob:')) {
     return (await fetch(src)).blob();
@@ -35,6 +77,87 @@ async function srcToBlob(src: string): Promise<Blob> {
   const res = await fetch(src, { mode: 'cors', credentials: 'omit' });
   if (!res.ok) throw new Error(`fetch ${res.status}`);
   return res.blob();
+}
+
+/* ---------- IndexedDB persistence ---------- */
+function openDb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === 'undefined') {
+      reject(new Error('no idb'));
+      return;
+    }
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(IDB_STORE)) {
+        db.createObjectStore(IDB_STORE);
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error || new Error('idb open fail'));
+  });
+}
+
+async function idbGet(key: string): Promise<string | null> {
+  try {
+    const db = await openDb();
+    return await new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const req = store.get(key);
+      req.onsuccess = () => {
+        const v = req.result;
+        if (!v) {
+          resolve(null);
+          return;
+        }
+        if (typeof v === 'string') {
+          resolve(v);
+          return;
+        }
+        // Blob stored
+        if (v instanceof Blob) {
+          blobToDataUrl(v).then(resolve).catch(() => resolve(null));
+          return;
+        }
+        resolve(null);
+      };
+      req.onerror = () => reject(req.error);
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function idbSet(key: string, dataUrl: string): Promise<void> {
+  try {
+    const db = await openDb();
+    const blob = await dataUrlToBlob(dataUrl);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      const store = tx.objectStore(IDB_STORE);
+      store.put(blob, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    // fallback sessionStorage for small results
+    try {
+      if (dataUrl.length < 1_500_000) {
+        sessionStorage.setItem(`bgcut:${key}`, dataUrl);
+      }
+    } catch {
+      /* quota */
+    }
+  }
+}
+
+function sessionGet(key: string): string | null {
+  try {
+    return sessionStorage.getItem(`bgcut:${key}`);
+  } catch {
+    return null;
+  }
 }
 
 async function loadImageElement(src: string): Promise<HTMLImageElement> {
@@ -63,8 +186,12 @@ async function loadImageElement(src: string): Promise<HTMLImageElement> {
   }
 }
 
-/** Resize to max edge and return JPEG/PNG data URL (smaller edge payloads). */
-async function downscaleDataUrl(src: string, maxEdge: number, mime = 'image/jpeg', quality = 0.85): Promise<string> {
+async function downscaleDataUrl(
+  src: string,
+  maxEdge: number,
+  mime = 'image/jpeg',
+  quality = 0.85
+): Promise<string> {
   const img = await loadImageElement(src);
   const nw = img.naturalWidth || img.width;
   const nh = img.naturalHeight || img.height;
@@ -82,58 +209,22 @@ async function downscaleDataUrl(src: string, maxEdge: number, mime = 'image/jpeg
   return canvas.toDataURL(mime, quality);
 }
 
-/** True if PNG data URL has meaningful transparency (bg was removed). */
-async function hasTransparency(dataUrl: string): Promise<boolean> {
-  if (!dataUrl.startsWith('data:image/png')) return false;
-  try {
-    const img = await loadImageElement(dataUrl);
-    const w = Math.min(64, img.naturalWidth || img.width);
-    const h = Math.min(64, img.naturalHeight || img.height);
-    const canvas = document.createElement('canvas');
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return false;
-    ctx.drawImage(img, 0, 0, w, h);
-    const { data } = ctx.getImageData(0, 0, w, h);
-    let transparent = 0;
-    for (let i = 3; i < data.length; i += 4) {
-      if (data[i] < 250) transparent++;
-    }
-    return transparent > (w * h) * 0.02;
-  } catch {
-    return false;
-  }
-}
-
-/** remove.bg via Supabase edge function */
 async function removeWithEdgeFunction(src: string): Promise<string | null> {
   try {
     const { supabase } = await import('@/integrations/supabase/client');
-
-    // Always send a compact data URL — avoids CORS and huge payloads
     const payloadSrc = await downscaleDataUrl(src, EDGE_SEND_MAX, 'image/jpeg', 0.88);
-
     const { data, error } = await supabase.functions.invoke('remove-bg', {
       body: { imageUrl: payloadSrc },
     });
-
     if (error) {
       console.warn('[removeBg] edge error', error.message);
       return null;
     }
     if (data?.error) {
-      console.warn('[removeBg] edge response error', data.error, data.code);
+      console.warn('[removeBg] edge response error', data.error);
       return null;
     }
     if (!data?.imageUrl || typeof data.imageUrl !== 'string') return null;
-
-    // Accept only if result looks like cutout
-    const ok = await hasTransparency(data.imageUrl);
-    if (!ok) {
-      console.warn('[removeBg] edge returned image without transparency');
-      // still use it — remove.bg usually is correct even if check fails on tiny sample
-    }
     return data.imageUrl as string;
   } catch (err) {
     console.warn('[removeBg] edge invoke failed', err);
@@ -144,11 +235,10 @@ async function removeWithEdgeFunction(src: string): Promise<string | null> {
 async function removeWithImgly(src: string): Promise<string | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const dynamicImport = new Function('u', 'return import(/* @vite-ignore */ u)') as (
-      u: string
-    ) => Promise<any>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mod: any = await dynamicImport('https://esm.sh/@imgly/background-removal@1.5.5');
+    const mod: any = await import(
+      /* @vite-ignore */
+      'https://esm.sh/@imgly/background-removal@1.5.5'
+    );
     const removeBackground = mod.removeBackground || mod.default?.removeBackground || mod.default;
     if (typeof removeBackground !== 'function') return null;
     const input = await srcToBlob(src);
@@ -188,17 +278,28 @@ async function heuristicRemove(src: string): Promise<string> {
   }
   const d = imageData.data;
   const samples: [number, number][] = [
-    [2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3],
-    [Math.floor(w / 2), 2], [Math.floor(w / 2), h - 3],
-    [2, Math.floor(h / 2)], [w - 3, Math.floor(h / 2)],
+    [2, 2],
+    [w - 3, 2],
+    [2, h - 3],
+    [w - 3, h - 3],
+    [Math.floor(w / 2), 2],
+    [Math.floor(w / 2), h - 3],
+    [2, Math.floor(h / 2)],
+    [w - 3, Math.floor(h / 2)],
   ];
-  const rs: number[] = [], gs: number[] = [], bs: number[] = [];
+  const rs: number[] = [],
+    gs: number[] = [],
+    bs: number[] = [];
   for (const [x, y] of samples) {
     if (x < 0 || y < 0 || x >= w || y >= h) continue;
     const i = (y * w + x) * 4;
-    rs.push(d[i]); gs.push(d[i + 1]); bs.push(d[i + 2]);
+    rs.push(d[i]);
+    gs.push(d[i + 1]);
+    bs.push(d[i + 2]);
   }
-  const bgR = median(rs), bgG = median(gs), bgB = median(bs);
+  const bgR = median(rs),
+    bgG = median(gs),
+    bgB = median(bs);
   const bgLum = 0.299 * bgR + 0.587 * bgG + 0.114 * bgB;
   const hard = bgLum > 210 ? 52 : bgLum > 160 ? 44 : 36;
   const soft = hard + 28;
@@ -214,13 +315,23 @@ async function heuristicRemove(src: string): Promise<string> {
       queue.push(idx);
     }
   };
-  for (let x = 0; x < w; x++) { tryPush(x, 0); tryPush(x, h - 1); }
-  for (let y = 0; y < h; y++) { tryPush(0, y); tryPush(w - 1, y); }
+  for (let x = 0; x < w; x++) {
+    tryPush(x, 0);
+    tryPush(x, h - 1);
+  }
+  for (let y = 0; y < h; y++) {
+    tryPush(0, y);
+    tryPush(w - 1, y);
+  }
   let qi = 0;
   while (qi < queue.length) {
     const idx = queue[qi++];
-    const x = idx % w, y = (idx / w) | 0;
-    tryPush(x + 1, y); tryPush(x - 1, y); tryPush(x, y + 1); tryPush(x, y - 1);
+    const x = idx % w,
+      y = (idx / w) | 0;
+    tryPush(x + 1, y);
+    tryPush(x - 1, y);
+    tryPush(x, y + 1);
+    tryPush(x, y - 1);
   }
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
@@ -240,60 +351,61 @@ async function heuristicRemove(src: string): Promise<string> {
   return canvas.toDataURL('image/png');
 }
 
-function readSessionCache(key: string): string | null {
-  try {
-    return sessionStorage.getItem(`bgcut:${key}`);
-  } catch {
-    return null;
+async function readCache(key: string): Promise<string | null> {
+  if (memoryCache.has(key)) return memoryCache.get(key)!;
+  const idb = await idbGet(key);
+  if (idb) {
+    memoryCache.set(key, idb);
+    return idb;
   }
+  const sess = sessionGet(key);
+  if (sess) {
+    memoryCache.set(key, sess);
+    return sess;
+  }
+  return null;
 }
 
-function writeSessionCache(key: string, value: string) {
-  try {
-    // Avoid huge quota errors — only cache reasonably sized results
-    if (value.length < 1_800_000) sessionStorage.setItem(`bgcut:${key}`, value);
-  } catch {
-    /* quota */
-  }
+async function writeCache(key: string, value: string): Promise<void> {
+  memoryCache.set(key, value);
+  await idbSet(key, value);
+}
+
+/** True if we already have a cutout for this src (sync memory only — for UI). */
+export function hasBackgroundCache(src: string): boolean {
+  return memoryCache.has(cacheKey(src));
 }
 
 export async function removeClothingBackground(src: string): Promise<string> {
   if (!src || typeof document === 'undefined') return src;
 
   const key = cacheKey(src);
-  if (memoryCache.has(key)) return memoryCache.get(key)!;
-  const sessionHit = readSessionCache(key);
-  if (sessionHit) {
-    memoryCache.set(key, sessionHit);
-    return sessionHit;
+  const cached = await readCache(key);
+  if (cached) {
+    console.info('[removeBg] cache hit');
+    return cached;
   }
   if (inflight.has(key)) return inflight.get(key)!;
 
   const job = (async () => {
     try {
-      // 1) remove.bg (edge) — primary when deployed + secret set
       const edge = await removeWithEdgeFunction(src);
       if (edge) {
-        memoryCache.set(key, edge);
-        writeSessionCache(key, edge);
-        console.info('[removeBg] used remove.bg edge');
+        await writeCache(key, edge);
+        console.info('[removeBg] used remove.bg edge + cached');
         return edge;
       }
 
-      // 2) img.ly
       const ai = await removeWithImgly(src);
       if (ai) {
-        memoryCache.set(key, ai);
-        writeSessionCache(key, ai);
-        console.info('[removeBg] used imgly');
+        await writeCache(key, ai);
+        console.info('[removeBg] used imgly + cached');
         return ai;
       }
 
-      // 3) heuristic
       const local = await heuristicRemove(src);
-      memoryCache.set(key, local);
-      writeSessionCache(key, local);
-      console.info('[removeBg] used heuristic');
+      await writeCache(key, local);
+      console.info('[removeBg] used heuristic + cached');
       return local;
     } catch (err) {
       console.warn('[removeBg] all methods failed', err);
@@ -307,7 +419,7 @@ export async function removeClothingBackground(src: string): Promise<string> {
   return job;
 }
 
-export function clearBackgroundCache(): void {
+export async function clearBackgroundCache(): Promise<void> {
   memoryCache.clear();
   try {
     const keys: string[] = [];
@@ -316,6 +428,17 @@ export function clearBackgroundCache(): void {
       if (k?.startsWith('bgcut:')) keys.push(k);
     }
     keys.forEach((k) => sessionStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   } catch {
     /* ignore */
   }

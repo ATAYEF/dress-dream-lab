@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { removeClothingBackground } from '@/lib/removeBackground';
+import { removeClothingBackground, hasBackgroundCache, cacheKey } from '@/lib/removeBackground';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
@@ -23,7 +23,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
   draggable = false,
 }) => {
   const [displaySrc, setDisplaySrc] = useState(src);
-  const [ready, setReady] = useState(skip);
+  const [ready, setReady] = useState(skip || hasBackgroundCache(src));
 
   useEffect(() => {
     if (skip || !src) {
@@ -33,8 +33,10 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
     }
 
     let cancelled = false;
-    setReady(false);
-    setDisplaySrc(src);
+    // If memory cache already warm, skip loading badge
+    const warm = hasBackgroundCache(src);
+    setReady(warm);
+    if (!warm) setDisplaySrc(src);
 
     removeClothingBackground(src)
       .then((url) => {
@@ -65,7 +67,7 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
         style={style}
         className={cn(
           className,
-          'transition-opacity duration-500',
+          'transition-opacity duration-300',
           ready ? 'opacity-100' : 'opacity-55'
         )}
       />
