@@ -512,7 +512,7 @@ const Index = () => {
                 <SegmentedControl
                   label="مناسبت"
                   value={outfitFilterStyle}
-                  onChange={setOutfitFilterStyle}
+                  onChange={(value) => setOutfitFilterStyle(value)}
                   options={[
                     { value: 'all', label: 'همه' },
                     { value: 'casual', label: 'روزمره' },
@@ -523,7 +523,7 @@ const Index = () => {
                 <SegmentedControl
                   label="مکان"
                   value={outfitFilterEnv}
-                  onChange={setOutfitFilterEnv}
+                  onChange={(value) => setOutfitFilterEnv(value)}
                   options={[
                     { value: 'all', label: 'همه' },
                     { value: 'office', label: 'محل کار' },
@@ -533,7 +533,7 @@ const Index = () => {
                 <SegmentedControl
                   label="هوا"
                   value={outfitFilterWeather}
-                  onChange={setOutfitFilterWeather}
+                  onChange={(value) => setOutfitFilterWeather(value)}
                   options={[
                     { value: 'all', label: 'همه' },
                     { value: 'sunny', label: 'آفتابی' },
