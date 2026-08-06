@@ -87,18 +87,19 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const containerRef = useRef<HTMLDivElement>(null);
 
   /** Per-garment manual fit: scale + offset in % of canvas */
-  type GarmentAdjust = { scale: number; x: number; y: number };
-  const DEFAULT_ADJUST: GarmentAdjust = { scale: 1, x: 0, y: 0 };
+  type GarmentAdjust = { scale: number; x: number; y: number; rotate: number };
+  const DEFAULT_ADJUST: GarmentAdjust = { scale: 1, x: 0, y: 0, rotate: 0 };
   const [adjustMap, setAdjustMap] = useState<Record<string, GarmentAdjust>>({});
   const [editItemId, setEditItemId] = useState<string | null>(null);
   const garmentDrag = useRef<{
     id: string;
-    mode: 'move' | 'scale';
+    mode: 'move' | 'scale' | 'rotate';
     startX: number;
     startY: number;
     origX: number;
     origY: number;
     origScale: number;
+    origRotate: number;
   } | null>(null);
   const pinchRef = useRef<{ id: string; startDist: number; origScale: number } | null>(null);
 
@@ -111,6 +112,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
         scale: Math.min(2.2, Math.max(0.45, patch.scale ?? cur.scale)),
         x: Math.min(22, Math.max(-22, patch.x ?? cur.x)),
         y: Math.min(28, Math.max(-28, patch.y ?? cur.y)),
+        rotate: Math.min(45, Math.max(-45, patch.rotate ?? cur.rotate)),
       };
       return { ...prev, [id]: next };
     });
@@ -458,7 +460,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       animationDelay: delay,
       animationFillMode: 'backwards',
       filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.18))',
-      transform: `translate(${adj.x}%, ${adj.y}%) scale(${adj.scale})`,
+      transform: `translate(${adj.x}%, ${adj.y}%) scale(${adj.scale}) rotate(${adj.rotate}deg)`,
       transformOrigin: 'center top',
       cursor: itemId ? (editItemId === itemId ? 'move' : 'pointer') : undefined,
       outline: itemId && editItemId === itemId ? '2px solid hsl(var(--gold))' : undefined,
@@ -471,7 +473,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
   const onGarmentPointerDown = (
     e: React.PointerEvent,
     itemId: string,
-    mode: 'move' | 'scale' = 'move'
+    mode: 'move' | 'scale' | 'rotate' = 'move'
   ) => {
     e.stopPropagation();
     e.preventDefault();
@@ -485,6 +487,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
       origX: adj.x,
       origY: adj.y,
       origScale: adj.scale,
+      origRotate: adj.rotate,
     };
     try {
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -501,10 +504,15 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
     const dx = e.clientX - garmentDrag.current.startX;
     const dy = e.clientY - garmentDrag.current.startY;
     if (garmentDrag.current.mode === 'scale') {
-      // drag corner: diagonal distance controls scale
       const delta = (dx + dy) / Math.max(rect.width, 1);
       updateAdjust(garmentDrag.current.id, {
         scale: garmentDrag.current.origScale + delta * 1.6,
+      });
+    } else if (garmentDrag.current.mode === 'rotate') {
+      // horizontal drag rotates
+      const deg = (dx / Math.max(rect.width, 1)) * 90;
+      updateAdjust(garmentDrag.current.id, {
+        rotate: garmentDrag.current.origRotate + deg,
       });
     } else {
       const dxPct = (dx / rect.width) * 100;
@@ -560,6 +568,24 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
         onClick={(e) => e.stopPropagation()}
       >
         <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+      </button>
+    );
+  };
+
+  const RotateHandle = ({ itemId }: { itemId: string }) => {
+    if (editItemId !== itemId) return null;
+    return (
+      <button
+        type="button"
+        aria-label="چرخش"
+        title="بکشید برای چرخاندن"
+        className="absolute -bottom-2 -right-2 z-[65] w-7 h-7 rounded-full bg-sky-500 text-white shadow-md border-2 border-white flex items-center justify-center touch-manipulation cursor-grab"
+        onPointerDown={(e) => onGarmentPointerDown(e, itemId, 'rotate')}
+        onPointerMove={onGarmentPointerMove}
+        onPointerUp={onGarmentPointerUp}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <RotateCcw className="w-3.5 h-3.5" strokeWidth={2.5} />
       </button>
     );
   };
@@ -641,6 +667,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               />
               <RemoveBadge itemId={dress.id} label={dress.name} />
               <ScaleHandle itemId={dress.id} />
+              <RotateHandle itemId={dress.id} />
             </div>
           )}
 
@@ -659,6 +686,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               />
               <RemoveBadge itemId={top.id} label={top.name} />
               <ScaleHandle itemId={top.id} />
+              <RotateHandle itemId={top.id} />
             </div>
           )}
 
@@ -681,6 +709,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               />
               <RemoveBadge itemId={outerwear.id} label={outerwear.name} />
               <ScaleHandle itemId={outerwear.id} />
+              <RotateHandle itemId={outerwear.id} />
             </div>
           )}
 
@@ -699,6 +728,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               />
               <RemoveBadge itemId={bottom.id} label={bottom.name} />
               <ScaleHandle itemId={bottom.id} />
+              <RotateHandle itemId={bottom.id} />
             </div>
           )}
 
@@ -721,6 +751,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
               />
               {shoeItem && <RemoveBadge itemId={shoeItem.id} label={shoeItem.name} />}
               {shoeItem && <ScaleHandle itemId={shoeItem.id} />}
+              {shoeItem && <RotateHandle itemId={shoeItem.id} />}
             </div>
           )}
 
@@ -756,6 +787,7 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
                 />
                 <RemoveBadge itemId={acc.id} label={acc.name} />
                 <ScaleHandle itemId={acc.id} />
+                <RotateHandle itemId={acc.id} />
               </div>
             );
           })}
@@ -841,12 +873,16 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
             </button>
           </div>
           <p className="text-[10px] text-muted-foreground font-medium">
-            بکشید = جابه‌جایی · گوشه طلایی یا دو انگشت = اندازه · دکمه‌ها = دقیق
+            جابه‌جایی · گوشه طلایی = اندازه · گوشه آبی = چرخش · دکمه‌ها = دقیق
           </p>
           <div className="flex flex-wrap items-center justify-center gap-1.5">
             <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale - 0.1 })} aria-label="کوچک‌تر">−</button>
             <span className="text-[12px] font-black tabular-nums min-w-[3.25rem] text-center bg-muted/50 rounded-lg py-1.5">{Math.round(getAdjust(editItemId).scale * 100)}٪</span>
             <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-amber-500 text-white font-black text-sm touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { scale: getAdjust(editItemId).scale + 0.1 })} aria-label="بزرگ‌تر">+</button>
+            <div className="w-px h-6 bg-border/60 mx-0.5" />
+            <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-sky-500 text-white font-black text-xs touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { rotate: getAdjust(editItemId).rotate - 5 })} aria-label="چرخش چپ">↺</button>
+            <span className="text-[11px] font-black tabular-nums min-w-[2.75rem] text-center">{Math.round(getAdjust(editItemId).rotate)}°</span>
+            <button type="button" className="h-9 min-w-[2.5rem] px-2 rounded-xl bg-sky-500 text-white font-black text-xs touch-manipulation shadow-sm" onClick={() => updateAdjust(editItemId, { rotate: getAdjust(editItemId).rotate + 5 })} aria-label="چرخش راست">↻</button>
             <div className="w-px h-6 bg-border/60 mx-0.5" />
             <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, -2)} aria-label="بالا"><ArrowUp className="w-3.5 h-3.5" /></button>
             <button type="button" className="h-8 w-8 rounded-xl bg-muted/60 flex items-center justify-center touch-manipulation" onClick={() => nudge(editItemId, 0, 2)} aria-label="پایین"><ArrowDown className="w-3.5 h-3.5" /></button>
