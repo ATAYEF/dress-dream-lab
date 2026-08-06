@@ -353,38 +353,45 @@ export const MannequinDisplay = forwardRef<MannequinDisplayHandle, MannequinDisp
    * Body slots retuned for flat product photography (white bg, no model).
    * Values are % of the taller aspect-[3/5.2] canvas.
    */
+  /** Slots aligned to female mannequin proportions (aspect 3/5.2) */
   const SLOT = {
+    // shoulders → natural waist
     tops: {
-      top: '15%', left: '22%', width: '56%', height: '26%',
-      objectPosition: '50% 15%',
+      top: '16%', left: '20%', width: '60%', height: '24%',
+      objectPosition: '50% 12%',
     },
+    // jacket over torso, slightly larger
     outerwear: {
-      top: '12%', left: '14%', width: '72%', height: '40%',
-      objectPosition: '50% 18%',
+      top: '14%', left: '16%', width: '68%', height: '36%',
+      objectPosition: '50% 16%',
     },
+    // waist → ankles (matches mannequin leg length)
     bottoms: {
-      top: '40%', left: '24%', width: '52%', height: '40%',
-      objectPosition: '50% 10%',
-    },
-    dresses: {
-      top: '13%', left: '17%', width: '66%', height: '66%',
+      top: '37%', left: '26%', width: '48%', height: '46%',
       objectPosition: '50% 8%',
     },
+    // shoulders → mid-calf
+    dresses: {
+      top: '15%', left: '18%', width: '64%', height: '68%',
+      objectPosition: '50% 10%',
+    },
+    // feet only
     shoes: {
-      top: '84%', left: '28%', width: '44%', height: '14%',
-      objectPosition: '50% 60%',
+      top: '87%', left: '30%', width: '40%', height: '11%',
+      objectPosition: '50% 55%',
     },
     accessoryHead: {
-      top: '7%', left: '34%', width: '32%', height: '9%',
+      top: '8%', left: '35%', width: '30%', height: '8%',
       objectPosition: '50% 40%',
     },
     accessoryBelt: {
-      top: '39%', left: '28%', width: '44%', height: '6%',
+      top: '36%', left: '30%', width: '40%', height: '5%',
       objectPosition: '50% 50%',
     },
+    // bag at right hip, outside silhouette
     accessoryBag: {
-      top: '44%', left: '64%', width: '30%', height: '18%',
-      objectPosition: '50% 40%',
+      top: '42%', left: '66%', width: '28%', height: '16%',
+      objectPosition: '50% 45%',
     },
   } as const;
 

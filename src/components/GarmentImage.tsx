@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { removeClothingBackground } from '@/lib/removeBackground';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 interface GarmentImageProps {
   src: string;
@@ -33,7 +34,6 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
 
     let cancelled = false;
     setReady(false);
-    // Keep previous processed frame if same category reshuffle — still start from src
     setDisplaySrc(src);
 
     removeClothingBackground(src)
@@ -56,17 +56,33 @@ export const GarmentImage: React.FC<GarmentImageProps> = ({
   }, [src, skip]);
 
   return (
-    <img
-      src={displaySrc}
-      alt={alt}
-      loading={loading}
-      draggable={draggable}
-      style={style}
-      className={cn(
-        className,
-        'transition-opacity duration-500',
-        ready ? 'opacity-100' : 'opacity-50'
+    <span className="relative block w-full h-full">
+      <img
+        src={displaySrc}
+        alt={alt}
+        loading={loading}
+        draggable={draggable}
+        style={style}
+        className={cn(
+          className,
+          'transition-opacity duration-500',
+          ready ? 'opacity-100' : 'opacity-55'
+        )}
+      />
+      {!ready && (
+        <span
+          className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          aria-busy="true"
+          aria-label="در حال حذف پس‌زمینه"
+        >
+          <span className="inline-flex items-center gap-1 rounded-full bg-background/85 backdrop-blur-sm px-2 py-1 shadow-sm border border-border/40">
+            <Loader2 className="w-3 h-3 animate-spin text-amber-600" />
+            <span className="text-[9px] font-extrabold text-foreground/80 whitespace-nowrap">
+              پردازش…
+            </span>
+          </span>
+        </span>
       )}
-    />
+    </span>
   );
 };
