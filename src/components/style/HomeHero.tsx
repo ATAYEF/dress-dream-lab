@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import heroFashion from '@/assets/hero-fashion.jpg';
 
 interface HomeHeroProps {
   clothesCount: number;
@@ -177,32 +178,43 @@ function HomeHeroInner({
             </div>
           </div>
 
-          {/* Visual panel */}
+          {/* Visual panel — editorial fashion photo */}
           <div className="relative hidden sm:block">
-            <div className="relative mx-auto max-w-[320px] aspect-[3/4] rounded-[1.5rem] overflow-hidden border border-white/15 shadow-elevated bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md">
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-6 text-center">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold">
-                  <Sparkles className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-white font-black text-lg leading-tight">اتاق پرو مجازی</p>
-                <p className="text-white/55 text-xs font-medium leading-relaxed">
-                  پیش‌نمایش ست روی مانکن با حذف پس‌زمینه و پیشنهاد اکسسوری
+            <div className="relative mx-auto max-w-[340px] aspect-[3/4] rounded-[1.5rem] overflow-hidden border border-white/20 shadow-elevated ring-1 ring-white/10">
+              <img
+                src={heroFashion}
+                alt="استایل مد و فشن"
+                className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+                width={680}
+                height={900}
+                decoding="async"
+                fetchPriority="high"
+              />
+              {/* Gradient overlay for depth */}
+              <div
+                className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"
+                aria-hidden
+              />
+              <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-extrabold text-white mb-2">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  اتاق پرو مجازی
+                </span>
+                <p className="text-white font-black text-sm leading-snug drop-shadow-md">
+                  پیش‌نمایش ست روی مانکن
                 </p>
-                <div className="flex gap-2 mt-2">
-                  {['بالاتنه', 'پایین', 'یکسره'].map((t) => (
-                    <span
-                      key={t}
-                      className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-extrabold text-white/80 border border-white/10"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-white/70 text-[11px] font-medium mt-0.5">
+                  با هوش مصنوعی و کمد شما
+                </p>
               </div>
-              {/* Corner accents */}
-              <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-primary/50 rounded-tr-lg" aria-hidden />
-              <div className="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-primary/50 rounded-bl-lg" aria-hidden />
+              <div className="absolute top-3 right-3 w-8 h-8 border-t-2 border-r-2 border-primary/60 rounded-tr-lg" aria-hidden />
+              <div className="absolute bottom-3 left-3 w-8 h-8 border-b-2 border-l-2 border-primary/40 rounded-bl-lg" aria-hidden />
             </div>
+            {/* Soft glow behind frame */}
+            <div
+              className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] bg-primary/20 blur-2xl opacity-60"
+              aria-hidden
+            />
           </div>
         </div>
       </div>
