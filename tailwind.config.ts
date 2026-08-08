@@ -14,8 +14,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Vazirmatn', 'IRANSans', 'Tahoma', 'sans-serif'],
-        sans: ['Vazirmatn', 'IRANSans', 'Tahoma', 'sans-serif'],
+        /* عناوین و برند — هندسی مدرن */
+        display: ['Estedad', 'Vazirmatn', 'Tahoma', 'sans-serif'],
+        /* متن UI و بدنه — خوانا و استاندارد وب */
+        sans: ['Vazirmatn', 'Estedad', 'Tahoma', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
