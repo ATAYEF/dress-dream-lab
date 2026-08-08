@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Heart, ChevronLeft, MapPin, Sparkles, Check } from 'lucide-react';
 import type { OutfitSuggestion } from '@/types/wardrobe';
 import { CATEGORY_CONFIG } from '@/lib/categoryConfig';
@@ -22,7 +22,7 @@ interface StyleFeaturedProps {
   className?: string;
 }
 
-export const StyleFeatured: React.FC<StyleFeaturedProps> = ({
+const StyleFeaturedInner: React.FC<StyleFeaturedProps> = ({
   suggestion,
   onToggleFavorite,
   onViewDetails,
@@ -33,8 +33,8 @@ export const StyleFeatured: React.FC<StyleFeaturedProps> = ({
   const img = heroImage(suggestion);
   const title = styleTitle(suggestion);
   const subtitle = styleSubtitle(suggestion);
-  const chips = contextChips(suggestion);
-  const reasons = buildStyleReasons(suggestion);
+  const chips = useMemo(() => contextChips(suggestion), [suggestion]);
+  const reasons = useMemo(() => buildStyleReasons(suggestion), [suggestion]);
   const items = suggestion.items || [];
 
   return (
@@ -166,3 +166,5 @@ export const StyleFeatured: React.FC<StyleFeaturedProps> = ({
     </section>
   );
 };
+
+export const StyleFeatured = memo(StyleFeaturedInner);
