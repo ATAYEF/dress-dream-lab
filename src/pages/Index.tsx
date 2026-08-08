@@ -23,6 +23,7 @@ import { ScrollToTop } from '@/components/ScrollToTop';
 import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
 import { AppShell, type AppNavId } from '@/components/layout/AppShell';
+import { StyleRecommendations } from '@/components/style/StyleRecommendations';
 import { FilterChip, FilterChipGroup, SegmentedControl } from '@/components/shared';
 import { ClothingItem } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
@@ -458,126 +459,17 @@ const Index = () => {
           />
         )}
 
-        {mainTab === 'outfits' && suggestions.length > 0 && (
-          <section className="animate-fade-up space-y-3 md:space-y-4" aria-labelledby="outfits-title">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <h2 id="outfits-title" className="text-base md:text-xl font-display font-black">
-                ست‌های شما
-              </h2>
-              <span className="text-xs font-bold text-muted-foreground">
-                {displayedSuggestions.length.toLocaleString('fa-IR')} از{' '}
-                {suggestions.length.toLocaleString('fa-IR')}
-              </span>
-            </div>
-
-            <div className="space-y-2.5" dir="rtl" role="group" aria-label="فیلتر ست‌ها">
-              <div className="flex items-center gap-2 flex-wrap">
-                <FilterChipGroup>
-                  <FilterChip
-                    pressed={showFavoritesOnly}
-                    onPressedChange={setShowFavoritesOnly}
-                    icon={<span>♥</span>}
-                    activeClassName="bg-white text-rose shadow-sm dark:bg-rose dark:text-white"
-                  >
-                    علاقه
-                  </FilterChip>
-                  <FilterChip
-                    pressed={outfitFilterLiked}
-                    onPressedChange={setOutfitFilterLiked}
-                    icon={<span>👍</span>}
-                    activeClassName="bg-white text-emerald-700 shadow-sm dark:bg-emerald-600 dark:text-white"
-                  >
-                    لایک‌شده
-                  </FilterChip>
-                </FilterChipGroup>
-
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={clearOutfitFilters}
-                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-[11px] font-extrabold text-muted-foreground hover:text-rose hover:bg-rose/10 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold min-h-[36px]"
-                  >
-                    ✕ پاک کردن
-                  </button>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-2">
-                <SegmentedControl
-                  label="مناسبت"
-                  value={outfitFilterStyle}
-                  onChange={(value) => setOutfitFilterStyle(value)}
-                  options={[
-                    { value: 'all', label: 'همه' },
-                    { value: 'casual', label: 'روزمره' },
-                    { value: 'formal', label: 'رسمی' },
-                    { value: 'party', label: 'مهمانی' },
-                  ] as const}
-                />
-                <SegmentedControl
-                  label="مکان"
-                  value={outfitFilterEnv}
-                  onChange={(value) => setOutfitFilterEnv(value)}
-                  options={[
-                    { value: 'all', label: 'همه' },
-                    { value: 'office', label: 'محل کار' },
-                    { value: 'gathering', label: 'دورهمی' },
-                  ] as const}
-                />
-                <SegmentedControl
-                  label="هوا"
-                  value={outfitFilterWeather}
-                  onChange={(value) => setOutfitFilterWeather(value)}
-                  options={[
-                    { value: 'all', label: 'همه' },
-                    { value: 'sunny', label: 'آفتابی' },
-                    { value: 'rainy', label: 'بارانی' },
-                    { value: 'cold', label: 'سرد' },
-                  ] as const}
-                />
-              </div>
-            </div>
-
-            {displayedSuggestions.length === 0 ? (
-              <div
-                className="text-center rounded-2xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 space-y-3"
-                role="status"
-              >
-                <p className="text-sm font-extrabold text-foreground">ستی با این فیلتر نیست</p>
-                <p className="text-xs text-muted-foreground font-medium max-w-sm mx-auto leading-relaxed">
-                  فیلتر را ساده‌تر کنید یا یک ست جدید با شرایط دلخواه تولید کنید.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={clearOutfitFilters}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold bg-foreground text-background min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-                  >
-                    پاک کردن فیلترها
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMainTab('builder')}
-                    className="px-4 py-2 rounded-full text-xs font-extrabold border border-border/60 bg-background min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold"
-                  >
-                    تولید ست جدید
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="grid gap-3 md:gap-4 grid-cols-1 sm:grid-cols-2">
-                {displayedSuggestions.map((suggestion) => (
-                  <OutfitSuggestionCard
-                    key={suggestion.id}
-                    suggestion={suggestion}
-                    onToggleFavorite={toggleFavorite}
-                    onFeedback={(liked) => feedbackOutfit(suggestion, liked)}
-                    onDelete={deleteSuggestion}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
+        {(mainTab === 'outfits' || activeNav === 'favorites') && (
+          <StyleRecommendations
+            suggestions={suggestions}
+            showFavoritesOnly={showFavoritesOnly}
+            onShowFavoritesOnly={setShowFavoritesOnly}
+            onToggleFavorite={toggleFavorite}
+            onFeedback={(s, liked) => feedbackOutfit(s, liked)}
+            onDelete={deleteSuggestion}
+            onGenerateNew={() => setMainTab('builder')}
+            profileImageUrl={profile.imageUrl}
+          />
         )}
 
         {!userId && clothes.length > 0 && (
