@@ -24,6 +24,7 @@ import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
 import { AppShell, type AppNavId } from '@/components/layout/AppShell';
 import { StyleRecommendations } from '@/components/style/StyleRecommendations';
+import { HomeHero } from '@/components/style/HomeHero';
 import { FilterChip, FilterChipGroup, SegmentedControl } from '@/components/shared';
 import { ClothingItem } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
@@ -78,7 +79,7 @@ const Index = () => {
 
   const handleAppNavigate = (id: AppNavId) => {
     if (id === 'home') {
-      setMainTab(clothes.length >= 2 ? 'builder' : 'start');
+      setMainTab('start');
       setShowFavoritesOnly(false);
       return;
     }
@@ -109,11 +110,7 @@ const Index = () => {
   };
 
 
-  useEffect(() => {
-    if (clothes.length >= 2 && mainTab === 'start') {
-      setMainTab('builder');
-    }
-  }, [clothes.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Home (start) stays on hero — user navigates intentionally via CTA / sidebar
 
   const hasActiveFilters =
     showFavoritesOnly ||
@@ -352,69 +349,38 @@ const Index = () => {
           </div>
         </nav>
 
-        {(mainTab === 'start' || (mainTab === 'builder' && clothes.length < 2)) && (
-          <section
-            className="animate-fade-up rounded-2xl md:rounded-3xl border border-gold/25 bg-gradient-card p-5 md:p-10 text-center shadow-soft"
-            aria-labelledby="onboarding-title"
-          >
-            <div
-              className="w-14 h-14 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold"
-              aria-hidden="true"
-            >
-              <Sparkles className="w-7 h-7 md:w-8 md:h-8 text-white" />
-            </div>
-            <h1 id="onboarding-title" className="text-lg md:text-2xl font-display font-black mb-2">
-              ۳ قدم تا پیشنهاد امروز
-            </h1>
-            <ol className="text-sm text-muted-foreground space-y-2 max-w-sm mx-auto text-right mb-5 md:mb-6">
-              <li className="flex gap-2 items-start">
-                <span
-                  className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0"
-                  aria-hidden="true"
-                >
-                  ۱
-                </span>
-                <span>چند لباس به کمد اضافه کنید (حداقل ۲ تا)</span>
-              </li>
-              <li className="flex gap-2 items-start">
-                <span
-                  className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0"
-                  aria-hidden="true"
-                >
-                  ۲
-                </span>
-                <span>شرایط را انتخاب کنید و لباس‌ها را ببینید</span>
-              </li>
-              <li className="flex gap-2 items-start">
-                <span
-                  className="w-6 h-6 rounded-full bg-gold/15 text-gold text-xs font-black flex items-center justify-center shrink-0"
-                  aria-hidden="true"
-                >
-                  ۳
-                </span>
-                <span>تولید ست و در صورت تمایل پرو روی مانکن</span>
-              </li>
-            </ol>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button onClick={handleOpenAdd} variant="gold" size="lg" className="font-extrabold shadow-lg min-h-[48px]">
-                <Plus className="w-5 h-5" aria-hidden="true" />
-                افزودن اولین لباس
-              </Button>
-              <Button
-                onClick={() => setIsBulkModalOpen(true)}
-                variant="soft"
-                size="lg"
-                className="font-bold min-h-[48px]"
-              >
-                افزودن چندتایی
-              </Button>
-            </div>
-            {clothes.length > 0 && (
-              <p className="mt-4 text-xs font-bold text-muted-foreground">
-                الان {clothes.length.toLocaleString('fa-IR')} لباس دارید — یکی دیگر اضافه کنید
-              </p>
-            )}
-          </section>
+        {mainTab === 'start' && (
+          <HomeHero
+            clothesCount={clothes.length}
+            suggestionCount={suggestions.length}
+            favoriteCount={suggestions.filter((s) => s.isFavorite).length}
+            userName={profile.name}
+            onAddClothing={handleOpenAdd}
+            onBulkAdd={() => setIsBulkModalOpen(true)}
+            onOpenBuilder={() => setMainTab(clothes.length >= 2 ? 'builder' : 'start')}
+            onOpenWardrobe={() => setMainTab('wardrobe')}
+            onOpenStyles={() => {
+              setShowFavoritesOnly(false);
+              setMainTab('outfits');
+            }}
+          />
+        )}
+
+        {mainTab === 'builder' && clothes.length < 2 && (
+          <HomeHero
+            clothesCount={clothes.length}
+            suggestionCount={suggestions.length}
+            favoriteCount={suggestions.filter((s) => s.isFavorite).length}
+            userName={profile.name}
+            onAddClothing={handleOpenAdd}
+            onBulkAdd={() => setIsBulkModalOpen(true)}
+            onOpenBuilder={() => setMainTab('start')}
+            onOpenWardrobe={() => setMainTab('wardrobe')}
+            onOpenStyles={() => {
+              setShowFavoritesOnly(false);
+              setMainTab('outfits');
+            }}
+          />
         )}
 
         {mainTab === 'builder' && clothes.length >= 2 && (
