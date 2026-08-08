@@ -22,6 +22,7 @@ import { MyWardrobeSection } from '@/components/MyWardrobeSection';
 import { ScrollToTop } from '@/components/ScrollToTop';
 import { MobileFab } from '@/components/MobileFab';
 import { GeneratingBanner } from '@/components/GeneratingBanner';
+import { AppShell, type AppNavId } from '@/components/layout/AppShell';
 import { FilterChip, FilterChipGroup, SegmentedControl } from '@/components/shared';
 import { ClothingItem } from '@/types/wardrobe';
 import { useWardrobe } from '@/hooks/useWardrobe';
@@ -62,6 +63,50 @@ const Index = () => {
   const [outfitFilterWeather, setOutfitFilterWeather] = useState<'all' | 'sunny' | 'rainy' | 'cold'>('all');
 
   const [mainTab, setMainTab] = useState<'start' | 'builder' | 'wardrobe' | 'outfits'>('start');
+
+  const activeNav: AppNavId =
+    mainTab === 'wardrobe'
+      ? 'wardrobe'
+      : mainTab === 'outfits'
+        ? showFavoritesOnly
+          ? 'favorites'
+          : 'outfits'
+        : mainTab === 'start'
+          ? 'home'
+          : 'builder';
+
+  const handleAppNavigate = (id: AppNavId) => {
+    if (id === 'home') {
+      setMainTab(clothes.length >= 2 ? 'builder' : 'start');
+      setShowFavoritesOnly(false);
+      return;
+    }
+    if (id === 'builder') {
+      setMainTab('builder');
+      setShowFavoritesOnly(false);
+      return;
+    }
+    if (id === 'wardrobe') {
+      setMainTab('wardrobe');
+      setShowFavoritesOnly(false);
+      return;
+    }
+    if (id === 'outfits') {
+      setMainTab('outfits');
+      setShowFavoritesOnly(false);
+      return;
+    }
+    if (id === 'favorites') {
+      setMainTab('outfits');
+      setShowFavoritesOnly(true);
+      return;
+    }
+    if (id === 'settings') {
+      setMainTab('wardrobe');
+      setShowFavoritesOnly(false);
+    }
+  };
+
 
   useEffect(() => {
     if (clothes.length >= 2 && mainTab === 'start') {
@@ -208,8 +253,18 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background relative" dir="rtl">
-      {/* Decorative blobs — desktop only (perf + less visual noise on mobile) */}
+    <AppShell
+      activeNav={activeNav}
+      onNavigate={handleAppNavigate}
+      userId={userId}
+      profileImageUrl={profile.imageUrl}
+      suggestionCount={suggestions.length}
+      onAddClothing={handleOpenAdd}
+      onLogin={() => navigate('/auth')}
+      onLogout={handleLogout}
+    >
+    <div className="relative overflow-x-hidden" dir="rtl">
+      {/* Decorative blobs — desktop */}
       <div
         className="pointer-events-none fixed inset-0 overflow-hidden -z-10 hidden md:block"
         aria-hidden="true"
@@ -224,72 +279,9 @@ const Index = () => {
         />
       </div>
 
-      {/* Compact header */}
-      <header className="sticky top-0 z-50 safe-top">
-        <div className="glass-strong">
-          <div className="container max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-2 md:py-4 flex items-center justify-between gap-2 md:gap-4">
-            <div className="flex items-center gap-2 md:gap-3 cursor-pointer group" role="banner">
-              <div className="relative" aria-hidden="true">
-                <div className="absolute -inset-0.5 rounded-2xl bg-gradient-gold opacity-40 blur-md group-hover:opacity-70 transition-opacity duration-500 animate-glow-pulse hidden sm:block" />
-                <div className="relative w-9 h-9 md:w-11 md:h-11 rounded-xl md:rounded-2xl bg-gradient-gold flex items-center justify-center shadow-button-gold group-hover:scale-105 transition-transform duration-500">
-                  <Sparkles className="w-4 h-4 md:w-[22px] md:h-[22px] text-white" />
-                </div>
-              </div>
-              <div className="flex flex-col leading-none">
-                <span className="text-lg md:text-2xl font-display font-black tracking-tight">استایلر</span>
-                <span className="text-[8px] md:text-[10px] text-muted-foreground font-bold -mt-0.5 hidden xs:block sm:block">
-                  ✨ کمد هوشمند رویایی
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-1.5 md:gap-2.5">
-              <ThemeToggle />
-              <Button
-                onClick={handleOpenAdd}
-                variant="gold"
-                size="default"
-                className="group relative overflow-hidden shrink-0 h-9 md:h-10 px-2.5 md:px-4"
-                aria-label="افزودن لباس جدید"
-              >
-                <span
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out"
-                  aria-hidden="true"
-                />
-                <Plus className="w-4 h-4 relative" strokeWidth={2.75} aria-hidden="true" />
-                <span className="hidden sm:inline relative font-extrabold">افزودن لباس</span>
-              </Button>
-              {userId ? (
-                <Button
-                  onClick={handleLogout}
-                  variant="soft"
-                  size="icon"
-                  className="shrink-0 h-9 w-9 md:h-10 md:w-10"
-                  aria-label="خروج از حساب"
-                  title="خروج"
-                >
-                  <LogOut className="w-4 h-4 md:w-5 md:h-5" aria-hidden="true" />
-                </Button>
-              ) : (
-                <Button
-                  onClick={() => navigate('/auth')}
-                  variant="soft"
-                  size="default"
-                  className="shrink-0 h-9 md:h-10 px-2.5 md:px-4"
-                  aria-label="ورود یا ثبت‌نام"
-                >
-                  <LogIn className="w-4 h-4" aria-hidden="true" />
-                  <span className="hidden sm:inline font-bold">ورود</span>
-                </Button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
       <main
         id="main-content"
-        className="container max-w-3xl md:max-w-5xl lg:max-w-6xl mx-auto px-3 sm:px-4 md:px-6 py-3 md:py-6 space-y-3 md:space-y-6 mobile-content-pad"
+        className="container max-w-3xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 md:py-6 space-y-3 md:space-y-6"
         tabIndex={-1}
       >
         {/* Compact summary card */}
@@ -627,24 +619,8 @@ const Index = () => {
           </section>
         )}
 
-        {/* Spacer for bottom nav on mobile */}
-        <div className="h-4 md:h-12" aria-hidden="true" />
       </main>
 
-      {/* Mobile bottom navigation — thumb-friendly */}
-      <nav
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 mobile-bottom-nav"
-        aria-label="منوی اصلی موبایل"
-      >
-        <div className="glass-strong border-t border-border/50 shadow-[0_-8px_32px_-12px_hsl(30_12%_20%/0.12)]">
-          <div
-            className="grid grid-cols-3 gap-0.5 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]"
-            role="tablist"
-          >
-            {mainTabs.map((tab) => renderTabButton(tab, { vertical: true }))}
-          </div>
-        </div>
-      </nav>
 
       {clothes.length < 2 ? (
         <MobileFab mode="add" onClick={handleOpenAdd} />
@@ -702,6 +678,7 @@ const Index = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+    </AppShell>
   );
 };
 
