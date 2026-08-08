@@ -282,6 +282,8 @@ const Index = () => {
         className="container max-w-3xl md:max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 md:py-6 space-y-3 md:space-y-6"
         tabIndex={-1}
       >
+        {mainTab !== 'start' && (
+          <>
         {/* Compact summary card */}
         <section className="animate-fade-up" aria-label="خلاصه کمد">
           <div className="flex items-center gap-2.5 md:gap-3 p-2.5 md:p-4 rounded-xl md:rounded-2xl bg-gradient-card hairline-border shadow-soft">
@@ -348,6 +350,9 @@ const Index = () => {
             {mainTabs.map((tab) => renderTabButton(tab))}
           </div>
         </nav>
+
+          </>
+        )}
 
         {mainTab === 'start' && (
           <HomeHero
